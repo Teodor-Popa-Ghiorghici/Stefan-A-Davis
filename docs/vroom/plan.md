@@ -398,3 +398,21 @@ Written as they were taken, newest last. Each says what and why.
   words are `aliases()` not `APP_ALIASES`. `COMMANDS` in `apps/terminal/complete.js` is the shell's own list and never has them; Tab learns them only through `o.commands`.
 - **The check scans the source** (`vroom_gate_check.js`): a file that is not in its allow-list and says VROOM fails it, so a leak added later by someone who did not know about the gate is caught.
 - **Dev-only files** (`apps/vroom/*_check*.js`, `check_kit.js`, `headless_harness.js`, `budget_bot.js`) are left out of the package (`electron-builder.yml`) and forbidden by `check-package.mjs`.
+
+**Phase 1 -- the owner's answers (asked once, at the start of phase 1)**
+- **Palette: VGA128, an exception the owner granted** ("it still keeps the feel of the rest while making details and visuals actually feel nice"). It replaces plan section 4's strict VGA16 for VROOM's *picture*
+  only; the rest of the machine is untouched and canvas smoothing stays off. VGA128 is built *from* the sixteen so it keeps their feel: eight ramps of sixteen steps (`apps/vroom/palette.js`): GREY, BLUE, GREEN,
+  CYAN, RED, MAGENTA, BROWN (which climbs through the machine's brown to its yellow) and COOL (a blue-grey the town's snow and shadows need and VGA does not have). Each ramp passes *exactly* through its VGA16
+  colours (steps 5 and 10, and the greys' black and white), so all sixteen are in it, and no two of the 128 are alike. A material is a ramp and a level; light moves the level within its ramp; the 4 x 4 Bayer
+  dither still blends neighbouring steps and still fades into fog, so the picture keeps the machine's dithered look with far finer shading. The one place that decides colour is `raster_shade.js`.
+- **Textures are procedural** (the owner has no photographs to supply); `scripts/make-blackout-art.py` remains the way to press photographs later.
+- **"Delivery & Co." is Easy Delivery Co.**, as the plan assumed.
+- **The renderer indexes, it does not blend.** The buffer is palette indices; a texel is already an index (`ramp * 16 + level`), so light is `level + (light - 1) * 9` with the Bayer fraction added and floored
+  (mean-preserving: a flat colour at light 1 stays flat), fog is the same pattern turned to the fog colour in eight bands, and a shadow is a *material* that takes steps off the ramp already drawn. Nothing mixes
+  two colours, so nothing can leave the palette (`raster_check.js` reads every byte and every presented pixel). Fog is per vertex and linear in depth, as the PS1 did it: big triangles are therefore cut up,
+  and the town's ground is built in pieces.
+- **Affine on purpose.** Texel positions are walked in a straight line across the screen. The only protection from smearing is the subdivision of triangles that are both large and deep (edge > 28 px and a
+  depth ratio over 1.35, or any edge over 96 px, up to three cuts); the rest of the wobble is the look. Corners are snapped to whole pixels, which shows as a shimmer on moving cars: also the look.
+- **Texture sizes are any power of two from 8 to 64** (a lit window is 16 x 16, a sign 64 x 16): the filler takes a shift and two masks per material, so the size costs nothing.
+- **A frame is cheap enough to share.** 5,000 triangles submitted and 1,500 drawn in about 4 ms in Node, against the 6 ms budget; the second view of the 2P split (`R.view` with a smaller rectangle) costs about the same
+  again, which is why the split screen is a late phase and not a free one.

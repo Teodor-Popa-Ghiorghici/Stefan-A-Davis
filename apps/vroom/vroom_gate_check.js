@@ -187,7 +187,8 @@ const HT = await import('../../kernel/help_text.js');
   const ALLOWED = new Set([
     'kernel/vroom_gate_core.js', 'kernel/vroom_gate.js', 'apps/vroom_scope.js', 'kernel/registry.js', 'kernel/launcher_model.js', 'kernel/commands.js', 'kernel/help_text.js', 'kernel/desk_grid.js',
     'kernel/icons_dom.js', 'kernel/sprites_extra.js', 'kernel/mixer.js', 'kernel/trophies.js', 'kernel/trophies_defs.js', 'kernel/trophies_system2.js', 'apps/hifi/library.js', 'apps/trophies/model.js',
-    'apps/terminal/complete_check.js'                    /* a check, not shipped */
+    'apps/terminal/complete_check.js',                   /* a check, not shipped */
+    'electron-builder.yml', 'package.json'               /* the build's file list and the npm script that runs the shell check: nothing the machine ever shows */
   ]);
   const skip = new Set(['node_modules', '.git', 'dist', 'vendor']);
   const hits = [];

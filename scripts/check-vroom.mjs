@@ -9,6 +9,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PAL } from '../apps/vroom/palette.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const profile = mkdtempSync(join(tmpdir(), 'holytron-vroom-'));
@@ -68,6 +69,19 @@ const canvasOf = page => page.evaluate(() => {
   return { w: cv.width, h: cv.height, cols };
 });
 
+/* the game's picture: how many colours, and how many pixels are NOT one of VGA128 (a palette comes from apps/vroom/palette.js, the same file the game uses) */
+const PALSET = PAL.map(c => c.join(','));
+async function gamePicture(page) {
+  const px = await page.evaluate(() => {
+    const cv = document.querySelector('.win canvas.gamecv'); if (!cv) return null;
+    const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; return { w: cv.width, h: cv.height, d: Array.from(d) };
+  });
+  if (!px) return null;
+  const set = new Set(PALSET), seen = new Set(); let stray = 0, h = 0x811C9DC5;
+  for (let i = 0; i < px.d.length; i += 4) { const k = px.d[i] + ',' + px.d[i + 1] + ',' + px.d[i + 2]; seen.add(k); if (!set.has(k) || px.d[i + 3] !== 255) stray++; h ^= px.d[i] ^ (px.d[i + 1] << 8) ^ (px.d[i + 2] << 16); h = Math.imul(h, 0x01000193) >>> 0; }
+  return { w: px.w, h: px.h, colours: seen.size, stray, hash: h };
+}
+
 try {
   /* ---- 1. a machine with nothing earned ---- */
   let app = await launch();
@@ -123,8 +137,14 @@ try {
   ok(hello.some(l => /ENGINE IS WARM/.test(l)), 'clue earned: the terminal word VROOM opens it', hello.join(' | '));
   await page.waitForSelector('.win canvas.gamecv', { timeout: 8000 }).catch(() => {});
   await page.waitForTimeout(400);
-  const shown = await canvasOf(page);
-  ok(shown && shown.w === 320 && shown.cols.ffff55 > 20, 'clue earned: the window is the game, not the locked picture', JSON.stringify(shown && shown.cols));
+  const shown = await gamePicture(page);
+  ok(shown && shown.w === 320 && shown.h === 180 && shown.colours > 25, 'clue earned: the window is the game (a picture of many colours), not the locked one', JSON.stringify(shown && { w: shown.w, colours: shown.colours }));
+  ok(shown && shown.stray === 0, 'clue earned: every pixel of the game is one of the 128 colours of VGA128 (none blended, none stray)', shown && shown.stray + ' stray');
+  await page.waitForTimeout(700);
+  const later = await gamePicture(page);
+  ok(shown && later && later.hash !== shown.hash, 'clue earned: the picture moves (the camera drifts down the street)');
+  const fps = await page.evaluate(() => new Promise(res => { let n = 0; const t0 = performance.now(); const f = () => { n++; if (performance.now() - t0 < 2000) requestAnimationFrame(f); else res(n / ((performance.now() - t0) / 1000)); }; requestAnimationFrame(f); }));
+  ok(fps >= 20, 'clue earned: the window keeps up (' + fps.toFixed(0) + ' frames a second under the test display, at least 20)', fps.toFixed(1));
   const clue = await term(page, 'trophy vroom');
   ok(clue.some(l => /VROOM/.test(l)) && clue.some(l => /EARNED/.test(l)), 'clue earned: TROPHY VROOM shows the gold trophy, earned', clue.join(' | '));
 
