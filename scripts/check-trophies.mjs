@@ -74,6 +74,9 @@ const mem = () => { let saved = null; const paid = []; return { saved: () => sav
   /* backfill is silent: no SUN, no card */
   const M4 = mem(), T4 = createTrophies(M4.env); T4.register('x', [t('x_a', 'A', 'B', 'P', 'a.', rule.on('a'))]);
   ok(T4.backfill(['x_a', 'nope']) === 1 && T4.earned('x_a') && M4.paid.length === 0 && T4.pendingCards.length === 0, 'backfill awards what is proved, silently, and pays nothing');
+  /* a catch-up (a milestone passed before its trophy could be reached) pays once, quietly, and never twice */
+  const M4b = mem(), T4b = createTrophies(M4b.env); T4b.register('x', [t('x_a', 'A', 'B', 'P', 'a.', rule.on('a'))]);
+  ok(T4b.backfill(['x_a'], true) === 1 && M4b.paid.length === 1 && T4b.backfill(['x_a'], true) === 0 && M4b.paid.length === 1, 'a catch-up grants what was passed, pays it once, and a second boot grants nothing');
   /* the calendar */
   const M5 = mem(), T5 = createTrophies(M5.env); T5.register('system', [t('s_d3', 'D3', 'B', 'P', 'Three days.', rule.stat('dayStreak', 3)), t('s_d7', 'D7', 'S', 'P', 'Seven days.', rule.stat('dayStreak', 7))]);
   T5.openDay(day(1), 10, 1); T5.openDay(day(2), 10, 2); ok(T5.dayStreak() === 2 && !T5.earned('s_d3'), 'two days are two');

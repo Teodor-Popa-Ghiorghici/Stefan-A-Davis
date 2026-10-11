@@ -84,7 +84,7 @@ export default {
     root.appendChild(pane); root.appendChild(bar); root.appendChild(tipEl);
     const bench = createBench({
       offers: () => M.offers(w, st, st.active), balance: () => window.Economy.balance(), roomName: () => roomDef().name,
-      buy: id => { const ok = M.buy(w, st, st.active, id, (n, s) => window.Economy.spend(n, s)); if (ok) { snd('purchase'); save(); refreshBar(); } else snd('deny'); return ok; },
+      buy: id => { const ok = M.buy(w, st, st.active, id, (n, s) => window.Economy.spend(n, s)); if (ok) { snd('purchase'); save(); refreshBar(); tro.benchBought(); } else snd('deny'); return ok; },
       onChange: open => benchBtn.classList.toggle('on', open)
     });
     pane.appendChild(bench.el);
