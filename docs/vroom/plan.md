@@ -416,3 +416,24 @@ Written as they were taken, newest last. Each says what and why.
 - **Texture sizes are any power of two from 8 to 64** (a lit window is 16 x 16, a sign 64 x 16): the filler takes a shift and two masks per material, so the size costs nothing.
 - **A frame is cheap enough to share.** 5,000 triangles submitted and 1,500 drawn in about 4 ms in Node, against the 6 ms budget; the second view of the 2P split (`R.view` with a smaller rectangle) costs about the same
   again, which is why the split screen is a late phase and not a free one.
+
+**Phase 2 -- the physics**
+- **Tyre model: a saturating slip angle in a friction circle**, not a Pacejka curve. Lateral force `-mu N tanh(k v_side / (|v_forward| + v0))` (k 5.5, v0 1.0) is capped by the impulse that would stop the sliding in one
+  substep (so a tyre can never push a car back the other way), and the engine, the brake and that lateral force share one circle of radius `mu N` (the lateral limit scaled by the car's own grip): past it both shrink,
+  which is the slide. It has no peak-and-fall, so a car that is sliding is still gripping at `mu N`: forgiving by design.
+- **The steering lock is chosen by grip, not by a table**: `atan(gain * g * wheelbase / v^2)` with gain 2.0, capped by the car's lock. A fixed lock either spins the car at speed or is useless at a crawl; this one
+  asks the road for about twice what a tyre has at any speed, so the stick can be held over without a spin and the car pushes wide. A rear lateral grip bias of 1.12 (`latBias`; below 1 is a drifty car) keeps it from
+  stepping out when the throttle is lifted, which a centre of mass this high above a wheelbase this short would otherwise do at once.
+- **Heights are chosen to be a toy**: the courier's centre of mass is 0.058 m over a 0.28 m wheelbase and a 0.19 m track (stability factor 1.6, flat-out cornering never rolls it); a van is 1.0 and a crane truck 0.8.
+  Inertia is scaled 1.6 over a solid box (a lower number made every ramp foot a bucking bronco: the impulse on a front wheel has a very short arm and a very small inertia to work on).
+- **Acceleration is held by the road before it is held by the engine**: no tyre can ask more than mu g (15.7 m/s^2), so `ACCEL_BEST` is an engine time (0 to 95 %, 1.9 s for ROOKIE down to 1.3 s for PRO) and the
+  check measures what a car really does (a ROOKIE courier is at 90 % of its top speed in 2 to 3.4 s on asphalt, longer in front-wheel drive, far longer on snow and ice).
+- **The ends of the body are cut away** (the bottom corners and the bottom end midpoints are lifted 3 cm: an approach and a departure angle) and the belly stands 3.2 cm off the road, or the nose digs into the foot of every
+  ramp. The wheel has a full 5 cm of travel over a 6 cm rest length, then a sphere that stops the body.
+- **Air: the nose follows the path and the spin dies away** (`AIR.align` 30 rad/s^2 per radian, `AIR.damp` 5.5 /s), with the player's pitch and roll torque (7.5 rad/s^2, capped at 3.2 rad/s) on top. A car that leaves a
+  ramp with the nose-up spin a rigid body gets from the foot of it comes down level; the player's authority is the small angle at which the player's torque balances the alignment (about 14 degrees).
+- **The ghost-contact trap is real and was found by the check, not by thought**: an edge shared by two coplanar triangles gives a contact normal along the seam, so a wheel sphere crossing the diagonal of a flat ramp
+  stopped the car dead (a 7 m/s loss at a 12 degree ramp). `col_grid.js` flags such seams when the grid is built and `closest()` reports where the nearest point was, so the contact is dropped there.
+- **Friction impulses accumulate and are clamped as a total** (the first version clamped each iteration to mu times the normal impulse and so applied up to four times what friction could give: landings lost 3 m/s).
+- **A conveyor is a surface with a grip on the wheel** (`SURF.belt.drag` 0.5 N s/m a wheel): a car on it is carried toward the belt's speed in about a second, and one driving against it is slowed.
+- **Events** the sim emits each step: `land`, `flip`, `wheelie`, `hit-wall`, `hit-car`, `surface`, `repo-start`, `repo`. The trophies, the sound and the camera hear these and nothing else.
