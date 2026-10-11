@@ -35,6 +35,9 @@ export function mountGame(root, ctx) {
   G.save = () => {
     try { const p = ctx && ctx.save ? ctx.save(KEY, JSON.parse(JSON.stringify(G.career))) : null; if (p && p.catch) saving = p.catch(() => {}); } catch (e) { /* a save that fails is tried again at the next change */ }
   };
+  /* a time trial's best run, kept apart from the career (it is a few kilobytes of keys): one key to a road and variant */
+  G.loadGhost = key => Promise.resolve(ctx && ctx.load ? ctx.load('ghost.' + key) : null).then(g => (g && typeof g.text === 'string' && g.car ? g : null)).catch(() => null);
+  G.saveGhost = (key, g) => { try { const p = ctx && ctx.save ? ctx.save('ghost.' + key, g) : null; if (p && p.catch) p.catch(() => {}); } catch (e) { /* tried again next time */ } };
   G.screens = createScreens(G);
 
   let raf = 0, alive = true, last = 0, frames = 0, clock = 0;

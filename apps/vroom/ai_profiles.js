@@ -24,7 +24,7 @@ export function tierProfile(t) {
 }
 /* how strong the field of an event is: the tier a rival of ordinary skill drives at in an event of each rating, and how far a rival that is better or worse than that is from it (rivals.js `skill` is -1, 0 or 1).
    These are what the budget bot calibrates (budget_bot.js): the aim is that a driver of the bot's ordinary human pace, with what a cup asks for, gets through a cup at the first try about half the time. */
-export const FIELD = { ofRating: [1.0, 1.8, 2.7, 2.35, 3.3], skillStep: 1 };
+export const FIELD = { ofRating: [1.0, 3.6, 2.7, 2.35, 3.3], skillStep: 1 };
 export const HUMAN = { name: 'HUMAN', reaction: 14, lineError: 0.3, gripUse: 0.82, brakeEarly: 1.2, aggression: 0.3, mistake: 0.04, pickups: 0.5 };
 
 /* a rival's habits laid over its tier: `aggression` and `pickups` are added (and kept between 0 and 1), `mistake` and `lineError` are multiplied. Nothing that is speed, grip or mass has a place here. */

@@ -101,12 +101,12 @@ const max = () => { const c = C.fresh(); for (const id of P.ROUTE_IDS) c.own.rou
 {
   let up = true; for (let p = 1; p < 8; p++) if (racePay({ place: p, n: 8, rating: 0, laps: 3 }).total <= racePay({ place: p + 1, n: 8, rating: 0, laps: 3 }).total) up = false;
   ok(up, 'a better place pays more, all the way down the field of eight');
-  ok(racePay({ place: 8, n: 8, rating: 0, laps: 3 }).total >= 12, 'and last place still pays something (' + racePay({ place: 8, n: 8, rating: 0, laps: 3 }).total + ' TIPS)');
+  ok(racePay({ place: 8, n: 8, rating: 0, laps: 3 }).total >= 8, 'and last place still pays something (' + racePay({ place: 8, n: 8, rating: 0, laps: 3 }).total + ' TIPS)');
   ok(racePay({ place: 1, n: 8, rating: 4, laps: 3 }).total > racePay({ place: 1, n: 8, rating: 0, laps: 3 }).total * 2, 'a higher rating pays about twice or more (' + racePay({ place: 1, n: 8, rating: 0, laps: 3 }).total + ' to ' + racePay({ place: 1, n: 8, rating: 4, laps: 3 }).total + ')');
   ok(racePay({ place: 1, n: 3, rating: 0, laps: 3 }).total < racePay({ place: 1, n: 8, rating: 0, laps: 3 }).total * 0.7, 'a race of three pays less than a race of eight');
   const lines = racePay({ place: 2, n: 8, rating: 1, laps: 3, hits: 9, repos: 0, record: true }).lines;
   ok(lines.some(l => /HIT/.test(l[0])) && lines.some(l => l[0] === 'CLEAN') && lines.some(l => l[0] === 'LAP RECORD') && racePay({ place: 2, n: 8, rating: 1, hits: 9 }).lines.find(l => /HIT/.test(l[0]))[0] === '6 HITS', 'hits (six at most), a clean race and a lap record are each a line of their own');
-  ok(cupPay(0, 4).total === 0 && cupPay(0, 3).total === 260 && cupPay(0, 1).total === 390 && cupPay(3, 1).total === 1560, 'a cup pays when it is passed, more when it is won, and more in a higher rating');
+  ok(cupPay(0, 4).total === 0 && cupPay(0, 3).total === 170 && cupPay(0, 1).total === 255 && cupPay(3, 1).total === 1020, 'a cup pays when it is passed, more when it is won, and more in a higher rating');
 }
 
 /* ---- a cup ---- */
@@ -135,7 +135,13 @@ const max = () => { const c = C.fresh(); for (const id of P.ROUTE_IDS) c.own.rou
   refill(d);
   ok(d.cups.rookie.tries === 1 && startCup(d, 'rookie', 9) !== null, 'a podium in a single race gives back a try');
   const kit = askKit(CUPS[3]);
-  ok(Object.keys(kit.route).length === 4 && kit.tune.motor === 3, 'the last cup asks for four route parts and tuning at level three');
+  ok(Object.keys(kit.route).sort().join() === 'bumperBar,iceChains' && kit.tune.motor === 3, 'the last cup asks for ICE CHAINS and a BUMPER BAR and tuning at level three');
+  /* what a cup asks for covers what its roads need (and each shortcut's part is one that exists) */
+  for (const cup of CUPS) {
+    const need = new Set(); cup.races.forEach(r => trackFor(r.track, r.v).needs.forEach(n => need.add(n)));
+    ok([...need].every(n => cup.ask.route.includes(n)), cup.name + ' asks for everything its roads need (' + [...need].join(', ') + ' of ' + (cup.ask.route.join(', ') || 'nothing') + ')');
+    ok(cup.races.every(r => trackFor(r.track, r.v).def.rating <= r.rating), cup.name + ' is raced at ratings no lower than its roads were drawn for');
+  }
   ok(readiness(C.fresh(), CUPS[0]) === 1 && readiness(C.fresh(), CUPS[3]) === 0 && readiness(max(), CUPS[3]) === 1, 'readiness runs from nothing to everything');
   const sd = standings({ pts: { you: 20, a: 20, b: 5 }, wins: { you: 1, a: 2, b: 0 }, last: { you: 2, a: 5, b: 3 } });
   ok(sd[0].id === 'a' && sd[1].id === 'you', 'equal points are decided by wins, then the last race');
@@ -207,5 +213,6 @@ const max = () => { const c = C.fresh(); for (const id of P.ROUTE_IDS) c.own.rou
   ok(again.record && c.tracks['sorting:f'].best < mine.time, 'a faster time is a record the second time (and the first time is not)');
   const t = trackFor('sorting', 'r');
   ok(t.name === 'SORTING ROOM REVERSED', 'the reversed road is asked for by name and built (' + t.name + ')');
+  ok(trackFor('street', 'rm').name === 'MAIN STREET REVERSED MIRRORED' && trackFor('factory', 'f').presses.length === 2, 'the other roads are there too, the factory with its presses');
 }
 S.done();

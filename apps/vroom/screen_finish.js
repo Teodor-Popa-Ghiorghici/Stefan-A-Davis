@@ -12,6 +12,7 @@ import { RIVAL_BY_ID } from './rivals.js';
 export function create(G) {
   let A = null, page = 0, t0 = 0;
   const pages = () => (A.res.cup ? 2 : 1);
+  const leave = () => { if (A.kind === 'cup') G.go('cups'); else if (['tt', 'practice', 'lastmile', 'clockwork'].includes(A.kind)) G.go('modes', { mode: A.kind }); else G.go('title'); };
   return {
     enter(args) { A = args; page = 0; t0 = G.t; },
     update() {
@@ -21,15 +22,15 @@ export function create(G) {
         if (page + 1 < pages()) { page++; return; }
         const cup = A.res.cup;
         if (A.kind === 'cup' && cup && !cup.over) G.go('race', { ev: { kind: 'cup' } });
-        else G.go(A.kind === 'cup' ? 'cups' : 'title');
+        else leave();
       }
-      if (k.back) G.go(A.kind === 'cup' ? 'cups' : 'title');
+      if (k.back) leave();
     },
     draw() {
       const R = G.R, c = G.career, look = playerLook(c.look), res = A.res;
       drawShowroom(R, { track: G.hall(), car: A.mine.car, rating: CARS[A.mine.car].rating, paint: look.paint, livery: look.livery, num: look.num, t: G.t, zoom: 0.9, at: 24 });
       const placeName = ['1ST', '2ND', '3RD', '4TH', '5TH', '6TH', '7TH', '8TH'][A.mine.place - 1];
-      head(R, A.mine.place === 1 ? 'YOU WON' : 'YOU FINISHED ' + placeName, A.s.track.name);
+      head(R, A.kind === 'tt' ? 'TIME TRIAL' : A.kind === 'practice' ? 'PRACTICE' : A.mine.place === 1 ? 'YOU WON' : 'YOU FINISHED ' + (placeName || A.mine.place + 'TH'), A.s.track.name);
       if (page === 0) {
         panel(R, 6, 22, 150, A.rows.length * 9 + 12);
         A.rows.forEach((r, i) => { const y = 27 + i * 9, me = r.human; left(R, String(r.place), 11, y, C.dim, { outline: -1 }); left(R, r.name, 22, y, me ? C.yellow : C.white, { outline: -1 }); right(R, r.time != null ? fmtTime(r.time) : r.laps + ' LAPS', 152, y, me ? C.yellow : C.dim, { outline: -1 }); });

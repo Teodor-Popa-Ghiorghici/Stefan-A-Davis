@@ -22,9 +22,9 @@ export function playerLook(look) {
   return { paint, num, stripe, livery: liveryOf({ num, stripe, pattern: 'band', logo: 'parcel' }) };
 }
 
-/* the route parts a rival of this rating has bought (docs/vroom/plan.md section 8, point 3: from the ADVANCED cup rivals have bumper bars, and take the gates). `k` is the rival's place in the field. */
+/* the route parts a rival of this rating has bought (docs/vroom/plan.md section 8, point 3: from the AMATEUR cup, which is the first whose roads have a shortcut, the rivals have the cheap route parts, a bumper bar in every other car, and take them). `k` is the rival's place in the field. */
 export function rivalParts(rating, k) {
-  return { snowTyres: rating >= 2, iceChains: rating >= 3, roofRack: rating >= 3 && k % 2 === 0, bumperBar: rating >= 2 && k % 2 === 1, headlights: rating >= 1, compound: 0 };
+  return { snowTyres: rating >= 1, iceChains: rating >= 3, roofRack: rating >= 3 && k % 2 === 0, bumperBar: rating >= 1 && k % 2 === 1, headlights: rating >= 1, compound: 0 };
 }
 
 /* the player's entry */
@@ -64,3 +64,13 @@ export function setup(c, ev, proxy) {
   return { track: T, entries, laps: ev.laps || T.laps, rating, seed, kind: ev.kind, trackId: track, v, cup, n: entries.length, swapped };
 }
 function standingIds(run) { return standings(run).map(s => s.id); }
+
+/* CLOCKWORK (docs/vroom/plan.md section 9): sixteen wind-up kei trucks, yours and fifteen of the town's, all the same toy, no pickups: it is only ever the traffic. The rivals are the eleven and four of them again in other paint. */
+export function setupClockwork(c, ev) {
+  const T = trackFor(ev.track, ev.v || 'f'), look = playerLook(c.look), ids = RIVALS.map(r => r.id), rivals = entriesFor(ids, 0, 0);
+  for (let k = 0; k < 4; k++) { const r = RIVALS[k], tw = Object.assign({}, rivals[k], { id: r.id + '2', name: r.name + ' II', paint: ix(GREY, 4 + k * 3), num: String(50 + k * 11) }); tw.livery = liveryOf({ num: tw.num, stripe: r.stripe, pattern: r.pattern, logo: r.logo }); rivals.push(tw); }
+  const entries = rivals.slice(0, 15).map(e => Object.assign(e, { car: 'courier', tier: 1, parts: {} }));
+  const you = { id: 'you', name: 'YOU', car: 'courier', human: true, tier: 0, paint: look.paint, livery: look.livery, num: look.num, parts: {}, mods: { coffee: 1, recover: 1 } };
+  entries.splice(11, 0, you);
+  return { track: T, entries, laps: ev.laps || 3, rating: 0, seed: (ev.seed >>> 0) || 1, kind: 'clockwork', trackId: ev.track, v: ev.v || 'f', n: entries.length, pickups: false };
+}

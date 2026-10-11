@@ -42,6 +42,7 @@ export function drawView(R, rect, track, field, cam, o) {
     if (dx * dx + dz * dz >= r * r) continue;
     if (d.sparks) { emit.push(...d.sparks); continue; }
     if (d.door != null) { if (o.doors) R.draw(o.doors.target === d.door ? d.mesh : d.dim, d.m); continue; }       /* the doors are LAST MILE's: the one wanted next is lit, the others are dim */
+    if (d.star) { if (o.stars && !o.stars.has(d.star.id)) R.draw(d.mesh, place(d.star.x, d.star.y + 0.05 * Math.sin(t * 3), d.star.z, t * 1.6, 0, 0, d.star.k || 1)); continue; }       /* a star is PRACTICE's: it turns and bobs until it is picked up */
     if (d.gate && o.broken && o.broken.has(d.gate)) continue;                                  /* a gate that has been broken is not there */
     if (d.press) { const p = d.press, h = pressAt(p, t).h; R.draw(d.mesh, place(p.x, p.y + h, p.z, p.yaw, 0, 0, 1)); if (h < 0.5 && h > 0.05) emit.push({ x: p.x, y: p.y + 0.1, z: p.z, phase: 0, seed: 3 }); }
     else R.draw(d.mesh, d.m);
@@ -50,7 +51,7 @@ export function drawView(R, rect, track, field, cam, o) {
     const p = f.car.p, dx = p[0] - cx, dz = p[2] - cz;
     if (dx * dx + dz * dz > 80 * 80) continue;
     const gd = ray(track.col, p[0], p[1] + 0.02, p[2], 0, -1, 0, 3);
-    drawCar(R, f.model, f.car, gd >= 0 ? p[1] + 0.02 - gd : null, { ghost: f.car.ghost > 0 ? f.car.ghost : 0, fuse: f.bomb ? Math.max(0.12, f.bomb.fuse / 6) : undefined });
+    drawCar(R, f.model, f.car, gd >= 0 ? p[1] + 0.02 - gd : null, { ghost: f.car.ghost > 0 ? f.car.ghost : f.ghostDraw ? ((Math.floor(t * 60) & 1) ? 0.09 : 0) : 0, fuse: f.bomb ? Math.max(0.12, f.bomb.fuse / 6) : undefined });
   }
   if (o.pickups) drawPickups(R, o.pickups.P, field, o.pickups.t, cam);
   if (emit.length) R.points(sparks(emit, t));

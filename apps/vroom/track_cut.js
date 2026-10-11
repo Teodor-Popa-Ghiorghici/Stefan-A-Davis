@@ -105,15 +105,15 @@ export function buildCuts(ctx) {
       }
     }
     /* the gaps in the main road's walls: the stretch of the main road's edge that the corridor's strip lies across, at either end */
-    const gap = (from, to, sd, wd) => {
+    const gap = (from, to, sd, wd, at) => {
       let lo = 1e9, hi = -1e9;
       for (let i = from; i !== to + Math.sign(to - from); i += Math.sign(to - from)) {
         const p = S[i], near = line.nearest(p.x, p.z), q = line.samples[near], lat = ((p.x - q.x) * q.nx + (p.z - q.z) * q.nz) * sd;
-        if (lat > wd / 2 - w / 2 - 0.5 && lat < wd / 2 + w / 2 + 0.3) { lo = Math.min(lo, q.s); hi = Math.max(hi, q.s); }
+        if (lat > wd / 2 - w / 2 - 0.5 && lat < wd / 2 + w / 2 + 0.3) { const d = ((q.s - at + L / 2) % L + L) % L - L / 2; lo = Math.min(lo, d); hi = Math.max(hi, d); }      /* (as a distance from the mouth, so a mouth by the start line is one gap and not the whole lap) */
       }
-      return lo > hi ? null : { s0: lo - 0.4, s1: hi + 0.4, side: sd };
+      return lo > hi ? null : { s0: at + lo - 0.4, s1: at + hi + 0.4, side: sd };
     };
-    const g0 = gap(0, Math.min(n - 1, enter + 3), side, wa) || { s0: sa - 2, s1: sa + 2, side }, g1 = gap(n - 1, Math.max(0, leave - 3), xs, wb) || { s0: sb - 2, s1: sb + 2, side: xs };
+    const g0 = gap(0, Math.min(n - 1, enter + 3), side, wa, sa) || { s0: sa - 2, s1: sa + 2, side }, g1 = gap(n - 1, Math.max(0, leave - 3), xs, wb, sb) || { s0: sb - 2, s1: sb + 2, side: xs };
     const cutObj = { id: k, sa, sb, side, w, floor: cut.floor || 'asphalt', surf: SURF[surf].id, samples: S, len: path.length, step: path.step, enter, leave, gaps: [g0, g1], gate: null, needs: [] };
     /* the gate: a fence across the corridor, a tagged box in the soup, and a mesh that goes when it is broken */
     if (cut.gate) {

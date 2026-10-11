@@ -57,9 +57,9 @@ function hall(def, line, width, F) {
 }
 
 import { kitOf } from './dress_kit.js';
-import { street, pass, dam, harbour } from './dress_outdoor.js';
+import { street, pass, dam, harbour, yard } from './dress_outdoor.js';
 import { forecourt, diner, factory } from './dress_indoor.js';
-const KITS = { street, pass, dam, harbour, forecourt, diner, factory };
+const KITS = { street, pass, dam, harbour, yard, forecourt, diner, factory };
 /* what stands round a road: its kit by name (`def.dress`), or the sorting room's hall */
 export function dress(def, line, width, F, cuts, startS) {
   const kit = KITS[def.dress];

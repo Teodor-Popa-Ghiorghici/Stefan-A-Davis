@@ -1,10 +1,10 @@
 /* TIPS: WHAT A RACE PAYS (docs/vroom/plan.md section 8). Races, cups and stars pay TIPS, the game's own money; the machine's SUN is separate (phase 7). The pay is built to do three things at once: a place always
    pays something (a last place is not a wasted race), the better places pay a lot more (so a part is a few good races, not a few races), and the later ratings pay more because their parts cost more. A little
    extra for the things that make a race worth watching (hitting someone with a pickup, a clean race, a lap record) and nothing for staying out of the way. The numbers are the budget bot's to hold. Pure. */
-export const PLACE_TIPS = [150, 115, 85, 62, 46, 34, 24, 17];         /* by place in a field of eight */
+export const PLACE_TIPS = [98, 75, 55, 40, 30, 22, 16, 11];         /* by place in a field of eight */
 export const RATING_MULT = [1, 1.25, 1.6, 2.0, 2.5];
-export const HIT_TIPS = 8, HIT_MAX = 6, CLEAN_TIPS = 25, RECORD_TIPS = 35;
-export const CUP_PASS = 260, CUP_WIN_MULT = 1.5;                       /* a passed cup pays this much times (1 + its rating); first place pays half as much again */
+export const HIT_TIPS = 5, HIT_MAX = 6, CLEAN_TIPS = 16, RECORD_TIPS = 23;
+export const CUP_PASS = 170, CUP_WIN_MULT = 1.5;                       /* a passed cup pays this much times (1 + its rating); first place pays half as much again */
 
 /* one race. o: { place (1-based), n (cars), rating, laps, hits (delivered), repos, record (a new best lap on this road), kind } -> { total, lines: [[label, tips]] } */
 export function racePay(o) {

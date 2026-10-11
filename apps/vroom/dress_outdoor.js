@@ -49,3 +49,13 @@ export function harbour(K) {
   K.banner(K.startS + 3, 4.6, 2.7, 'FROZEN HARBOUR', ix(COOL, 15), ix(BROWN, 4));
 }
 void RED; void GREY; void BROWN;
+
+/* THE STUNT YARD: snow all round the bank, the depot's blocks and pines beyond it, floodlight poles along the edge, and a snowman who has seen it all. The infield is the yard's own (track_yard.js). */
+export function yard(K) {
+  K.ground('snow', 70, 4);
+  K.along(15, [-1], 2.5, 10, 2, (b, x, z) => P.pine(b, x, z, 2 + K.rnd() * 3));
+  K.along(26, [-1], 1.4, 0.3, 0.4, (b, x, z) => P.lamp(b, x, z, 4.6));
+  K.along(46, [-1], 9, 8, 7, (b, x, z) => P.block(b, x, z, 9 + K.rnd() * 5, 7 + K.rnd() * 4, 4 + K.rnd() * 4, K.rnd() < 0.5 ? 'brick' : 'concrete', true));
+  K.along(70, [-1], 3, 4, 1, (b, x, z) => P.snowman(b, x, z));
+  K.banner(K.startS + 4, 11, 3.0, 'STUNT YARD', ix(COOL, 15), ix(RED, 5));
+}

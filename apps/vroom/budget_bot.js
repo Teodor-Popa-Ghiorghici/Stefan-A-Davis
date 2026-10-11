@@ -11,13 +11,14 @@ import { CUPS } from './cups.js';
 import { poolFor, bootstrap, playCareer, PROFILES } from './budget_play.js';
 import { FIELD } from './ai_profiles.js';
 import { defFor, trackFor } from './tracks.js';
+import { needsOfDef } from './track_def.js';
 
 /* the route parts a cup's roads need (a track says so in `needs`: tracks.js, track_def.js). Until a road needs one, what a cup asks for in parts can make no difference and the bot says so instead of asserting it. */
 /* HOW LONG A RACE IS. The plan's three hours are for the whole town, whose roads average a lap of about 48 s; a driver goes round at about 10.5 m/s (the sorting room's 332 m is a lap of 32 s). While the cups are run on the sorting room alone,
    the hours are scaled to the lap the town is meant to have, so that the number means what the plan means; with the real roads in the cups the scale is about one. */
 const TOWN_LAP = 48, lapOf = r => trackFor(r.track, r.v).length / 10.5;
 const cupLap = () => avg(CUPS.flatMap(cup => cup.races.map(lapOf)));
-const needs = cup => [...new Set(cup.races.flatMap(r => defFor(r.track, r.v).needs || []))];
+const needs = cup => [...new Set(cup.races.flatMap(r => needsOfDef(defFor(r.track, r.v))))];
 
 const FILE = fileURLToPath(import.meta.url);
 

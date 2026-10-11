@@ -116,6 +116,7 @@ export function createDriver(track, spec, profile, seed, parts) {
       } else {
         const look = ctx && forkLat == null ? pickupLook(profile, ctx, ctx.lat, seed) : null;
         if (forkLat != null) want = forkLat - L.off[i0];
+        else if (ctx && ctx.stop && ctx.stop.ahead < 28 && ctx.stop.ahead >= 0) want = clamp(ctx.stop.lat - L.off[i0], -3, 3);                  /* LAST MILE: toward the pad of the lit door */
         else if (look && look.avoid) want = look.avoid.lat + (look.avoid.lat > ctx.lat ? -0.7 : 0.7) - L.off[i0];
         else if (bombSeek) want = clamp(bombSeek.lat - L.off[i0], -1.6, 1.6);
         else if (look && look.want != null && !passSide) want = clamp(look.want - L.off[i0], -1.4, 1.4);
@@ -125,8 +126,11 @@ export function createDriver(track, spec, profile, seed, parts) {
         const pre = Math.round((seen.sp * 0.2 + profile.brakeEarly) / ds);
         vt = plan.v[(seen.near + Math.max(0, pre) + n) % n];
       }
+      let pressWait = false, stopping = false;
+      /* LAST MILE: the lit door's pad is a place to stop on: the speed that gets the car to rest on it (a driver brakes at about 5 m/s^2), and then it waits there (the race says when it has been long enough) */
+      if (ctx && ctx.stop && ctx.stop.ahead < -0.4 && ctx.stop.ahead > -20 && sp0 < 6) backT = Math.max(backT, 0.25);              /* over-ran the pad: back up to it */
+      if (ctx && ctx.stop && ctx.stop.ahead >= 0 && ctx.stop.ahead < 40) { const d = ctx.stop.ahead - 1.1; vt = Math.min(vt, d <= 0.15 ? 0 : Math.sqrt(2 * 3.2 * d) + 0.3); stopping = true; if (ctx.stop.ahead < 3.5) pressWait = true; }
       /* a press ahead: a driver looks at the beat and arrives when it is up (it can see the slab and hear it): the speed that gets it to the slab at the next time it will be clear, and a stop at the line if it is down now */
-      let pressWait = false;
       if (ctx && ctx.t != null && track.presses && track.presses.length) {
         const len = track.length, sp = Math.max(sp0, 2.5);
         for (const p of track.presses) {
@@ -141,6 +145,7 @@ export function createDriver(track, spec, profile, seed, parts) {
       if (slip > 0 && slipKind === 0) steer = clamp(steer + slipDir * 0.45, -1, 1);
       const spd = o.sp, over = spd - vt;
       let throttle = clamp((vt - spd) * 2.5 + 0.2, 0, 1), brake = over > 0.25 ? clamp(over * 0.9, 0, 1) : 0;
+      if (stopping && over > 0.1) brake = clamp(over * 3, 0, 1);                                                   /* coming up to a door's pad the brakes are used hard enough to stop on it (on ice too) */
       /* a driver feels the tyres let go and eases off the power (a rear-drive car that is flat out out of a bend steps its tail round and then cannot be caught: the wheel's own friction circle says so) */
       let sl = 0; for (const wl of car.wheels) if (wl.slide > sl) sl = wl.slide;
       throttle *= clamp(1 - Math.max(0, sl - 0.06) * 3.5, 0.25, 1);

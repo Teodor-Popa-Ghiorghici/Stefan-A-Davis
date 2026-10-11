@@ -8,6 +8,8 @@
      look        the cosmetic chosen of each kind
      cups, run   each cup's tries and record, and the cup being run now
      tracks      the best time on each road, in each variant, and how many races were run on it
+     tt, stars   the best time trial lap of each road and variant; the roads whose hidden star has been found (career_modes.js)
+     yard, lm, cw  the stunt yard's stars found, LAST MILE's bests and CLOCKWORK's record
      stats       races, wins, podiums and the like, for the trophies and the screens
    Parts are the garage's, not a car's: what is bought is fitted to whichever car goes out, and an event's rating holds it (parts.js). */
 import { ROUTE, TUNING, COSMETICS, MAX_LEVEL, blankKit, nextPrice } from './parts.js';
@@ -25,7 +27,7 @@ export function fresh() {
   const own = { route: {}, tune: Object.assign({}, kit.tune), look: {} };
   for (const k of Object.keys(COSMETICS)) own.look[k] = { [COSMETICS[k].items[0].id]: 1 };
   const cups = {}; for (const c of CUPS) cups[c.id] = freshCup();
-  return { v: VERSION, tips: 0, earned: 0, cars: { courier: 1 }, car: 'courier', own, ballast: 0, look: Object.assign({}, kit.look), cups, run: null, tracks: {}, stats: { races: 0, wins: 0, podiums: 0, hits: 0, flips: 0, finishes: 0 }, news: [] };
+  return { v: VERSION, tips: 0, earned: 0, cars: { courier: 1 }, car: 'courier', own, ballast: 0, look: Object.assign({}, kit.look), cups, run: null, tracks: {}, tt: {}, stars: {}, yard: {}, lm: { best: {}, delivered: 0, perfect: 0, runs: 0 }, cw: { races: 0, wins: 0, best: 0 }, stats: { races: 0, wins: 0, podiums: 0, hits: 0, flips: 0, finishes: 0 }, news: [] };
 }
 /* anything that was saved -> a career that is safe to use: unknown ids dropped, numbers clamped, a missing piece made again. A save from the future is read as far as it can be. */
 export function sanitize(raw) {
@@ -46,6 +48,12 @@ export function sanitize(raw) {
   if (raw.cups) for (const cup of CUPS) { const s = raw.cups[cup.id]; if (s) c.cups[cup.id] = { tries: int(s.tries, 0, TRIES, TRIES), passed: int(s.passed, 0, 1e6, 0), won: int(s.won, 0, 1e6, 0), sweeps: int(s.sweeps, 0, 1e6, 0), best: int(s.best, 0, 1e6, 0), runs: int(s.runs, 0, 1e6, 0) }; }
   c.run = raw.run && CUP_BY_ID[raw.run.cup] && raw.run.race < CUP_BY_ID[raw.run.cup].races.length && raw.run.pts ? clone(raw.run) : null;
   if (raw.tracks && typeof raw.tracks === 'object') for (const k of Object.keys(raw.tracks)) { const t = raw.tracks[k]; if (t && typeof t === 'object') c.tracks[String(k).slice(0, 40)] = { best: Number.isFinite(t.best) ? t.best : null, lap: Number.isFinite(t.lap) ? t.lap : null, races: int(t.races, 0, 1e6, 0), wins: int(t.wins, 0, 1e6, 0) }; }
+  const key = k => String(k).slice(0, 40), num = v => (Number.isFinite(v) ? v : null);
+  if (raw.tt && typeof raw.tt === 'object') for (const k of Object.keys(raw.tt)) { const t = raw.tt[k]; if (t && num(t.lap) != null) c.tt[key(k)] = { lap: t.lap, time: num(t.time), car: CARS[t.car] ? t.car : 'courier' }; }
+  if (raw.stars && typeof raw.stars === 'object') for (const k of Object.keys(raw.stars)) if (raw.stars[k]) c.stars[key(k)] = 1;
+  if (raw.yard && typeof raw.yard === 'object') for (const k of Object.keys(raw.yard)) if (raw.yard[k] && /^[0-9]{1,2}$/.test(k)) c.yard[k] = 1;
+  if (raw.lm && typeof raw.lm === 'object') { if (raw.lm.best && typeof raw.lm.best === 'object') for (const k of Object.keys(raw.lm.best)) if (num(raw.lm.best[k]) != null) c.lm.best[key(k)] = Math.max(0, Math.min(1e6, raw.lm.best[k])); for (const f of ['delivered', 'perfect', 'runs']) c.lm[f] = int(raw.lm[f], 0, 1e9, 0); }
+  if (raw.cw && typeof raw.cw === 'object') for (const f of ['races', 'wins', 'best']) c.cw[f] = int(raw.cw[f], 0, 1e9, 0);
   if (raw.stats) for (const k of Object.keys(c.stats)) c.stats[k] = int(raw.stats[k], 0, 1e9, 0);
   c.news = Array.isArray(raw.news) ? raw.news.filter(s => typeof s === 'string').slice(0, 20) : [];
   return c;

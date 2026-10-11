@@ -41,7 +41,9 @@ export const COSMETICS = {
   horn: { name: 'HORN', items: [
     { id: 'beep', name: 'BEEP', price: 0 }, { id: 'honk', name: 'HONK', price: 100 }, { id: 'bell', name: 'SLEIGH BELL', price: 100 }, { id: 'ahooga', name: 'AHOOGA', price: 0 }] },
   plate: { name: 'PLATE', items: [
-    { id: '01', name: '01', price: 0 }, { id: '07', name: '07', price: 80 }, { id: '13', name: '13', price: 80 }, { id: '21', name: '21', price: 80 }, { id: '88', name: '88', price: 80 }, { id: '00', name: '00', price: 0 }] },
+    { id: '01', name: '01', price: 0 }, { id: '07', name: '07', price: 80 }, { id: '13', name: '13', price: 80 }, { id: '21', name: '21', price: 80 }, { id: '88', name: '88', price: 80 }, { id: '00', name: '00', price: 0 },
+    { id: '02', name: '02', price: 80 }, { id: '04', name: '04', price: 80 }, { id: '09', name: '09', price: 80 }, { id: '10', name: '10', price: 80 }, { id: '14', name: '14', price: 80 }, { id: '15', name: '15', price: 80 },
+    { id: '18', name: '18', price: 80 }, { id: '19', name: '19', price: 80 }, { id: '25', name: '25', price: 80 }, { id: '27', name: '27', price: 80 }] },
   light: { name: 'CAB LIGHT', items: [
     { id: 'off', name: 'NONE', price: 0 }, { id: 'amber', name: 'AMBER BEACON', price: 120 }, { id: 'blue', name: 'BLUE BEACON', price: 120 }, { id: 'white', name: 'WORK LAMP', price: 0 }] }
 };

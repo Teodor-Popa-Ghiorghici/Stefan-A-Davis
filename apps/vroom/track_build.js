@@ -9,6 +9,7 @@ import { dress } from './track_dress.js';
 import { buildCuts, cutAt } from './track_cut.js';
 import { buildPresses } from './track_press.js';
 import { buildStars } from './track_star.js';
+import { buildYard } from './track_yard.js';
 import { buildDoors } from './track_door.js';
 import { needsOfDef } from './track_def.js';
 import { SURF } from './tune.js';
@@ -46,7 +47,8 @@ export function buildTrack(def) {
   /* the shortcuts: built first, because they cut gaps in the main road's walls */
   const cuts = buildCuts({ def, line, widthAt, sOfU, out, decor });
   const stars = buildStars({ def, line, widthAt, sOfU, out, decor });
-  const gapped = (side, s) => cuts.concat(stars).some(c => c.gaps.some(g => g.side === side && s >= g.s0 && s <= g.s1));
+  const yard = def.yard ? buildYard({ def, line, out, decor, L }) : null;                    /* the stunt yard's infield, pieces and stars (track_yard.js) */
+  const gapped = (side, s) => cuts.concat(stars, yard ? [yard.fence] : []).some(c => c.gaps.some(g => g.side === side && ((s >= g.s0 && s <= g.s1) || (s + L >= g.s0 && s + L <= g.s1) || (s - L >= g.s0 && s - L <= g.s1))));       /* (a gap by the start line runs across it) */
   const beltAt = s => F.belts.find(b => s >= b.s0 - 1e-3 && s <= b.s1 + 1e-3);
 
   /* the road */
@@ -134,7 +136,7 @@ export function buildTrack(def) {
 
   /* the starting grid: rows behind the start line, the first row nearest it (a car is placed on the ground: y is the road under it) */
   const st = def.start || { u: 0.3, rows: 4, gap: 2.1, side: 0.95 }, startS = sOfU(st.u), grid = [], s0 = startS - 0.6;
-  for (let r = 0; r < st.rows * 2; r++) {
+  for (let r = 0; r < Math.max(st.rows, 8) * 2; r++) {            /* eight rows, sixteen places: CLOCKWORK's field (a race of eight uses the first four rows) */
     const row = Math.floor(r / 2), left = r % 2 === 0, p = line.at(s0 - row * st.gap - (left ? 0 : st.gap / 2)), off = (left ? 1 : -1) * st.side;
     grid.push({ x: p.x + p.nx * off, y: p.y, z: p.z + p.nz * off, yaw: p.yaw, s: p.s });
   }
@@ -144,6 +146,7 @@ export function buildTrack(def) {
   const nodeAt = s => { const p = line.at(s); nodes.push({ x: p.x, y: p.y + lift(s), z: p.z, yaw: p.yaw, s }); };
   for (let s = 0; s < L; s += 6) if (!F.jumps.some(j => s > j.a - 1.2 && s < j.d + 1.2)) nodeAt(s);
   F.jumps.forEach(j => { nodeAt(j.a - 1.6); nodeAt(j.d + 1.6); });
+  if (yard) nodes.push(...yard.nodes);
   nodes.sort((a, b) => a.s - b.s);
   const checkpoints = [], NCP = 8;
   for (let i = 0; i < NCP; i++) { const s = (startS + L * i / NCP) % L, p = line.at(s), w = widthAt(s) / 2 + 1, a = across(p, w), b = across(p, -w); checkpoints.push({ s, ax: a.x, az: a.z, bx: b.x, bz: b.z }); }
@@ -184,5 +187,5 @@ export function buildTrack(def) {
   const built = out.build();
   /* what is under the main road at each sample (the CPU plans its speed on it) and what a car must wear to race it */
   const surfAt = new Uint8Array(S.length); S.forEach((p, i) => { surfAt[i] = SURF[FLOORS[floorAt(p.s)].surf].id; });
-  return { def, id: def.id, name: def.name, laps: def.laps || 3, needs: needsOfDef(def), cuts, gates: cuts.filter(c => c.gate).map(c => c.gate), surfAt, cutAt: (x, z, hint) => cutAt(cuts, x, z, hint), presses: F.presses, stars, doors: lm.doors, line, length: L, startS, width, widthAt, floorAt, features: F, chunks: built.chunks.map((mesh, i) => ({ mesh, s0: i * 24, s1: (i + 1) * 24 })), col: built.grid, tris: built.tris, grid, nodes, checkpoints, marks, spots, decor, lift, limits: { lo, hi }, speedCap: cap };
+  return { def, id: def.id, name: def.name, laps: def.laps || 3, needs: needsOfDef(def), cuts, gates: cuts.filter(c => c.gate).map(c => c.gate), surfAt, cutAt: (x, z, hint) => cutAt(cuts, x, z, hint), presses: F.presses, stars: yard ? yard.stars : stars, yard, doors: lm.doors, line, length: L, startS, width, widthAt, floorAt, features: F, chunks: built.chunks.map((mesh, i) => ({ mesh, s0: i * 24, s1: (i + 1) * 24 })), col: built.grid, tris: built.tris, grid, nodes, checkpoints, marks, spots, decor, lift, limits: { lo, hi }, speedCap: cap };
 }

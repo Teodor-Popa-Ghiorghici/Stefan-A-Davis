@@ -24,6 +24,8 @@ export function rig(career) {
   G.hall = () => trackFor('sorting', 'f');
   G.save = () => { saved.push(JSON.stringify(G.career)); };
   G.go = (n, a) => G.screens.go(n, a);
+  /* the ghosts the window keeps apart from the career, here in a table */
+  G.ghosts = {}; G.loadGhost = key => Promise.resolve(G.ghosts[key] || null); G.saveGhost = (key, g) => { G.ghosts[key] = g; };
   G.screens = createScreens(G);
   /* a frame: the time moves on, the screen updates and draws */
   G.frame = (dt, n) => { for (let i = 0; i < (n || 1); i++) { G.t += dt == null ? 1 / 60 : dt; G.screens.update(dt == null ? 1 / 60 : dt); G.screens.draw(); } };

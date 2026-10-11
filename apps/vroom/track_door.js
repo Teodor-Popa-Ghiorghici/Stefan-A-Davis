@@ -7,7 +7,7 @@ import { material, across } from './track_geo.js';
 import { place } from './raster_math.js';
 import { ix, BROWN, GREY } from './palette.js';
 
-export const DOORS = 6, PAD = 1.5;
+export const DOORS = 6, PAD = 1.8;
 export function buildDoors(ctx) {
   const { line, widthAt, F, cuts, stars, startS } = ctx, L = line.length, zones = [];
   F.belts.forEach(b => zones.push([b.s0 - 3, b.s1 + 3])); F.jumps.forEach(j => zones.push([j.a - 8, j.d + 4])); F.kerbs.forEach(k => zones.push([k.s0 - 3, k.s1 + 3])); F.pinches.forEach(k => zones.push([k.s0 - 5, k.s1 + 3]));

@@ -9,6 +9,16 @@ import { FLOORS, WALLS } from './track_def.js';
 import { place } from './raster_math.js';
 import { ix, BROWN, COOL } from './palette.js';
 
+/* the star itself: eight points of yellow light, turned by the scene by the clock */
+export function starDecor(star) {
+  const b = builder(), gold = material(ix(BROWN, 14), { emit: 0.95, double: true }), halo = material(ix(COOL, 15), { emit: 0.9, double: true });
+  for (const [r, h, m] of [[0, 0.2, gold], [Math.PI / 4, 0.2, gold], [Math.PI / 8, 0.1, halo]]) {
+    const c = Math.cos(r), n = Math.sin(r), P = (x, y) => [x * c - y * n, x * n + y * c, 0];
+    b.use(m).quad(P(-h, -h), P(h, -h), P(h, h), P(-h, h), [0, 0, 1], [[0, 0], [1, 0], [1, 1], [0, 1]]);
+  }
+  return { mesh: b.build(), m: place(star.x, star.y, star.z, 0, 0, 0, 1), x: star.x, z: star.z, r: 3, star };
+}
+
 export function buildStars(ctx) {
   const { def, line, widthAt, sOfU, out, decor } = ctx, stars = [];
   (def.features || []).filter(f => f.type === 'star').forEach((f, k) => {
@@ -40,13 +50,7 @@ export function buildStars(ctx) {
     /* the gap in the road's own wall where the spur leaves it: as wide as the spur is across the road's edge */
     const g = w / 2 / Math.max(0.3, Math.abs(Math.sin(ang))) + 0.08, star = { id: k, x: e.x - dx * 1.2, y: rise + 0.32, z: e.z - dz * 1.2, s, side, rise, len, ang, dx, dz, w, gaps: [{ s0: s - g, s1: s + g, side }], samples: [] };
     for (let i = 0; i <= len; i += 1) { const q = pt(i); star.samples.push({ x: q.x, z: q.z, y: lift(i), w }); }
-    /* the star itself: eight points of yellow light, turned by the scene by the clock */
-    const b = builder(), gold = material(ix(BROWN, 14), { emit: 0.95, double: true }), halo = material(ix(COOL, 15), { emit: 0.9, double: true });
-    for (const [r, h, m] of [[0, 0.2, gold], [Math.PI / 4, 0.2, gold], [Math.PI / 8, 0.1, halo]]) {
-      const c = Math.cos(r), n = Math.sin(r), P = (x, y) => [x * c - y * n, x * n + y * c, 0];
-      b.use(m).quad(P(-h, -h), P(h, -h), P(h, h), P(-h, h), [0, 0, 1], [[0, 0], [1, 0], [1, 1], [0, 1]]);
-    }
-    decor.push({ mesh: b.build(), m: place(star.x, star.y, star.z, 0, 0, 0, 1), x: star.x, z: star.z, r: 3, star: star });
+    decor.push(starDecor(star));
     stars.push(star);
   });
   return stars;

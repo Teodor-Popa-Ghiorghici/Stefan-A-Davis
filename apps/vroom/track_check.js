@@ -133,6 +133,18 @@ for (const [tid, tv] of allTracks()) {
     ok(lt.length >= 1 && lt[lt.length - 1] > T.length / 14 && lt[lt.length - 1] < T.length / 6, tag + 'a lap takes a lap (' + (lt.length ? lt.map(x => x.toFixed(1)).join(', ') : 'none') + ' s over ' + T.length.toFixed(0) + ' m)');
     void cp; void best;
   }
+  /* ---- the walls are whole ---- */
+  {
+    const gaps = []; T.cuts.concat(T.stars).forEach(c => c.gaps.forEach(g => gaps.push(g))); const wallOf = i => !!(T.def.controls[Math.floor(sm[i].u) % T.def.controls.length].wall && T.def.controls[Math.floor(sm[i].u) % T.def.controls.length].wall !== 'none');
+    const inGap = (side, s) => gaps.some(g => g.side === side && [s, s + T.length, s - T.length].some(x => x >= g.s0 - 1 && x <= g.s1 + 1)) || F.jumps.some(j => s >= j.a - 3 && s <= j.d + 3);
+    const holes = [];
+    for (let i = 0; i < n; i++) {
+      if (!wallOf(i)) continue;
+      const p = sm[i], w = T.width[i] / 2;
+      for (const side of [1, -1]) { const h = ray(T.col, p.x + p.nx * side * (w - 0.3), 0.2, p.z + p.nz * side * (w - 0.3), p.nx * side, 0, p.nz * side, 1.2); if (h < 0 && !inGap(side, p.s)) holes.push((side > 0 ? 'L' : 'R') + p.s.toFixed(0)); }
+    }
+    ok(holes.length === 0, tag + 'the walls are whole but where a shortcut or a star leaves the road (' + (holes.length ? holes.slice(0, 12).join(' ') : 'no holes') + ')');
+  }
   /* ---- the hidden stars ---- */
   for (const st of T.stars) {
     let near = 1e9; for (const q of sm) if (Math.abs(q.s - st.s) > 14 && Math.abs(q.s - st.s) < T.length - 14) near = Math.min(near, Math.hypot(q.x - st.x, q.z - st.z) - T.widthAt(q.s) / 2);

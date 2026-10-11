@@ -24,9 +24,66 @@ const DEPOT = { row: ['ArrowUp', 'ArrowDown'], col: ['ArrowLeft', 'ArrowRight'] 
   G.press('Enter'); ok(G.screens.name === 'cups', 'ENTER on the first row goes to the championship');
   G.press('Escape'); ok(G.screens.name === 'title', 'and ESC comes back');
   G.go('title', { sel: 0 }); G.press('ArrowDown'); G.press('Enter'); ok(G.screens.name === 'single', 'the second row is a single race');
-  G.go('title', { sel: 0 }); G.press('ArrowDown', 'ArrowDown'); G.press('Enter'); ok(G.screens.name === 'depot', 'the third is the depot');
-  G.go('title', { sel: 0 }); G.press('ArrowDown', 'ArrowDown', 'ArrowDown'); G.press('Enter'); ok(G.screens.name === 'garage', 'the fourth is the garage');
-  G.go('title', { sel: 0 }); G.press('ArrowUp'); ok(G.screens.screen.state().sel === 4, 'UP from the top wraps to QUIT (which closes the window; here there is none to close)');
+  G.go('title', { sel: 7 }); G.press('Enter'); ok(G.screens.name === 'depot', 'the eighth row is the depot');
+  for (const [row, mode] of [[2, 'tt'], [3, 'practice'], [4, 'lastmile'], [5, 'clockwork']]) { G.go('title', { sel: row }); G.press('Enter'); ok(G.screens.name === 'modes' && G.screens.screen.state().S.mode === mode && clean(G), 'row ' + (row + 1) + ' is ' + mode.toUpperCase() + ' (the modes menu, drawn in the palette)'); G.press('Escape'); }
+  G.go('title', { sel: 8 }); G.press('Enter'); ok(G.screens.name === 'garage', 'the ninth is the garage');
+  G.go('title', { sel: 0 }); G.press('ArrowUp'); ok(G.screens.screen.state().sel === 9, 'UP from the top wraps to QUIT (which closes the window; here there is none to close)');
+}
+/* ---- the stunt yard ---- */
+{
+  const c = C.fresh(), G = rig(c);
+  G.go('title', { sel: 6 }); G.press('Enter');
+  ok(G.screens.name === 'race' && G.live && G.live.s.kind === 'yard' && G.live.race.field.length === 1 && G.live.race.pickups.spots.length === 0, 'row 7 is the STUNT YARD: one car in the yard, no rivals, no pickups');
+  G.frame(1 / 60, 20); ok(clean(G), 'the yard draws (every pixel a palette byte)');
+  const S = G.live, car = S.human.car, T = S.s.track, at = st => S.race.world.place(car, { x: st.x, y: st.y - car.spec.comY - 0.004, z: st.z, yaw: 0 });
+  at(T.stars[4]); G.frame(1 / 60, 3);
+  ok(c.yard['4'] === 1 && G.saved.length >= 1 && JSON.parse(G.saved[G.saved.length - 1]).yard['4'] === 1 && S.race.starsGot.has(4), 'driving through a star puts it in the career, and the career is saved');
+  const tips = c.tips; at(T.stars[4]); G.frame(1 / 60, 3); ok(c.tips === tips, 'the same star twice pays nothing');
+  G.press('Escape'); ok(S.paused, 'ESC pauses the yard'); G.press('ArrowDown', 'ArrowDown'); G.press('Enter');
+  ok(G.screens.name === 'title', 'QUIT from the pause menu goes back to the title (a yard is not a cup: nothing is lost)');
+  G.go('title', { sel: 6 }); G.press('Enter');
+  ok(G.live.race.starsGot.has(4) && G.live.race.starsGot.size === 1, 'and a new run does not hang the star that is found again');
+  const S2 = G.live, car2 = S2.human.car; let news = 0;
+  for (const st of S2.s.track.stars) { S2.race.world.place(car2, { x: st.x, y: st.y - car2.spec.comY - 0.004, z: st.z, yaw: 0 }); G.frame(1 / 60, 3); }
+  ok(Object.keys(c.yard).length === 20 && c.cars.thecat, 'all twenty give THE CAT');
+  ok(c.news.some(n => /CAT/.test(n)), 'and the news says so'); void news;
+}
+/* ---- the other modes, from the menu to the board ---- */
+const driverFor = G => { const st = {}; return () => { const L = G.live, f = L.human; if (st.race !== L.race) { st.race = L.race; st.d = createDriver(L.s.track, f.spec, HUMAN, 5); } return st.d.drive(f.car, f.near, [], 1 / 60); }; };
+const runOut = (G, max) => { let n = 0; while (G.screens.name === 'race' && n++ < 60 * (max || 400)) G.frame(1 / 60, 1); return n; };
+{
+  /* a time trial: three laps, a record and a ghost kept; the second run has the ghost beside it */
+  const c = C.fresh(), G = rig(c); G.go('modes', { mode: 'tt' }); G.frame(1 / 60, 3);
+  ok(clean(G), 'the time trial menu draws');
+  G.press('ArrowDown', 'ArrowDown', 'ArrowDown'); G.press('Enter'); await Promise.resolve(); await Promise.resolve(); G.frame(1 / 60, 2);
+  ok(G.screens.name === 'race' && G.live.s.kind === 'tt' && G.live.race.field.length === 1 && G.live.s.laps === 3 && !G.live.solo.ghostRace, 'START begins a time trial: one car, three laps, no ghost yet');
+  G.input.drive = driverFor(G); runOut(G);
+  ok(G.screens.name === 'finish' && c.tt['sorting:f'] && c.tt['sorting:f'].lap > 10 && G.ghosts['sorting:f'] && G.ghosts['sorting:f'].text.length > 10, 'a finished time trial keeps the best lap and the ghost (' + (c.tt['sorting:f'] && c.tt['sorting:f'].lap.toFixed(2)) + ' s)');
+  G.frame(1 / 60, 40); ok(clean(G), 'its board draws'); G.press('Enter'); G.frame(1 / 60, 3);
+  G.go('modes', { mode: 'tt' }); G.press('ArrowDown', 'ArrowDown', 'ArrowDown'); G.press('Enter'); await Promise.resolve(); await Promise.resolve(); G.frame(1 / 60, 2);
+  ok(G.screens.name === 'race' && G.live.solo.ghostRace && G.live.solo.ghostRace.field.length === 1, 'the next time trial has the ghost of the last one beside it');
+  const L = G.live; let same = true; for (let i = 0; i < 60 * 8; i++) { G.frame(1 / 60, 1); } void same;
+  ok(Math.abs(L.solo.ghostRace.field[0].car.p[2]) + Math.abs(L.solo.ghostRace.field[0].car.p[0]) > 1, 'and the ghost drives');
+}
+{
+  /* practice: the road's star */
+  const c = C.fresh(), G = rig(c); G.go('modes', { mode: 'practice' }); G.press('ArrowDown', 'ArrowDown', 'ArrowDown'); G.press('Enter'); G.frame(1 / 60, 2);
+  ok(G.screens.name === 'race' && G.live.s.kind === 'practice' && G.live.race.field.length === 1, 'PRACTICE: one car on the road, no rivals');
+  const S = G.live, st = S.s.track.stars[0], car = S.human.car; S.race.world.place(car, { x: st.x, y: st.y - car.spec.comY - 0.004, z: st.z, yaw: 0 }); G.frame(1 / 60, 3);
+  ok(c.stars.sorting === 1 && c.tips >= 80, 'the star of the road is the career\'s, and pays');
+}
+{
+  /* LAST MILE and CLOCKWORK start, draw, are paid and are put away */
+  const c = C.fresh(), G = rig(c); G.go('modes', { mode: 'lastmile' }); G.press('ArrowDown', 'ArrowDown', 'ArrowDown', 'ArrowDown'); G.press('Enter'); G.frame(1 / 60, 30);
+  ok(G.screens.name === 'race' && G.live.s.kind === 'lastmile' && G.live.race.lm && clean(G), 'LAST MILE: a race with a parcel in the bed and a lit door, drawn in the palette');
+  G.live.race.state = 'done'; G.frame(1 / 60, 3);
+  ok(G.screens.name === 'finish' && c.lm.delivered === 0 && G.saved.length >= 1, 'and it ends at the board, with the career told');
+}
+{
+  const c = C.fresh(), G = rig(c); G.go('modes', { mode: 'clockwork' }); G.press('ArrowDown', 'ArrowDown'); G.press('Enter'); G.frame(1 / 60, 30);
+  ok(G.screens.name === 'race' && G.live.s.kind === 'clockwork' && G.live.race.field.length === 16 && G.live.race.pickups.spots.length === 0 && clean(G), 'CLOCKWORK: sixteen trucks, no pickups, drawn in the palette');
+  G.input.drive = driverFor(G); runOut(G, 500);
+  ok(G.screens.name === 'finish' && c.cw.races === 1 && c.tips > 0, 'a CLOCKWORK race driven home is paid and counted (place ' + (c.cw.best || '?') + ', ' + c.tips + ' TIPS)');
 }
 /* ---- the cups ---- */
 {

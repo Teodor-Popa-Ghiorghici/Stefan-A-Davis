@@ -18,14 +18,18 @@ export function drawHud(R, race, f, o) {
   o = o || {};
   const r = o.rect || { x: 0, y: 0, w: R.w, h: R.h }, cx = r.x + r.w / 2;
   const n = race.field.length, car = f.car, sp = Math.hypot(car.v[0], car.v[2]);
+  /* a run on your own has no place to be in, and practice and the stunt yard no lap to be on */
+  const alone = o.mode === 'tt' || o.mode === 'practice' || o.mode === 'yard', free = o.mode === 'practice' || o.mode === 'yard';
   /* position, big, top left */
-  left(R, ORD[f.place - 1] || f.place + 'TH', r.x + 5, r.y + 4, WHITE, { big: true, heavy: true, outline: BLACK });
-  left(R, '/' + n, r.x + 5 + widthOf(ORD[f.place - 1] || f.place + 'TH', F5, true) + 3, r.y + 8, DIM, { outline: BLACK });
+  if (!alone) {
+    left(R, ORD[f.place - 1] || f.place + 'TH', r.x + 5, r.y + 4, WHITE, { big: true, heavy: true, outline: BLACK });
+    left(R, '/' + n, r.x + 5 + widthOf(ORD[f.place - 1] || f.place + 'TH', F5, true) + 3, r.y + 8, DIM, { outline: BLACK });
+  }
   /* lap and time, top right */
   const lap = Math.min(race.laps, f.lap + 1);
-  right(R, 'LAP ' + lap + '/' + race.laps, r.x + r.w - 5, r.y + 4, WHITE, { outline: BLACK });
+  if (!free) right(R, 'LAP ' + lap + '/' + race.laps, r.x + r.w - 5, r.y + 4, WHITE, { outline: BLACK });
   right(R, fmtTime(Math.max(0, race.t)), r.x + r.w - 5, r.y + 11, YEL, { outline: BLACK });
-  if (f.best != null) right(R, 'BEST ' + fmtTime(f.best), r.x + r.w - 5, r.y + 18, DIM, { outline: BLACK });
+  if (f.best != null && !free) right(R, 'BEST ' + fmtTime(f.best), r.x + r.w - 5, r.y + 18, DIM, { outline: BLACK });
   /* speed, bottom right: a bar and a number (km/h of a toy, 3.6 x metres a second) */
   const kph = Math.round(sp * 3.6), top = f.spec.vtop * 1.12, bw = 44, bx = r.x + r.w - 5 - bw, by = r.y + r.h - 12;
   R.rect(bx - 1, by - 1, bw + 2, 6, BLACK); R.rect(bx, by, bw, 4, ix(GREY, 3));
@@ -55,7 +59,7 @@ export function drawHud(R, race, f, o) {
     if (shown) R.text(shown, cx, r.y + r.h * 0.3, ix(RED, k === 1 ? 12 : 10), { big: true, heavy: true, outline: BLACK });
   } else if (race.t < 1.2) R.text('GO!', cx, r.y + r.h * 0.3, ix(GREEN, 14), { big: true, heavy: true, outline: BLACK });
   /* wrong way, and the fade of being put back */
-  if (f.wrong > 0.8 && !f.finished && (Math.floor(race.t * 3) & 1)) R.text('WRONG WAY', cx, r.y + r.h * 0.22, ix(RED, 12), { big: true, outline: BLACK });
+  if (f.wrong > 0.8 && !f.finished && o.mode !== 'yard' && (Math.floor(race.t * 3) & 1)) R.text('WRONG WAY', cx, r.y + r.h * 0.22, ix(RED, 12), { big: true, outline: BLACK });
   if (car.repoT > 0) dither(R, r, 1 - car.repoT / 0.6);
   if (f.finished && race.state !== 'count') R.text('FINISHED ' + ORD[f.place - 1], cx, r.y + 24, YEL, { big: true, heavy: true, outline: BLACK });
   if (o.fps != null) left(R, o.fps + ' FPS', r.x + 3, r.y + r.h - 8, DIM, { outline: BLACK });

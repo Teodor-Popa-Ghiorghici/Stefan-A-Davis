@@ -12,14 +12,14 @@ export const TRIES = 3, PASS_RANK = 3, RACES = 4;
 
 const race = (track, v, rating) => ({ track, v, rating });
 export const CUPS = [
-  { id: 'rookie', name: 'PARCEL CUP', blurb: 'THE SORTING ROOM, AND THE ROADS OUT OF IT.', ask: { route: [], tune: 0 },
-    races: [race('sorting', 'f', 0), race('sorting', 'r', 0), race('sorting', 'm', 0), race('sorting', 'rm', 0)] },
-  { id: 'amateur', name: 'FREIGHT CUP', blurb: 'HEAVIER FIELDS, TIGHTER ROOMS.', ask: { route: [], tune: 1 },
-    races: [race('sorting', 'f', 1), race('sorting', 'r', 1), race('sorting', 'm', 1), race('sorting', 'rm', 1)] },
-  { id: 'advanced', name: 'BLIZZARD CUP', blurb: 'SNOW ON THE ROAD. BRING TYRES FOR IT.', ask: { route: ['snowTyres', 'headlights'], tune: 2 },
-    races: [race('sorting', 'f', 2), race('sorting', 'r', 2), race('sorting', 'm', 2), race('sorting', 'rm', 2)] },
-  { id: 'pro', name: 'GRAND TOUR', blurb: 'THE WHOLE TOWN, THE FASTEST CARS. ICE, GATES, NO MERCY.', ask: { route: ['snowTyres', 'headlights', 'iceChains', 'bumperBar'], tune: 3 },
-    races: [race('sorting', 'f', 3), race('sorting', 'r', 3), race('sorting', 'm', 4), race('sorting', 'rm', 4)] }
+  { id: 'rookie', name: 'PARCEL CUP', blurb: 'THE SORTING ROOM AND MAIN STREET, AT NIGHT.', ask: { route: [], tune: 0 },
+    races: [race('sorting', 'f', 0), race('street', 'f', 0), race('sorting', 'r', 0), race('street', 'r', 0)] },
+  { id: 'amateur', name: 'FREIGHT CUP', blurb: 'THE FORECOURT AND ITS SHOP, THE DINER AND ITS KITCHEN.', ask: { route: ['snowTyres', 'bumperBar'], tune: 1 },
+    races: [race('forecourt', 'f', 1), race('diner', 'f', 1), race('forecourt', 'r', 1), race('diner', 'r', 1)] },
+  { id: 'advanced', name: 'BLIZZARD CUP', blurb: 'SNOW ON THE ROAD, THE DAM BELOW IT. BRING TYRES AND LAMPS.', ask: { route: ['snowTyres', 'headlights'], tune: 2 },
+    races: [race('pass', 'f', 2), race('dam', 'f', 2), race('pass', 'r', 2), race('dam', 'r', 2)] },
+  { id: 'pro', name: 'GRAND TOUR', blurb: 'THE FROZEN HARBOUR, THEN THE FACTORY. ICE, GATES, NO MERCY.', ask: { route: ['iceChains', 'bumperBar'], tune: 3 },
+    races: [race('harbour', 'f', 3), race('harbour', 'r', 3), race('factory', 'f', 4), race('factory', 'r', 4)] }
 ];
 export const CUP_BY_ID = Object.fromEntries(CUPS.map(c => [c.id, c]));
 export const CUP_IDS = CUPS.map(c => c.id);

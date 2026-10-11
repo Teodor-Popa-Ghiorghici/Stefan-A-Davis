@@ -21,6 +21,7 @@ const WAIT = 4;                                 /* seconds the race runs on afte
 export function createRace(o) {
   const T = o.track, laps = o.laps || T.laps, L = T.length, rating = o.rating == null ? 0 : o.rating, seed = o.seed == null ? 1 : o.seed;
   const world = createWorld({ col: T.col, nodes: T.nodes, gates: T.gates });
+  const TD = o.noCuts ? Object.assign(Object.create(T), { cuts: [] }) : T;        /* the road as the CPU drivers know it: with `noCuts` (LAST MILE, whose doors a shortcut would skip) they keep to the main road */
   const field = o.entries.map((e, i) => {
     const spec = specOf(e.car, rating, e.kit), g = T.grid[i % T.grid.length];
     const car = world.addCar(spec, { x: g.x, y: g.y, z: g.z, yaw: g.yaw }, { id: i, parts: e.parts, mods: e.mods });
@@ -29,12 +30,13 @@ export function createRace(o) {
     const profile = e.human ? null : styled(e.profile || tierProfile(e.tier == null ? rating : e.tier), e.style);      /* `profile` is a driver of its own numbers: the budget bot's person */
     return {
       i, entry: e, name: e.name, human: !!e.human, car, spec, near, dist, prevS: T.line.samples[near].s, prog: 0, lap: 0, lapStart: 0, lapTimes: [], best: null, finished: false, finishT: 0, place: i + 1, lat: 0, wrong: 0,
-      driver: profile ? createDriver(T, spec, profile, seed * 31 + i * 7 + 1, e.parts) : null, in: { throttle: 0, brake: 0, steer: 0, repo: false, fire: false },
+      driver: profile ? createDriver(TD, spec, profile, seed * 31 + i * 7 + 1, e.parts) : null, in: { throttle: 0, brake: 0, steer: 0, repo: false, fire: false },
       hold: [], cap: e.parts && e.parts.roofRack ? 2 : 1, bomb: null, leads: 0, zapped: {}, fireWas: false, hitBy: 0
     };
   });
   const R = { track: T, world, field, laps, rating, state: 'count', t: -COUNT, frame: 0, events: [], order: field.map(f => f.i), winner: -1, overT: 0, humanDone: false };
   R.stats = { leadChanges: 0, swaps: 0, flips: 0 };
+  R.starsGot = new Set();                                                        /* the hidden stars picked up (PRACTICE asks for them: `stars: true`) */
   R.pickups = createPickups(R, dice(seed * 977 + 13));
   if (o.pickups === false) { R.pickups.spots.length = 0; }                      /* a race of driving alone: the checks that are about the road and the CPU's hands, not about what is thrown at it */
   const sampleS = i => T.line.samples[i].s;
@@ -84,7 +86,7 @@ export function createRace(o) {
     const at = (x, z) => { const k = T.line.nearest(x, z, f.near, 60), q = S[k]; return { ahead: ((q.s - fs) % L + L) % L, lat: (x - q.x) * q.nx + (z - q.z) * q.nz }; };
     for (const s of P.spots) if (s.alive) { const a = ((s.s - fs) % L + L) % L; if (a < 12) road.push({ id: 's' + s.i, kind: 'spot', ahead: a, lat: s.lat, tell: false }); }
     for (const o of P.objs) if (o.kind === 'fake' || o.kind === 'freeze' || o.kind === 'stone') { const a = at(o.x, o.z); if (a.ahead < 12) road.push({ id: 'o' + o.id, kind: o.kind === 'fake' ? 'spot' : o.kind, ahead: a.ahead, lat: a.lat, tell: o.kind === 'fake' }); }
-    return { held: f.hold[0] || null, bomb: f.bomb, place: f.place, n: R.field.length, t: R.t, road, around: null, lat: f.lat, free: f.hold.length < f.cap && !f.bomb, k: T.line.samples[f.near].k, speed: Math.hypot(f.car.v[0], f.car.v[2]) };
+    return { held: f.hold[0] || null, bomb: f.bomb, place: f.place, n: R.field.length, t: R.t, road, around: null, lat: f.lat, free: f.hold.length < f.cap && !f.bomb, stop: R.lm ? R.lm.stopFor(f) : null, k: T.line.samples[f.near].k, speed: Math.hypot(f.car.v[0], f.car.v[2]) };
   }
 
   R.step = (human) => {
@@ -108,6 +110,12 @@ export function createRace(o) {
       if (R.t >= 0) { R.state = 'racing'; R.t = 0; label(0); for (const f of R.field) f.lapStart = 0; }
     }
     for (const f of R.field) track(f);
+    if (R.lm) R.lm.step(R.events);                                               /* LAST MILE: the parcels and the doors (lastmile.js) */
+    if (o.stars) for (const f of R.field) if (f.human || f.entry.proxy) for (const st of T.stars) {
+      if (R.starsGot.has(st.id)) continue;
+      const dx = f.car.p[0] - st.x, dz = f.car.p[2] - st.z;
+      if (dx * dx + dz * dz < (st.r2 || 0.2) && Math.abs(f.car.p[1] - st.y) < (st.dy || 0.6)) { R.starsGot.add(st.id); R.events.push({ type: 'star', id: st.id, i: f.i }); }
+    }
     if (R.state === 'racing' || R.state === 'over' || R.state === 'done') {
       for (const f of R.field) {
         if (f.finished) continue;

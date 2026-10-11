@@ -6,11 +6,12 @@ import { create as cups } from './screen_cups.js';
 import { create as garage } from './screen_garage.js';
 import { create as depot } from './screen_depot.js';
 import { create as single } from './screen_single.js';
+import { create as modes } from './screen_modes.js';
 import { create as race } from './screen_race.js';
 import { create as finish } from './screen_finish.js';
 
 export function createScreens(G) {
-  const all = { title: title(G), cups: cups(G), garage: garage(G), depot: depot(G), single: single(G), race: race(G), finish: finish(G) };
+  const all = { title: title(G), cups: cups(G), garage: garage(G), depot: depot(G), single: single(G), modes: modes(G), race: race(G), finish: finish(G) };
   let cur = null, name = null;
   const S = {
     get name() { return name; }, get screen() { return cur; },
