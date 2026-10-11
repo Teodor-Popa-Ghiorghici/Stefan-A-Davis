@@ -274,17 +274,55 @@ $HL$
 Something in the garage started its engine. VROOM.EXE is a racing game:
 a radio-controlled courier car in a life-size, snowed-in mountain town.
 It is light, it bounces, and it will land on its roof. That is allowed.
+Seven rivals, ten pickups, eight roads, twenty-four cars, and a radio.
 
 $TR,"DRIVING"$
-$FG,11$Up / W$FG$ gas   $FG,11$Down / S$FG$ brake and reverse   $FG,11$Left Right / A D$FG$ steer
-$FG,11$Space$FG$ use the pickup you hold   $FG,11$R$FG$ reposition (back on the line, after a moment)
-$FG,11$V$FG$ change the radio station   $FG,11$Esc$FG$ pause
-A car left on its roof is put back on the road after three seconds.
+$FG,11$Up / W$FG$ gas   $FG,11$Down / S$FG$ brake, and reverse from a stop
+$FG,11$Left Right / A D$FG$ steer   $FG,11$Space / E / Shift$FG$ use the pickup you hold
+$FG,11$R$FG$ reposition: back on the line after a moment (three seconds on the
+roof, or against a wall, does it for you)   $FG,11$H$FG$ the horn   $FG,11$Esc / P$FG$ pause
+$FG,11$V$FG$ the radio: RACE (drum and bass) or NIGHT (lo-fi), anywhere
+In the air a little pitch and roll are yours, and the car comes level
+by itself. A tall car rolls on a kerb. A light one stands on its tail.
+$TR-$
+
+$TR,"THE MODES"$
+$FG,11$CHAMPIONSHIP$FG$ four cups of four races: points to the top eight,
+the top three go on, three tries a cup. A cup passed opens the next
+cup's cars. $FG,11$SINGLE RACE$FG$ any road you have, any car you have, 2 to 8
+cars. $FG,11$TIME TRIAL$FG$ alone, against your own ghost; the challenge time
+opens the road reversed, then mirrored, then both. $FG,11$PRACTICE$FG$ no
+rivals, and one hidden star on every road, somewhere you must drive to.
+$FG,11$STUNT YARD$FG$ a skate park in the snow: twenty stars in the air.
+$FG,11$LAST MILE$FG$ the parcel rides in the bed and can fall out; stop on it,
+then stop on the lit door. First to six. $FG,11$CLOCKWORK$FG$ sixteen
+wind-up trucks and no pickups at all.
 $TR-$
 
 $TR,"THE PICKUPS"$
-Parcels lie on the road. You hold one at a time. The HOT PARCEL turns
-your antenna into a fuse: touch another car and it is theirs.
+Parcels lie on the road. You hold one at a time (two with a ROOF RACK).
+What you are dealt depends on where you are: the leader draws the things
+that hold a race back, the last place the things that win it.
+$FG,11$STATIC BALL$FG$ rolls ahead and flips what it touches   $FG,11$BOTTLE ROCKET$FG$
+$FG,11$JUMP LEADS$FG$ crackle for five seconds   $FG,11$ANTIFREEZE$FG$ a puddle behind you
+$FG,11$SNOWBALLS$FG$ three, thrown ahead   $FG,11$CURLING STONE$FG$ dropped behind you
+$FG,11$FAKE PARCEL$FG$ looks like a pickup, and is not   $FG,11$COFFEE$FG$ a tenth more speed
+$FG,11$POWER CUT$FG$ for the cars ahead of you; only the back half is dealt it
+$FG,11$HOT PARCEL$FG$ the fuse is your antenna: touch a car and it is theirs
+$TR-$
+
+$TR,"THE DEPOT"$
+Races pay TIPS, and TIPS buy parts. $FG,11$Route parts$FG$ open roads: SNOW TYRES,
+HEADLIGHTS, a BUMPER BAR for the fence gates, ICE CHAINS, a ROOF RACK.
+$FG,11$Tuning$FG$ is a motor, gearing, springs, tyres, a battery and ballast, three
+levels each. Every race has a rating, and it caps the car: tuning lets
+a weak car reach the cap, and nothing passes it. The rivals shop too.
+$TR-$
+
+$TR,"THE MACHINE"$
+The machine pays SUN for the things that are done once: a cup passed, the
+first win on a road, a star, a challenge time. Its trophies are in the
+ledger. Terminal: $FG,11$VROOM$FG$, $FG,11$RACE$FG$ or $FG,11$CARS$FG$. GO TO finds it by name.
 $TR-$
 `
 };

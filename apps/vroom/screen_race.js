@@ -42,23 +42,29 @@ export function create(G) {
     }
     S.s = s; S.race = race; S.human = race.field.find(f => f.human); S.tally = createTally(S.human.i);
     race.field.forEach(f => { f.model = modelFor(f.entry.car, f.entry.paint, f.entry.livery, f.entry.num); });
-    S.paused = false; S.sel = 0; S.acc = 0; S.over = false; S.toast = null; G.cam.snap();
+    S.paused = false; G.paused = false; S.sel = 0; S.acc = 0; S.over = false; S.toast = null; G.cam.snap();
+    G.audio.begin({ race, human: S.human, kind: k, night: !!(s.track && s.track.def && s.track.def.light === 'night') });
+    G.trophy.begin(S);
     G.live = S;                                                         /* what the checks look at: the race, the player's car, the tally */
   }
   function conclude() {
-    const r = S.race, s = S.s, rows = r.results(), mine = rows.find(x => x.human);
+    const r = S.race, s = S.s, rows = r.results(), mine = rows.find(x => x.human), run = G.career.run;
     let res;
     if (s.kind === 'tt' || s.kind === 'practice' || s.kind === 'lastmile' || s.kind === 'clockwork') res = modeConclude(G, S, rows, mine);
     else res = finishRace(G.career, { kind: s.kind, track: s.trackId, v: s.v, rating: s.rating, laps: s.laps, n: s.n, place: mine.place, time: mine.time, tally: S.tally, rows });
+    res.sun = G.settleSun(false);
     G.save();
+    G.trophy.end({ S, rows, mine, cup: res.cup, run, career: G.career, lm: s.kind === 'lastmile' && r.lm ? r.lm.result() : null, ghost: s.kind === 'tt' && !!res.record && !!(S.solo && S.solo.ghostRace) });
     S.over = true;
+    G.audio.finish(s.kind === 'tt' || s.kind === 'practice' || s.kind === 'yard' || mine.place <= 3 ? 'win' : 'miss');
     G.go('finish', { rows, res, kind: s.kind, mine, s, ev: S.ev, tally: S.tally });
   }
   return {
     enter(args) { S = { ev: args.ev }; G.onBlur = () => { if (S && S.race && S.race.state !== 'done' && S.race.state !== 'over') S.paused = true; }; begin(); },
-    leave() { G.onBlur = null; G.live = null; },
+    leave() { G.onBlur = null; G.live = null; G.paused = false; G.audio.leave(); G.trophy.leave(); },
     update(dt) {
       const I = G.input, r = S.race;
+      G.paused = S.paused;
       if (S.paused) {
         const k = nav(I), n = items().length;
         if (k.back) S.paused = false;
@@ -70,14 +76,18 @@ export function create(G) {
         }
         return;
       }
-      if (I.take('Escape') || I.take('KeyP')) { if (r.state !== 'done') { S.paused = true; S.sel = 0; } }
+      if (I.take('Escape') || I.take('KeyP')) { if (r.state !== 'done') { S.paused = true; G.paused = true; S.sel = 0; } }
+      if (I.take('KeyH')) { G.audio.horn(G.career.look.horn); G.trophy.honk(); }
       I.clear();
       S.acc += dt;
       let n = 0;
       while (S.acc >= STEP && n < 6) {
         S.stepFn(I.drive());
+        G.audio.events(r);
+        G.trophy.step(r);
         S.tally.eat(r);
         modeEvents(G, S);
+        if (r.events.some(e => e.type === 'star')) G.settleSun();
         for (const e of r.events) {
           if (e.type === 'hit-wall' && e.car === S.human.i) G.cam.shake(Math.min(0.03, e.speed * 0.003));
           if (e.type === 'land' && e.car === S.human.i) G.cam.shake(Math.min(0.03, e.speed * 0.004));

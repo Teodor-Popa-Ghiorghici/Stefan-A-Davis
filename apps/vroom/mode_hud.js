@@ -6,6 +6,7 @@ import { starFound, yardStar, yardCount, YARD_STARS, ttFinish, lastMileDone, clo
 import { parOf } from './challenge.js';
 import { racePay } from './pay.js';
 import { trackKey } from './career.js';
+import { SCRATCH_TIP } from './lm_tip.js';
 
 const say = (G, S, text, long) => { S.toast = { text, until: G.t + (long ? 4 : 2.4) }; };
 /* called after every sim step: what the step did that the career or the screen must hear about */
@@ -19,7 +20,7 @@ export function modeEvents(G, S) {
     if (e.i !== S.human.i) continue;
     if (e.type === 'drop') say(G, S, 'PARCEL OUT!  STOP ON IT');
     else if (e.type === 'pickup') say(G, S, 'GOT IT');
-    else if (e.type === 'delivered') say(G, S, 'DELIVERED  +' + e.tip + (e.tip >= 95 ? '  NOT A SCRATCH' : ''));
+    else if (e.type === 'delivered') say(G, S, 'DELIVERED  +' + e.tip + (e.tip >= SCRATCH_TIP ? '  NOT A SCRATCH' : ''));
     else if (e.type === 'lost') say(G, S, 'THE PARCEL FELL OFF THE WORLD');
   }
 }
@@ -58,7 +59,7 @@ export function modeConclude(G, S, rows, mine) {
   } else if (k === 'practice') news.push(Object.keys(c.stars).length + ' STARS FOUND SO FAR');
   else if (k === 'lastmile') {
     const lm = S.race.lm.result(), res = lastMileDone(c, { track: s.trackId, v: s.v, delivered: lm.delivered, perfect: lm.perfect, tips: lm.tips, win: lm.win });
-    pay = res.tips; news.push(...res.news); lines.push([lm.delivered + ' PARCELS DELIVERED', lm.tips - (lm.win ? 150 : 0)]); if (lm.win) lines.push(['FIRST HOME', 150]); if (lm.perfect) news.push(lm.perfect + ' AT FULL TIP');
+    pay = res.tips; news.push(...res.news); lines.push([lm.delivered + ' PARCELS DELIVERED', lm.tips - (lm.win ? 150 : 0)]); if (lm.win) lines.push(['FIRST HOME', 150]); if (lm.perfect) news.push(lm.perfect + ' AT ' + SCRATCH_TIP + ' OR MORE');
   } else if (k === 'clockwork') {
     const p = racePay({ place: mine.place, n: rows.length, rating: 0, laps: s.laps, hits: S.tally.hitsDelivered, repos: S.tally.repos, record: false }), res = clockworkDone(c, { place: mine.place, n: rows.length, tips: p.total });
     pay = res.tips; news.push(...res.news); lines.push(...p.lines);

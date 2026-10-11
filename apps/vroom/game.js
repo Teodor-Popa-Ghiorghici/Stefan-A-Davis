@@ -7,6 +7,10 @@ import { createInput } from './input.js';
 import { createScreens } from './screens.js';
 import { trackFor } from './tracks.js';
 import { fresh, sanitize } from './career.js';
+import { createAudio } from './audio.js';
+import { createCalls } from './trophy_calls.js';
+import { settle } from './sun.js';
+import { drawRadio } from './radio_hud.js';
 
 const KEY = 'vroom.v1';
 
@@ -34,10 +38,27 @@ export function mountGame(root, ctx) {
   let saving = null;
   G.save = () => {
     try { const p = ctx && ctx.save ? ctx.save(KEY, JSON.parse(JSON.stringify(G.career))) : null; if (p && p.catch) saving = p.catch(() => {}); } catch (e) { /* a save that fails is tried again at the next change */ }
+    G.trophy.career(G.career);                                   /* the ledger counts what the career holds every time it changes */
   };
   /* a time trial's best run, kept apart from the career (it is a few kilobytes of keys): one key to a road and variant */
   G.loadGhost = key => Promise.resolve(ctx && ctx.load ? ctx.load('ghost.' + key) : null).then(g => (g && typeof g.text === 'string' && g.car ? g : null)).catch(() => null);
   G.saveGhost = (key, g) => { try { const p = ctx && ctx.save ? ctx.save('ghost.' + key, g) : null; if (p && p.catch) p.catch(() => {}); } catch (e) { /* tried again next time */ } };
+  /* the radio's station is the player's own choice, kept apart from the career (audio.js, music.js) */
+  G.radioPref = null;
+  Promise.resolve(ctx && ctx.load ? ctx.load('vroom.radio.v1') : null).then(v => { if (v === 'race' || v === 'night') G.radioPref = v; }).catch(() => {});
+  G.audio = createAudio(ctx, null, { get: () => G.radioPref, set: v => { G.radioPref = v; try { const p = ctx && ctx.save ? ctx.save('vroom.radio.v1', v) : null; if (p && p.catch) p.catch(() => {}); } catch (e) { /* the choice is kept for this session anyway */ } } });
+  const onMix = () => G.audio.relevel();
+  window.addEventListener('mixer-changed', onMix);
+  G.paused = false;
+  G.trophy = createCalls();
+  /* the machine's SUN for what the career says is earned and not yet paid (sun.js): once, through Economy.earn with the game's id so the golden eggs can raise it. `keep` false leaves the save to the caller. */
+  G.settleSun = keep => {
+    try {
+      const E = window.Economy, lines = settle(G.career, (n, why) => (E && E.earn ? E.earn(n, why, { game: 'vroom' }) : n));
+      if (lines.length && keep !== false) G.save();
+      return lines;
+    } catch (e) { return []; }
+  };
   G.screens = createScreens(G);
 
   let raf = 0, alive = true, last = 0, frames = 0, clock = 0;
@@ -47,8 +68,11 @@ export function mountGame(root, ctx) {
     const dt = last ? Math.min(0.1, (ts - last) / 1000) : 0; last = ts;
     if (G.ready) {
       G.t += dt;
+      if (G.input.take('KeyV') && G.audio.radio()) G.trophy.radio();           /* V is the radio wherever you are */
       G.screens.update(dt);
+      G.audio.frame(dt, G.paused);
       G.screens.draw();
+      drawRadio(R, G.audio.toast);
     } else { R.rect(0, 0, W, H, 0); }
     R.present(img); g.putImageData(img, 0, 0);
     frames++; clock += dt; if (clock >= 0.5) { G.fps = Math.round(frames / clock); frames = 0; clock = 0; }
@@ -57,6 +81,8 @@ export function mountGame(root, ctx) {
   Promise.resolve(ctx && ctx.load ? ctx.load(KEY) : null).catch(() => null).then(raw => {
     if (!alive) return;
     G.career = sanitize(raw);
+    G.trophy.career(G.career);
+    G.settleSun();                                              /* whatever the career had earned and was not paid for */
     G.ready = true;
     G.go(G.career.run ? 'cups' : 'title');
   });
@@ -65,7 +91,7 @@ export function mountGame(root, ctx) {
   setTimeout(() => { if (alive) cv.focus(); }, 0);
   return () => {
     alive = false; if (raf) cancelAnimationFrame(raf);
-    G.input.dispose(); window.removeEventListener('calm-changed', onCalm);
+    G.input.dispose(); window.removeEventListener('calm-changed', onCalm); window.removeEventListener('mixer-changed', onMix); G.audio.stop(); G.trophy.stop();
     void saving;
     wrap.remove();
   };

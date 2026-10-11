@@ -18,7 +18,7 @@ export const DIALS = [
 ];
 export const DIAL_IDS = DIALS.map(d => d.id);
 /* the games whose SUN the `pay` dial raises (a game id is what Economy.earn is told) */
-export const PAYERS = ['sweeper', 'solitaire', 'aftere', 'cook', 'standbattle', 'bekkedal', 'magen', 'holyc'];
+export const PAYERS = ['sweeper', 'solitaire', 'aftere', 'cook', 'standbattle', 'bekkedal', 'magen', 'holyc', 'vroom'];
 
 /* what the n-th egg costs, n from 1: 4,800 for the first, a hundred thousand for the last of forty */
 export const price = n => 4000 + 800 * n + 20 * n * n;

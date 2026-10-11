@@ -34,6 +34,14 @@ export function create(G) {
       if (page === 0) {
         panel(R, 6, 22, 150, A.rows.length * 9 + 12);
         A.rows.forEach((r, i) => { const y = 27 + i * 9, me = r.human; left(R, String(r.place), 11, y, C.dim, { outline: -1 }); left(R, r.name, 22, y, me ? C.yellow : C.white, { outline: -1 }); right(R, r.time != null ? fmtTime(r.time) : r.laps + ' LAPS', 152, y, me ? C.yellow : C.dim, { outline: -1 }); });
+        if (res.sun && res.sun.length) {                                          /* the machine's SUN (sun.js): a line each if the board has room under the order, else the total */
+          const y0 = 22 + A.rows.length * 9 + 16, n = res.sun.length, total = res.sun.reduce((a, l) => a + l[1], 0);
+          if (y0 + 8 * (n + 1) + 4 <= R.h - 14) {
+            panel(R, 6, y0, 150, 8 * (n + 1) + 6);
+            left(R, 'SUN', 11, y0 + 3, C.yellow, { outline: -1 }); right(R, '+' + total, 152, y0 + 3, C.yellow, { outline: -1 });
+            res.sun.forEach((l, i) => { left(R, l[0], 11, y0 + 11 + i * 8, C.white, { outline: -1 }); right(R, '+' + l[1], 152, y0 + 11 + i * 8, C.green, { outline: -1 }); });
+          } else { panel(R, 6, R.h - 28, 150, 12); left(R, 'SUN', 11, R.h - 25, C.yellow, { outline: -1 }); right(R, '+' + total, 152, R.h - 25, C.yellow, { outline: -1 }); }
+        }
         const x = 164, w = R.w - x - 6;
         panel(R, x, 22, w, 120);
         mid(R, 'TIPS', x + w / 2, 26, C.yellow, { big: true, outline: C.black });

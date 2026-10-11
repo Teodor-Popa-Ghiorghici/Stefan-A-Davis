@@ -21,7 +21,7 @@ let fails = 0;
 const ok = (c, m) => { if (!c) fails++; console.log((c ? 'PASS' : 'FAIL') + ' - ' + m); };
 
 const r = await page.evaluate(async () => {
-  const { GAMES, FOLDER_OF, makeProps } = await import('/kernel/trophy_props.js');
+  const { GAMES, FOLDER_OF, GATED_FOLDERS, makeProps } = await import('/kernel/trophy_props.js');
   const { render } = await import('/apps/prop_kit.js');
   const { fs } = await import('/kernel/vfs.js');
   const out = { games: {}, names: [], made: {} };
@@ -29,7 +29,8 @@ const r = await page.evaluate(async () => {
     const mod = await GAMES[g](), list = await mod.props(), files = await render(list);
     const px = files.filter(f => f.canvas).map(f => { const c = f.canvas, d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 8) n++; return n; });
     out.games[g] = { listed: list.length, files: files.length, blank: px.filter(n => n === 0).length, images: px.length };
-    if (FOLDER_OF[g][0] !== mod.FOLDER || FOLDER_OF[g][1] !== mod.NAME) out.names.push(g + ': ' + FOLDER_OF[g] + ' vs ' + mod.FOLDER + ', ' + mod.NAME);
+    const row = FOLDER_OF[g] || GATED_FOLDERS[g];
+    if (!row || row[0] !== mod.FOLDER || row[1] !== mod.NAME) out.names.push(g + ': ' + row + ' vs ' + mod.FOLDER + ', ' + mod.NAME);
   }
   /* one folder, made for real */
   const n = await makeProps('garden', { quiet: true });

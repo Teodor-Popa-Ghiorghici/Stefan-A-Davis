@@ -5,6 +5,7 @@
      const lm = createLastMile(race, o);  race.lm = lm;  lm.step(events)  (every step)  lm.result() */
 import { GRAVITY, STEP } from './tune.js';
 import { ray } from './col_grid.js';
+import { SCRATCH_TIP } from './lm_tip.js';
 
 export const N_DOORS = 6, BASE_TIP = 100, TIME_RATE = 1.6, DROP_COST = 14, HIT_COST = 4, MIN_TIP = 10, WIN_TIP = 150, HOLD = 0.7;
 /* what the truck must do to throw the parcel: a change of speed within a twentieth of a second (m/s, the way the bed faces) that is a hard landing, a side blow or a hard stop, or being on its side or its roof */
@@ -68,7 +69,7 @@ export function createLastMile(race, o) {
       const d = door(s), at = Math.hypot(c.p[0] - d.x, c.p[2] - d.z), carrying = !(f.human || f.entry.proxy) || s.parcel.state === 'bed';
       if (carrying && at < d.r && sp < 2.4) {
         s.hold += STEP * 2; if (s.hold >= HOLD) {
-          const tip = tipOf(s); s.tips += tip; s.delivered++; if (tip >= BASE_TIP - 5) s.perfect++; s.deliveries.push({ door: d.i, tip, time: race.t });
+          const tip = tipOf(s); s.tips += tip; s.delivered++; if (tip >= SCRATCH_TIP) s.perfect++; s.deliveries.push({ door: d.i, tip, time: race.t });
           LM.events.push({ type: 'delivered', i: f.i, door: d.i, tip, k: s.k + 1 });
           s.k++; s.carry = 0; s.damage = 0; s.parcel.drops = 0; s.hold = 0;
           if (s.k >= n) { s.done = true; s.finishT = race.t; f.finished = true; f.finishT = race.t; race.events.push({ type: 'finish', i: f.i, place: 0, time: race.t }); if (race.winner < 0) race.winner = f.i; if (f.human) race.humanDone = true; LM.events.push({ type: 'done', i: f.i }); }

@@ -18,6 +18,7 @@ export function createScreens(G) {
     go(n, args) {
       if (cur && cur.leave) cur.leave();
       name = n; cur = all[n];
+      if (n !== 'race' && G.audio) G.audio.place(n === 'depot' ? 'depot' : 'menu');            /* the radio: the lo-fi station in the menus and the depot (a race tells it where it is when it begins) */
       if (cur.enter) cur.enter(args || {});
     },
     update(dt) { if (cur) cur.update(dt); },

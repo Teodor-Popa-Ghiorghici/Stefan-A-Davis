@@ -5,7 +5,7 @@ export function createInput(target, hooks) {
   hooks = hooks || {};
   const down = new Set(), pressed = [];
   const key = e => e.code;
-  const GAME = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyR', 'KeyV', 'Escape', 'Enter', 'KeyP', 'KeyC', 'KeyE', 'ShiftLeft', 'ShiftRight', 'Digit1', 'Digit2', 'Digit3', 'KeyB', 'KeyX', 'Tab', 'Backspace']);
+  const GAME = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyR', 'KeyV', 'Escape', 'Enter', 'KeyP', 'KeyC', 'KeyE', 'ShiftLeft', 'ShiftRight', 'Digit1', 'Digit2', 'Digit3', 'KeyB', 'KeyX', 'KeyH', 'Tab', 'Backspace']);
   const onDown = e => { if (!GAME.has(key(e)) || e.ctrlKey || e.metaKey || e.altKey) return; e.preventDefault(); if (!down.has(key(e))) pressed.push(key(e)); down.add(key(e)); };
   const onUp = e => { down.delete(key(e)); };
   const onBlur = () => { down.clear(); if (hooks.blur) hooks.blur(); };
