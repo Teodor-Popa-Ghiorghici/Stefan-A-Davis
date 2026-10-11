@@ -16,3 +16,14 @@ export const TIERS = [
   { name: 'PRO', reaction: 6, lineError: 0.08, gripUse: 0.99, brakeEarly: -0.2, aggression: 0.8, mistake: 0.006, pickups: 1 }
 ];
 export const HUMAN = { name: 'HUMAN', reaction: 14, lineError: 0.3, gripUse: 0.82, brakeEarly: 1.2, aggression: 0.3, mistake: 0.04, pickups: 0.5 };
+
+/* a rival's habits laid over its tier: `aggression` and `pickups` are added (and kept between 0 and 1), `mistake` and `lineError` are multiplied. Nothing that is speed, grip or mass has a place here. */
+export function styled(profile, style) {
+  if (!style) return profile;
+  const c = v => Math.max(0, Math.min(1, v)), p = Object.assign({}, profile);
+  if (style.aggression) p.aggression = c(p.aggression + style.aggression);
+  if (style.pickups) p.pickups = c(p.pickups + style.pickups);
+  if (style.mistake) p.mistake *= style.mistake;
+  if (style.lineError) p.lineError *= style.lineError;
+  return p;
+}

@@ -5,6 +5,7 @@ import { COOL, BLUE, ix } from './palette.js';
 import { place } from './raster_math.js';
 import { drawCar } from './car_art.js';
 import { ray } from './col_grid.js';
+import { drawPickups } from './pickups_art.js';
 
 const ID = place(0, 0, 0);
 /* the light a track is seen in: the sun or the room's lamps, the sky, the fog */
@@ -32,8 +33,9 @@ export function drawView(R, rect, track, field, cam, o) {
     const p = f.car.p, dx = p[0] - cx, dz = p[2] - cz;
     if (dx * dx + dz * dz > 80 * 80) continue;
     const t = ray(track.col, p[0], p[1] + 0.02, p[2], 0, -1, 0, 3);
-    drawCar(R, f.model, f.car, t >= 0 ? p[1] + 0.02 - t : null, { ghost: f.car.ghost > 0 ? f.car.ghost : 0, fuse: f.fuse });
+    drawCar(R, f.model, f.car, t >= 0 ? p[1] + 0.02 - t : null, { ghost: f.car.ghost > 0 ? f.car.ghost : 0, fuse: f.bomb ? Math.max(0.12, f.bomb.fuse / 6) : undefined });
   }
+  if (o.pickups) drawPickups(R, o.pickups.P, field, o.pickups.t, cam);
   if (o.after) o.after(R);
 }
 void ix;

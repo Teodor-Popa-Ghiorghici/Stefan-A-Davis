@@ -12,14 +12,17 @@ export function chassis(o) {
   /* the engine: thrust F = fmax * (1 - (v / vtop)^2), so the speed climbs as vtop * tanh(t * a0 / vtop); a0 is chosen so the car is at 95 % of its top speed in `accel` seconds */
   const a0 = 1.83 * vtop / tTop, fmax = m * a0;
   const zf = wb / 2 - comZ, zr = -(wb / 2 + comZ), fFront = -zr / wb;              /* the axles' z, and the share of the weight on the front one */
-  const wheels = [], load = [m * GRAVITY * fFront / 2, m * GRAVITY * fFront / 2, m * GRAVITY * (1 - fFront) / 2, m * GRAVITY * (1 - fFront) / 2];
-  const xs = [-tr / 2, tr / 2, -tr / 2, tr / 2], zs = [zf, zf, zr, zr];
-  const share = drive === 'awd' ? [0.25, 0.25, 0.25, 0.25] : drive === 'fwd' ? [0.5, 0.5, 0, 0] : [0, 0, 0.5, 0.5];
-  const bshare = [0.3, 0.3, 0.2, 0.2];
+  /* the wheels' places. Four is the rule; three is a delta trike (one wheel in the middle at the front, two behind), whose weight on the front wheel is all the front axle's */
+  const three = o.wheels === 3, nw = three ? 3 : 4;
+  const xs = three ? [0, -tr / 2, tr / 2] : [-tr / 2, tr / 2, -tr / 2, tr / 2], zs = three ? [zf, zr, zr] : [zf, zf, zr, zr];
+  const wheels = [], load = three ? [m * GRAVITY * fFront, m * GRAVITY * (1 - fFront) / 2, m * GRAVITY * (1 - fFront) / 2] : [m * GRAVITY * fFront / 2, m * GRAVITY * fFront / 2, m * GRAVITY * (1 - fFront) / 2, m * GRAVITY * (1 - fFront) / 2];
+  const share = three ? (drive === 'awd' ? [1 / 3, 1 / 3, 1 / 3] : drive === 'fwd' ? [1, 0, 0] : [0, 0.5, 0.5]) : (drive === 'awd' ? [0.25, 0.25, 0.25, 0.25] : drive === 'fwd' ? [0.5, 0.5, 0, 0] : [0, 0, 0.5, 0.5]);
+  const bshare = three ? [0.4, 0.3, 0.3] : [0.3, 0.3, 0.2, 0.2];
+  const nFront = three ? 1 : 2;
   const rest = o.rest || SUSP.rest, travel = o.travel || SUSP.travel, freq = o.freq || SUSP.freq, zeta = o.zeta || SUSP.zeta;
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < nw; i++) {
     const k = Math.pow(2 * Math.PI * freq, 2) * load[i] / GRAVITY, sag = load[i] / k;
-    wheels.push({ x: xs[i], z: zs[i], y: -comY + r + rest - sag, r, k, c: 2 * zeta * Math.sqrt(k * load[i] / GRAVITY), rest, travel, steer: i < 2 ? 1 : 0, drive: share[i], brake: bshare[i], load: load[i], front: i < 2 });
+    wheels.push({ x: xs[i], z: zs[i], y: -comY + r + rest - sag, r, k, c: 2 * zeta * Math.sqrt(k * load[i] / GRAVITY), rest, travel, steer: i < nFront ? 1 : 0, drive: share[i], brake: bshare[i], load: load[i], front: i < nFront });
   }
   /* the body: a box W x H x L, its centre over the middle of the axles, standing `clear` above the ground */
   const boxY = -comY + clear + H / 2, boxZ = -comZ, hx = W / 2, hy = H / 2, hz = L / 2;
@@ -35,12 +38,15 @@ export function chassis(o) {
   const nBox = probes.length;
   /* probes are [x, y, z, radius, kind]: kind 0 a point of the box, 1 a wheel at its ride height (a kerb or a wall catches it; the ground is the suspension's), 2 a wheel pushed all the way up its travel
      (everything stops it: this is the hard end of the suspension, which a ray down from a mount cannot be once the mount is under the road) */
-  for (let i = 0; i < 4; i++) probes.push([xs[i], -comY + r, zs[i], r, 1]);
-  for (let i = 0; i < 4; i++) probes.push([xs[i], wheels[i].y - (wheels[i].rest - wheels[i].travel), zs[i], r, 2]);
+  for (let i = 0; i < nw; i++) probes.push([xs[i], -comY + r, zs[i], r, 1]);
+  for (let i = 0; i < nw; i++) probes.push([xs[i], wheels[i].y - (wheels[i].rest - wheels[i].travel), zs[i], r, 2]);
   /* inertia about the centre of mass: a solid box about its own centre, moved by the parallel-axis theorem; `inertia` scales it (a lower number is a twitchier car) */
   const k = o.inertia == null ? 1.6 : o.inertia;
   const Ix = k * (m / 12 * (H * H + L * L) + m * (boxY * boxY + boxZ * boxZ)), Iy = k * (m / 12 * (W * W + L * L) + m * boxZ * boxZ), Iz = k * (m / 12 * (W * W + H * H) + m * boxY * boxY);
   const sr = (o.sphere || CARS.radius) * Math.min(1.3, W / 0.22);
+  /* the static stability factor: how far the centre of mass is from the nearest line the car can tip over sideways, over how high it is. A four-wheeler tips about its side, half the track; a trike about the
+     line from its front wheel to either rear one, which is nearer. A car rolls at about SSF g of cornering, so no driver should ask for more than that. */
+  const lat = three ? Math.abs((xs[1] - xs[0]) * (0 - zs[0]) - (zs[1] - zs[0]) * (0 - xs[0])) / Math.hypot(xs[1] - xs[0], zs[1] - zs[0]) : tr / 2, ssf = lat / comY;
   return {
     name: o.name || 'CAR', mass: m, L, W, H, wheelbase: wb, track: tr, radius: r, comY, comZ, drive, vtop, tTop, fmax, a0,
     wheels, probes, nBox, box: { x: hx, y: hy, z: hz, cy: boxY, cz: boxZ },
@@ -50,7 +56,7 @@ export function chassis(o) {
     steerMax: o.steer || 0.5,                                              /* full lock, radians */
     reverse: o.reverse == null ? 0.5 : o.reverse,                          /* how much of the engine reverse gets */
     /* what the tyres will really give in a steady bend at speed, m/s^2 (measured on a skidpad: about 0.72 g for a front-drive car with the stick over, less for rear drive, which the throttle turns loose): what a driver's speed plan is a share of */
-    aLat: 0.72 * GRAVITY * (o.gripLat || 1) * (drive === 'rwd' ? 0.93 : 1),
+    aLat: Math.min(0.72 * GRAVITY * (o.gripLat || 1) * (drive === 'rwd' ? 0.93 : 1), 0.7 * ssf * GRAVITY), ssf, iceMu: o.ice || 0,
     gripLat: o.gripLat || 1, gripLong: o.gripLong || 1,                    /* this car's tyre: lateral and longitudinal, on top of the surface */
     latBias: o.latBias == null ? 1.12 : o.latBias,                         /* the rear's sideways grip over the front's: above 1 is a car that pushes wide before it spins, below 1 is a drifty one */
     dragK: o.drag == null ? 1 : o.drag, downforce: o.downforce == null ? 1 : o.downforce,

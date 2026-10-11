@@ -2,7 +2,8 @@
    edges; the start grid is on the road and behind the line; the checkpoints stretch across it in order; the nodes a car is put back on are on the road, facing the right way, and none is in a pit; each thing
    set on the road (a belt, a jump, a kerb, a pinch, a counter) is where its data says and does what it is for; and a CPU car drives a whole lap of it without being put back, over every checkpoint, in a
    time that is a lap and not a crawl. The jump is held to the harder promise: whatever a player does with the keys in the air, a car that arrives at a speed a ROOKIE reaches clears it and lands on its wheels.
-   (Pickups, stars and gates join this check in the phases that add them.)   node apps/vroom/track_check.js */
+   The pickups are held to the same promise: every parcel is on the road, clear of the walls and of every belt, jump, kerb, pinch and counter, inside what the CPU may drive, and a car driven straight down its lane takes it.
+   (Stars and gates join this check in the phases that add them.)   node apps/vroom/track_check.js */
 import { buildTrack } from './track_build.js';
 import { TRACKS } from './track_def.js';
 import { createRace } from './race.js';
@@ -38,6 +39,36 @@ for (const id of Object.keys(TRACKS)) {
     const run = F.jumps.length ? j.a - 20 : 0, straight = Math.max(...[0, 4, 8, 12, 16, 20].map(d => Math.abs(L.at(j.a - d).k))) < 0.03;
     ok(straight, tag + 'the road is straight for the 20 m before a jump (a run-up that is a bend is a wall)');
     void run;
+  }
+  /* ---- the pickups ---- */
+  {
+    const SP = T.spots, zones = [];
+    F.belts.forEach(b => zones.push(['belt', b.s0 - 1, b.s1 + 1])); F.jumps.forEach(j => zones.push(['jump', j.a - 4, j.d + 2])); F.kerbs.forEach(k => zones.push(['kerb', k.s0 - 1, k.s1 + 1]));
+    F.pinches.forEach(k => zones.push(['pinch', k.s0 - 2, k.s1 + 2])); F.counters.forEach(k => zones.push(['counter', k.s0 - 1, k.s1 + 1]));
+    ok(SP.length >= 12 && SP.length % 3 === 0, tag + 'there are clusters of three parcels (' + SP.length + ' on a lap of ' + T.length.toFixed(0) + ' m)');
+    const bad = [];
+    SP.forEach(q => {
+      const k = L.nearest(q.x, q.z), p = sm[k], lat = (q.x - p.x) * p.nx + (q.z - p.z) * p.nz;
+      if (Math.abs(lat) > T.width[k] / 2 - 0.5) bad.push('wall ' + q.s.toFixed(0));
+      if (ray(T.col, q.x, q.y + 0.3, q.z, 0, -1, 0, 0.6) < 0) bad.push('no floor ' + q.s.toFixed(0));
+      const z = zones.find(zz => q.s >= zz[1] && q.s <= zz[2]); if (z) bad.push(z[0] + ' ' + q.s.toFixed(0));
+      if (lat < T.limits.lo[k] - 0.1 || lat > T.limits.hi[k] + 0.1) bad.push('out of limits ' + q.s.toFixed(0));
+    });
+    ok(bad.length === 0, tag + 'every parcel is on the road with floor under it, inside the CPU\'s limits, and clear of every belt, jump, kerb, pinch and counter', bad.join(', '));
+    const cl = [...new Set(SP.map(q => q.s))].sort((a, b) => a - b); let gap = 1e9; for (let i = 0; i < cl.length; i++) gap = Math.min(gap, ((cl[(i + 1) % cl.length] - cl[i]) + T.length) % T.length);
+    ok(gap > 20, tag + 'clusters are at least 20 m apart (' + gap.toFixed(0) + ' m)');
+    let missed = [];
+    SP.forEach((q, i) => {
+      const race = createRace({ track: T, entries: [{ id: 'a', name: 'A', car: 'courier', tier: 2 }], laps: 3, seed: 2 });
+      for (let n = 0; n < 60 * 4; n++) race.step();
+      race.pickups.spots.forEach((o, j) => { if (j !== i) { o.alive = false; o.until = 1e9; } });
+      const f = race.field[0], p = L.at(q.s - 7), px = p.x + p.nx * q.lat, pz = p.z + p.nz * q.lat;
+      f.driver = { drive: () => ({ throttle: 0.5, brake: 0, steer: 0, repo: false, fire: false }) };
+      race.world.place(f.car, { x: px, y: p.y, z: pz, yaw: p.yaw }); f.car.v[0] = p.tx * 7; f.car.v[2] = p.tz * 7;
+      for (let n = 0; n < 60 * 2.2; n++) race.step();
+      if (race.pickups.spots[i].alive) missed.push(q.s.toFixed(0) + '/' + q.lat.toFixed(1));
+    });
+    ok(missed.length === 0, tag + 'a car driven straight down a parcel\'s lane takes it, every one of them (' + SP.length + ' tried)', missed.join(', '));
   }
   /* ---- the start ---- */
   ok(T.grid.length >= 8, tag + 'the grid has a place for eight cars (' + T.grid.length + ')');
@@ -80,7 +111,7 @@ for (const id of Object.keys(TRACKS)) {
   ok(bad === 0 && maxSurf < 12, tag + 'the collision soup is made of real numbers and real surfaces (' + g.n + ' triangles)');
   /* ---- a CPU drives a lap ---- */
   {
-    const race = createRace({ track: T, entries: [{ id: 'a', name: 'A', car: 'courier', tier: 2 }], laps: 2, seed: 4 });
+    const race = createRace({ track: T, entries: [{ id: 'a', name: 'A', car: 'courier', tier: 2 }], laps: 2, seed: 4, pickups: false });
     let repos = 0, cp = 0, best = 0, flips = 0; const gates = new Set();
     for (let i = 0; i < 60 * 240 && race.state !== 'done'; i++) {
       race.step();
@@ -104,7 +135,7 @@ for (const id of Object.keys(TRACKS)) {
       for (let i = 0; i < 30; i++) w.step();
       let cleared = false, flipped = false, vend = 0;
       for (let i = 0; i < 360; i++) {
-        const sp = Math.hypot(car.v[0], car.v[2]), nr = L.nearest(car.p[0], car.p[2]), s = sm[nr].s, air = s > j.a && s < j.d + 0.5;
+        const sp = Math.hypot(car.v[0], car.v[2]), nr = L.nearest(car.p[0], car.p[2]), s = sm[nr].s, air = car.touching === 0 && s > j.a - 1 && s < j.d + 1;           /* the keys are what is done in the AIR: on the road the car is driven to its speed */
         car.input = { throttle: air ? q[0] : (sp < v0 ? 1 : 0), brake: air ? q[1] : 0, steer: air ? q[2] * 0.6 : 0, repo: false };
         w.step();
         for (const e of w.events) if (e.type === 'flip') flipped = true;

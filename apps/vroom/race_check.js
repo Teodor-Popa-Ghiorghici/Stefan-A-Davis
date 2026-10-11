@@ -26,7 +26,8 @@ const four = [{ id: 'a', name: 'A', car: 'milkfloat', tier: 0 }, { id: 'b', name
   ok(Math.abs(goAt / 60 - COUNT) < 0.05, 'GO comes at ' + COUNT + ' s (' + (goAt / 60).toFixed(2) + ')');
   ok(moved < 0.15, 'nothing moves on the grid before it, whatever the keys do (' + moved.toFixed(2) + ' m/s)');
   ok(r.field.every(f => f.prog > -10 && f.prog < 1) || r.field.some(f => f.prog > 1), 'every car stood behind the line');
-  ok(r.field.every(f => Math.hypot(f.car.v[0], f.car.v[2]) > 2), 'and every car is moving after it');
+  /* (a person who holds the gas and never steers can pin a car against the wall from behind: so every car has got away from the line, and all but one are still doing two metres a second) */
+  ok(r.field.every(f => f.prog > 5) && r.field.filter(f => Math.hypot(f.car.v[0], f.car.v[2]) > 2).length >= r.field.length - 1, 'and every car got away after it, all but at most one still moving');
 }
 /* laps and the finish */
 function run(entries, laps, seed, human) {

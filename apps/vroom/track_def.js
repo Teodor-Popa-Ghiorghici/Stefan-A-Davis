@@ -37,7 +37,10 @@ export const SORTING = {
     { type: 'jump', u: SORT.u(6, 0.66), rise: 0.18, run: 0.9, gap: 1.4 },                                    /* the standard jump over the loading pit */
     { type: 'kerb', u0: SORT.u(7, 0.0) - 1.5, u1: SORT.u(7, 0.0) + 2.5, side: 'inner', h: 0.035 },            /* the corner that rolls a tall car */
     { type: 'pinch', u0: SORT.u(8, 0.35), u1: SORT.u(8, 0.55), gap: 1.2 },                                   /* two stacks of parcels, and the cars bunch */
-    { type: 'counter', u0: SORT.u(8, 0.7), u1: SORT.u(8, 0.95), h: 0.62 }                                    /* the counter: a low roof to drive under */
+    { type: 'counter', u0: SORT.u(8, 0.7), u1: SORT.u(8, 0.95), h: 0.62 },                                   /* the counter: a low roof to drive under */
+    /* the pickups: a cluster of three across the road, on a straight, clear of the belt, the jump, the kerb, the pinch and the counter (track_check.js holds that) */
+    { type: 'pickups', u: SORT.u(0, 0.66) }, { type: 'pickups', u: SORT.u(1, 0.5) }, { type: 'pickups', u: SORT.u(3, 0.43) }, { type: 'pickups', u: SORT.u(4, 0.5) },
+    { type: 'pickups', u: SORT.u(6, 0.32) }, { type: 'pickups', u: SORT.u(7, 0.86) }, { type: 'pickups', u: SORT.u(9, 0.38) }
   ],
   start: { u: SORT.u(0, 0.45), rows: 4, gap: 1.5, side: 0.55 }
 };

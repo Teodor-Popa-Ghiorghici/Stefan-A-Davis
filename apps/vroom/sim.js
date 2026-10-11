@@ -17,10 +17,10 @@ export function createWorld(o) {
     const n = spec.probes.length, car = {
       id: opts && opts.id != null ? opts.id : W.nextId++, spec, p: new Float64Array(3), q: new Float64Array(4), v: new Float64Array(3), w: new Float64Array(3), R: new Float64Array(9), F: new Float64Array(3), T: new Float64Array(3),
       pw: new Float64Array(n * 3), pprev: new Float64Array(n * 3), sw: new Float64Array(9), hitCool: {},
-      wheels: spec.wheels.map(() => ({ ground: false, N: 0, prevX: 0, comp: 0, tri: -1, surf: 0, spin: 0, vf: 0, vs: 0, slide: 0 })),
+      wheels: spec.wheels.map(() => ({ ground: false, N: 0, prevX: 0, comp: 0, tri: -1, surf: 0, spin: 0, vf: 0, vs: 0, slide: 0, spill: 0 })),
       input: { throttle: 0, brake: 0, steer: 0, repo: false }, steer: 0, grip: 1, parts: (opts && opts.parts) || { snowTyres: false, iceChains: false, compound: 0 },
       airtime: 0, fallV: 0, roofTime: 0, stuckTime: 0, upside: false, wheelie: false, repoT: 0, ghost: 0, contacts: 0, hardest: 0, lastGood: null, wasRepo: false, lastSurf: -1,
-      tSpill: 0, tPower: 0, tTurbo: 0, tStun: 0, odometer: 0
+      tSpill: 0, tPower: 0, tTurbo: 0, tStun: 0, tumble: 0, odometer: 0
     };
     W.cars.push(car);
     W.place(car, at);
@@ -89,7 +89,7 @@ export function createWorld(o) {
     const roof = up < -0.2;
     if (roof && !car.upside) ev.push({ type: 'flip', car: car.id });
     car.upside = roof;
-    const nose = R[5] > Math.sin(WHEELIE.pitch) && !car.wheels[0].ground && !car.wheels[1].ground && (car.wheels[2].ground || car.wheels[3].ground);
+    const nose = R[5] > Math.sin(WHEELIE.pitch) && !car.wheels.some((w, i) => w.ground && car.spec.wheels[i].front) && car.wheels.some((w, i) => w.ground && !car.spec.wheels[i].front);
     if (nose && !car.wheelie) ev.push({ type: 'wheelie', car: car.id });
     car.wheelie = nose;
     car.roofTime = up < 0.1 && speed < 1.5 ? car.roofTime + STEP : 0;
@@ -105,8 +105,19 @@ export function createWorld(o) {
       }
     }
     if (car.ghost > 0) car.ghost = Math.max(0, car.ghost - STEP);
-    if (car.tSpill > 0) car.tSpill -= STEP; if (car.tPower > 0) car.tPower -= STEP; if (car.tTurbo > 0) car.tTurbo -= STEP; if (car.tStun > 0) car.tStun -= STEP;
+    if (car.tSpill > 0) car.tSpill -= STEP; if (car.tPower > 0) car.tPower -= STEP; if (car.tTurbo > 0) car.tTurbo -= STEP; if (car.tStun > 0) car.tStun -= STEP; if (car.tumble > 0) car.tumble -= STEP;
+    for (const w of car.wheels) if (w.spill > 0) w.spill -= STEP;
   }
+  /* A KNOCK (a pickup's blast, a shock wave, a bomb): a push, a toss up and a spin about the car's own axes (roll about its nose, pitch about its right side, yaw about its top), and for `tumble` seconds the air
+     does not straighten it, so it turns over instead of being put level again at once. `stun` takes its power. What a pickup does to a car is this and the timers on it; the sim does not know what a pickup is. */
+  W.knock = (car, o) => {
+    const R = car.R, r = o.roll || 0, p = o.pitch || 0, y = o.yaw || 0;
+    car.v[1] += o.up || 0;
+    if (o.push) { car.v[0] += o.push[0]; car.v[2] += o.push[1]; }
+    car.w[0] += R[2] * r + R[0] * p + R[1] * y; car.w[1] += R[5] * r + R[3] * p + R[4] * y; car.w[2] += R[8] * r + R[6] * p + R[7] * y;
+    car.tumble = Math.max(car.tumble, o.tumble == null ? 0.7 : o.tumble);
+    if (o.stun) car.tStun = Math.max(car.tStun, o.stun);
+  };
   /* a hash of the whole state: two runs that agree here agree everywhere (the checks hold ten minutes of it) */
   W.hash = () => {
     let h = 0x811C9DC5;

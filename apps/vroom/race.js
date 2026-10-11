@@ -7,8 +7,11 @@
 import { createWorld } from './sim.js';
 import { specOf } from './cars.js';
 import { createDriver } from './ai.js';
-import { TIERS, HUMAN } from './ai_profiles.js';
+import { TIERS, HUMAN, styled } from './ai_profiles.js';
+import { createPickups } from './pickups.js';
 import { STEP } from './tune.js';
+
+function dice(seed) { let s = (seed >>> 0) || 1; return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; }; }
 
 export const COUNT = 3.2;                       /* seconds on the grid before GO */
 const WAIT = 4;                                 /* seconds the race runs on after the human finishes, so the others cross the line */
@@ -22,13 +25,17 @@ export function createRace(o) {
     const car = world.addCar(spec, { x: g.x, y: g.y, z: g.z, yaw: g.yaw }, { id: i, parts: e.parts });
     const near = T.line.nearest(g.x, g.z);
     let dist = T.line.samples[near].s; dist = ((dist - T.startS + L * 1.5) % L) - L / 2 + T.startS;      /* in the half lap round the start line */
-    const profile = e.human ? null : TIERS[Math.min(TIERS.length - 1, e.tier == null ? rating : e.tier)];
+    const profile = e.human ? null : styled(TIERS[Math.min(TIERS.length - 1, e.tier == null ? rating : e.tier)], e.style);
     return {
       i, entry: e, name: e.name, human: !!e.human, car, spec, near, dist, prevS: T.line.samples[near].s, prog: 0, lap: 0, lapStart: 0, lapTimes: [], best: null, finished: false, finishT: 0, place: i + 1, lat: 0, wrong: 0,
-      driver: profile ? createDriver(T, spec, profile, seed * 31 + i * 7 + 1) : null, in: { throttle: 0, brake: 0, steer: 0, repo: false }
+      driver: profile ? createDriver(T, spec, profile, seed * 31 + i * 7 + 1) : null, in: { throttle: 0, brake: 0, steer: 0, repo: false, fire: false },
+      hold: [], cap: e.parts && e.parts.roofRack ? 2 : 1, bomb: null, leads: 0, zapped: {}, fireWas: false, hitBy: 0
     };
   });
   const R = { track: T, world, field, laps, rating, state: 'count', t: -COUNT, frame: 0, events: [], order: field.map(f => f.i), winner: -1, overT: 0, humanDone: false };
+  R.stats = { leadChanges: 0, swaps: 0, flips: 0 };
+  R.pickups = createPickups(R, dice(seed * 977 + 13));
+  if (o.pickups === false) { R.pickups.spots.length = 0; }                      /* a race of driving alone: the checks that are about the road and the CPU's hands, not about what is thrown at it */
   const sampleS = i => T.line.samples[i].s;
   const label = n => R.events.push({ type: 'count', n });
 
@@ -60,8 +67,16 @@ export function createRace(o) {
   /* what the cars near this one look like to its driver */
   function around(f) {
     const out = [];
-    for (const g of R.field) { if (g === f) continue; const d = g.dist - f.dist; if (Math.abs(d) < 12) out.push({ ahead: d, lat: g.lat, speed: Math.hypot(g.car.v[0], g.car.v[2]) }); }
+    for (const g of R.field) { if (g === f) continue; const d = g.dist - f.dist; if (Math.abs(d) < 12) out.push({ ahead: d, lat: g.lat, speed: Math.hypot(g.car.v[0], g.car.v[2]), bomb: !!g.bomb }); }
     return out;
+  }
+  /* what else a driver sees: what it holds, where it is in the field, and the parcels and hazards on the road ahead of it (a fake parcel looks like a pickup but for the one wrong texel, `tell`) */
+  function seen(f) {
+    const P = R.pickups, S = T.line.samples, fs = ((f.dist % L) + L) % L, road = [];
+    const at = (x, z) => { const k = T.line.nearest(x, z, f.near, 60), q = S[k]; return { ahead: ((q.s - fs) % L + L) % L, lat: (x - q.x) * q.nx + (z - q.z) * q.nz }; };
+    for (const s of P.spots) if (s.alive) { const a = ((s.s - fs) % L + L) % L; if (a < 12) road.push({ id: 's' + s.i, kind: 'spot', ahead: a, lat: s.lat, tell: false }); }
+    for (const o of P.objs) if (o.kind === 'fake' || o.kind === 'freeze' || o.kind === 'stone') { const a = at(o.x, o.z); if (a.ahead < 12) road.push({ id: 'o' + o.id, kind: o.kind === 'fake' ? 'spot' : o.kind, ahead: a.ahead, lat: a.lat, tell: o.kind === 'fake' }); }
+    return { held: f.hold[0] || null, bomb: f.bomb, place: f.place, n: R.field.length, t: R.t, road, around: null, lat: f.lat, free: f.hold.length < f.cap && !f.bomb, k: T.line.samples[f.near].k, speed: Math.hypot(f.car.v[0], f.car.v[2]) };
   }
 
   R.step = (human) => {
@@ -69,11 +84,12 @@ export function createRace(o) {
     const prevT = R.t;
     for (const f of R.field) {
       let inp;
-      if (R.state === 'count') inp = { throttle: 0, brake: 0, steer: 0, repo: false };      /* on the grid with the engine idling (brake at a standstill is reverse, so none) */
+      if (R.state === 'count') inp = { throttle: 0, brake: 0, steer: 0, repo: false, fire: false };      /* on the grid with the engine idling (brake at a standstill is reverse, so none) */
       else if (f.human) inp = human || f.in;
-      else inp = f.driver.drive(f.car, f.near, around(f), STEP);
-      if (f.finished && f.human) inp = { throttle: 0, brake: 0.3, steer: 0, repo: false };
+      else { const ar = around(f), cx = seen(f); cx.around = ar; inp = f.driver.drive(f.car, f.near, ar, STEP, cx); }
+      if (f.finished && f.human) inp = { throttle: 0, brake: 0.3, steer: 0, repo: false, fire: false };
       f.car.input = inp;
+      R.pickups.fire(f, inp.fire);
     }
     world.step();
     for (const e of world.events) R.events.push(e);
@@ -108,6 +124,19 @@ export function createRace(o) {
         if (R.field.every(f => f.finished) || R.overT >= WAIT) R.state = 'done';
       }
     } else rank();
+    R.pickups.post(world.events);
+    /* places change hands for good, not as two cars side by side swap: a car's place counts as moved when its raw place has been another for a second and a half. A lead change is the front moving; a swap is two cars exchanging. */
+    if (R.state === 'racing' && R.t > 2) {
+      let moved = 0;
+      for (const f of R.field) {
+        if (f.sp == null) { f.sp = f.place; f.spT = 0; continue; }
+        if (f.place === f.sp) { f.spT = 0; continue; }
+        f.spT += STEP;
+        if (f.spT > 1.5) { if (f.place === 1) R.stats.leadChanges++; f.sp = f.place; f.spT = 0; moved++; }
+      }
+      R.stats.swaps += moved / 2;
+    }
+    for (const e of world.events) if (e.type === 'flip') R.stats.flips++;
     return R.events;
   };
   /* the order as a table: the finishers by time, the rest by how far they got */

@@ -4,6 +4,8 @@
 import { ix, GREY, RED, BROWN, CYAN, GREEN, COOL } from './palette.js';
 import { widthOf, F3, F5 } from '../pixtext.js';
 import { BAYER } from './raster_shade.js';
+import { drawIcon } from './pickups_icons.js';
+import { PICKUPS } from './pickups_deal.js';
 
 const ORD = ['1ST', '2ND', '3RD', '4TH', '5TH', '6TH', '7TH', '8TH'];
 const WHITE = ix(GREY, 15), YEL = ix(BROWN, 14), DIM = ix(GREY, 11), BLACK = ix(GREY, 0);
@@ -29,6 +31,24 @@ export function drawHud(R, race, f, o) {
   R.rect(bx - 1, by - 1, bw + 2, 6, BLACK); R.rect(bx, by, bw, 4, ix(GREY, 3));
   const fill = Math.min(1, sp / top) * bw; R.rect(bx, by, fill, 4, sp / top > 0.92 ? ix(RED, 10) : ix(GREEN, 10));
   right(R, kph + ' KPH', r.x + r.w - 5, by - 8, WHITE, { outline: BLACK });
+  /* what the car holds: a slot at the bottom middle with the pickup's picture, its name and how many are left; the HOT PARCEL has no slot of its own: its fuse is a bar that shrinks, a red frame that flashes
+     faster as it burns, and the antenna on the car itself */
+  { const sx = r.x + 6, sy = r.y + r.h - 33, hold = f.hold || [];
+    R.rect(sx - 1, sy - 1, 28, 28, BLACK); R.rect(sx, sy, 26, 26, ix(COOL, 2));
+    if (hold.length) {
+      drawIcon(R, hold[0].id, sx + 2, sy + 2, 2);
+      left(R, PICKUPS[hold[0].id].name, sx, sy - 7, WHITE, { outline: BLACK });
+      if (hold[0].count > 1) left(R, 'X' + hold[0].count, sx + 21, sy + 19, YEL, { outline: BLACK });
+      if (hold[1]) drawIcon(R, hold[1].id, sx + 28, sy + 8, 1);
+    } else R.rect(sx + 9, sy + 11, 8, 4, ix(GREY, 4));
+    if (f.bomb) {
+      const k = Math.max(0, f.bomb.fuse) / 6, blink = Math.floor(race.t * (3 + (1 - k) * 9)) & 1;
+      R.rect(sx - 1, sy - 1, 28, 1, blink ? ix(RED, 12) : BLACK); R.rect(sx - 1, sy + 26, 28, 1, blink ? ix(RED, 12) : BLACK);
+      drawIcon(R, 'parcel', sx + 2, sy + 2, 2);
+      left(R, 'HOT PARCEL', sx, sy - 7, blink ? ix(RED, 12) : YEL, { outline: BLACK });
+      R.rect(sx, sy + 28, 26, 3, BLACK); R.rect(sx + 1, sy + 29, Math.round(24 * k), 1, blink ? ix(RED, 12) : ix(BROWN, 14));
+    }
+  }
   /* the countdown */
   if (race.state === 'count') {
     const t = -race.t, k = Math.ceil(t), shown = t > 0.05 && k >= 1 && k <= 3 ? String(k) : null;

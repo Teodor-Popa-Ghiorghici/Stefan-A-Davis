@@ -32,6 +32,8 @@ export const SURF = {
 export const SURF_BY_ID = Object.values(SURF).sort((a, b) => a.id - b.id);
 /* a belt carries what is slower than itself up to its own speed: a standing car is moved off at this share of its weight (about 1.9 m/s^2), and fades out as it reaches the belt's speed; a car already faster than the belt feels nothing but its rolling drag */
 export const BELT_CARRY = 0.12;
+/* the most thrust a wheel is asked for, as a share of what its tyre can hold (mu N): a toy's motor controller does not spin a wheel it cannot grip, so a PRO engine on rear drive pulls away from the line instead of sitting in a slide with no steering (the engine's own curve is `accel`, and the road is the limit: this keeps the rest of the friction circle for the sideways force) */
+export const TRACTION = 0.9;
 export const SPILL_GRIP = 0.3, SPILL_TIME = 2.0;       /* antifreeze or a snowball splash: mu x 0.3 for two seconds */
 export const COMPOUND = [1, 1.05, 1.1, 1.15];          /* TYRE COMPOUND, three levels (0 is the stock tyre): a multiplier on every surface's mu, held by the rating's cap */
 

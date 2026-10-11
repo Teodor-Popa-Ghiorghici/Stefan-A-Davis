@@ -155,7 +155,9 @@ try {
   await page.keyboard.down('KeyW'); await page.waitForTimeout(2600);
   const fast = await bar();
   ok(fast > 18, 'clue earned: holding W for 2.6 s after GO lights the speed bar (' + fast + ' of 44 px)', String(fast));
-  await page.keyboard.up('KeyW'); await page.keyboard.down('Space'); await page.waitForTimeout(1500); await page.keyboard.up('Space');
+  await page.keyboard.up('KeyW'); await page.keyboard.down('KeyS'); await page.waitForTimeout(1500); await page.keyboard.up('KeyS');
+  /* the fire key (SPACE, E, SHIFT) on a car that holds nothing, or something: nothing breaks and the page reports no error */
+  for (const k of ['Space', 'KeyE', 'ShiftLeft', 'Space']) { await page.keyboard.press(k); await page.waitForTimeout(80); }
   const slow = await bar();
   ok(slow < fast - 6, 'clue earned: the brake slows it (' + slow + ' px)', fast + ' -> ' + slow);
   const mid = await gamePicture(page);

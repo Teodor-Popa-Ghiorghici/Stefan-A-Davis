@@ -47,7 +47,7 @@ export function integrate(car, h, touching, col) {
   const df = BODY.downforce * sp.downforce * speed * speed * (touching > 0 ? 1 : 0.3); F[0] -= df * R[1]; F[1] -= df * R[4]; F[2] -= df * R[7];
   /* in the air: the air itself keeps the car's nose along the way it is travelling and lets its spin die away (so a jump is an arc, not a tumble), and the player has a little control on top:
      pitch with the throttle and brake, roll with the steering, only while no wheel has touched for a moment */
-  if (touching === 0 && car.airtime > AIR.delay) {
+  if (touching === 0 && car.airtime > AIR.delay && !(car.tumble > 0)) {
     const k = 1 - AIR.damp * h; w[0] *= k; w[1] *= k; w[2] *= k;
     const hs = Math.hypot(v[0], v[2]);
     let tx = 0, tz = 0;

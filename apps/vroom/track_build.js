@@ -20,13 +20,14 @@ export function buildTrack(def) {
   const width = S.map(p => widthAt(p.s));
 
   /* the features, in distances along the line */
-  const F = { belts: [], jumps: [], kerbs: [], pinches: [], counters: [] };
+  const F = { belts: [], jumps: [], kerbs: [], pinches: [], counters: [], pickups: [] };
   (def.features || []).forEach(f => {
     if (f.type === 'belt') F.belts.push({ s0: sOfU(f.u0), s1: sOfU(f.u1), lane: f.lane, speed: f.speed, rise: f.rise == null ? 0.04 : f.rise });
     else if (f.type === 'jump') { const sj = sOfU(f.u); F.jumps.push({ s: sj, run: f.run, gap: f.gap, rise: f.rise, w: f.w, a: sj - f.run, b: sj, c: sj + f.gap, d: sj + f.gap + f.run }); }
     else if (f.type === 'kerb') F.kerbs.push({ s0: sOfU(f.u0), s1: sOfU(f.u1), side: f.side, h: f.h });
     else if (f.type === 'pinch') F.pinches.push({ s0: sOfU(f.u0), s1: sOfU(f.u1), gap: f.gap || 2.3 });
     else if (f.type === 'counter') F.counters.push({ s0: sOfU(f.u0), s1: sOfU(f.u1), h: f.h });
+    else if (f.type === 'pickups') F.pickups.push({ s: sOfU(f.u), n: f.n || 3, spread: f.spread || 0.7 });
   });
   const lift = s => { for (const j of F.jumps) { if (s >= j.a && s <= j.b) return j.rise * (s - j.a) / j.run; if (s >= j.c && s <= j.d) return j.rise * (1 - (s - j.c) / j.run); } return 0; };
   const inGap = (s0, s1) => F.jumps.some(j => s0 >= j.b - 1e-3 && s1 <= j.c + 1e-3);
@@ -139,6 +140,7 @@ export function buildTrack(def) {
   F.kerbs.forEach(k => { const p = line.at((k.s0 + k.s1) / 2); marks.push({ x: p.x, z: p.z, c: 76, r: 3 }); });
   F.pinches.forEach(k => { const p = line.at((k.s0 + k.s1) / 2); marks.push({ x: p.x, z: p.z, c: 108, r: 3 }); });
   F.counters.forEach(k => { const p = line.at((k.s0 + k.s1) / 2); marks.push({ x: p.x, z: p.z, c: 90, r: 3 }); });
+  F.pickups.forEach(k => { const p = line.at(k.s); marks.push({ x: p.x, z: p.z, c: 104, r: 2 }); });
 
   /* where a CPU may put the middle of its car, as offsets left (+) and right (-) of the centreline: inside the walls with a margin, narrowed where a kerb takes the inner edge or a pinch closes the road, and
      tapered so the approach to a narrow place is not a surprise (a driver must be able to see it coming) */
@@ -154,7 +156,15 @@ export function buildTrack(def) {
   /* the most speed a place can be taken at by a sensible driver, where the road itself asks for it (a CPU's speed plan is held to it: a pinch is a gap, not a wall to be hit at full speed) */
   const cap = new Float64Array(S.length).fill(1e9);
   F.pinches.forEach(k => S.forEach((p, i) => { if (p.s >= k.s0 - 1 && p.s <= k.s1 + 1) cap[i] = Math.min(cap[i], 9); }));
+  /* and a jump: a sensible driver lifts for a ramp, and a fast light car with its foot down on one stands on its tail (the speeds a jump is built for are the ROOKIE's: track_check.js) */
+  F.jumps.forEach(j => S.forEach((p, i) => { if (p.s >= j.a - 3 && p.s <= j.d + 0.5) cap[i] = Math.min(cap[i], 12.5); }));
+  /* the pickups: each cluster is `n` spots abreast of the line, `spread` metres apart, kept inside the walls; a spot is a place a car's middle must pass within a hand's breadth of */
+  const spots = [];
+  F.pickups.forEach((c, k) => {
+    const p = line.at(c.s), w = widthAt(c.s) / 2 - 0.55;
+    for (let j = 0; j < c.n; j++) { const lat = Math.max(-w, Math.min(w, (j - (c.n - 1) / 2) * c.spread)), a = across(p, lat); spots.push({ i: spots.length, cluster: k, s: c.s, lat, x: a.x, y: p.y + lift(c.s), z: a.z }); }
+  });
   const decor = dress(def, line, width, F);
   const built = out.build();
-  return { def, id: def.id, name: def.name, laps: def.laps || 3, line, length: L, startS, width, widthAt, floorAt, features: F, chunks: built.chunks.map((mesh, i) => ({ mesh, s0: i * 24, s1: (i + 1) * 24 })), col: built.grid, tris: built.tris, grid, nodes, checkpoints, marks, decor, lift, limits: { lo, hi }, speedCap: cap };
+  return { def, id: def.id, name: def.name, laps: def.laps || 3, line, length: L, startS, width, widthAt, floorAt, features: F, chunks: built.chunks.map((mesh, i) => ({ mesh, s0: i * 24, s1: (i + 1) * 24 })), col: built.grid, tris: built.tris, grid, nodes, checkpoints, marks, spots, decor, lift, limits: { lo, hi }, speedCap: cap };
 }

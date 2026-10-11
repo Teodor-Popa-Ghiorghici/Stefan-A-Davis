@@ -6,7 +6,8 @@ import { buildTrack } from './track_build.js';
 import { TRACKS } from './track_def.js';
 import { createRace } from './race.js';
 import { carModel } from './car_art.js';
-import { RIVALS } from './cars.js';
+import { fieldFor } from './rivals.js';
+import { PLAYER, liveryFor } from './livery.js';
 import { createCamera } from './camera.js';
 import { createInput } from './input.js';
 import { drawView } from './scene.js';
@@ -36,10 +37,10 @@ export function mountGame(root, ctx) {
   /* a new race: the courier at the back of a grid of three rivals */
   function start() {
     if (!G.track) G.track = buildTrack(TRACKS.sorting);
-    const entries = RIVALS.slice(0, 3).map(r => ({ id: r.id, name: r.name, car: r.car, tier: r.tier, paint: r.paint })).concat([{ id: 'you', name: 'YOU', car: 'courier', human: true, tier: 0 }]);
-    G.race = createRace({ track: G.track, entries, laps: G.track.laps, rating: 0, seed: (Date.now() & 0xffff) | 1 });
+    const seed = (Date.now() & 0xffff) | 1, entries = fieldFor(0, 7, seed).concat([{ id: 'you', name: 'YOU', car: 'courier', human: true, tier: 0, paint: PLAYER.paint, livery: liveryFor(PLAYER), num: PLAYER.num }]);
+    G.race = createRace({ track: G.track, entries, laps: G.track.laps, rating: 0, seed });
     G.human = G.race.field.find(f => f.human);
-    G.race.field.forEach(f => { const k = f.entry.car + ':' + f.entry.paint; f.model = models[k] || (models[k] = carModel(f.entry.car, f.entry.paint)); });
+    G.race.field.forEach(f => { const k = f.entry.car + ':' + f.entry.paint + ':' + f.entry.num; f.model = models[k] || (models[k] = carModel(f.entry.car, f.entry.paint, f.entry.livery)); });
     G.paused = false; G.sel = 0; G.acc = 0; cam.snap();
   }
   start();
@@ -71,13 +72,14 @@ export function mountGame(root, ctx) {
         for (const e of r.events) {
           if (e.type === 'hit-wall' && e.car === G.human.i) cam.shake(Math.min(0.03, e.speed * 0.003));
           if (e.type === 'land' && e.car === G.human.i) cam.shake(Math.min(0.03, e.speed * 0.004));
+          if ((e.type === 'hit' && e.i === G.human.i) || (e.type === 'boom' && e.i === G.human.i)) cam.shake(0.05);
         }
         G.acc -= STEP; n++;
       }
       if (n === 6) G.acc = 0;
     }
     const spec = cam.update(G.human.car, G.paused ? 0 : dt, G.track.col);
-    drawView(R, { x: 0, y: 0, w: W, h: H }, G.track, r.field, spec);
+    drawView(R, { x: 0, y: 0, w: W, h: H }, G.track, r.field, spec, { pickups: { P: r.pickups, t: r.t > 0 ? r.t : 0 } });
     drawHud(R, r, G.human, { fps: window.__vroomFps ? G.fps : null });
     if (r.state === 'done' || (r.state === 'over' && G.human.finished && r.overT > 1.5)) drawResults(R, r, {});
     if (G.paused) drawPause(R, { sel: G.sel });
