@@ -35,6 +35,7 @@ export const registry = {
   trophybox: () => import('../apps/trophybox/index.js'),
   credits: () => import('../apps/credits/index.js'),
   bibel: () => import('../apps/bibel/index.js'),
+  vroom: () => import('../apps/vroom/index.js'),
 
 
 };

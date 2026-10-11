@@ -3,6 +3,7 @@
    file has been thrown away. Pages are DolDoc, the same format as the .DD
    files. A link to "@topic" jumps to that page; a macro starting with "@"
    does a thing (@restore, @open:<app>); anything else is HolyC. */
+import { isOpen as vroomOpen } from './vroom_gate_core.js';
 export const TOPICS = [
   ['start', 'START HERE'],
   ['keys', 'MOUSE & KEYS'],
@@ -201,12 +202,36 @@ $FG,11$  GodWord;
 $TR-$
 
 $TR,"WHAT THIS MACHINE UNDERSTANDS"$
-I64 / F64 / U0 declarations, assignment, arithmetic,
-comparison, && and ||, if / else, while, for, {} blocks,
-function definitions, and calls with or without parens.
-Built in: Print, GodWord, GodDoodle, GodSong, Beep,
-BellRing, Sleep, Rand, RandU16, StrLen, Cd, Dir, MemSet,
-Panic, Exit.
+The types U0 I8 U8 I16 U16 I32 U32 I64 U64 F64 Bool (they wrap to
+their size), and your own: class, with a base class, and union.
+Arrays, tables and { } lists. Pointers: & * [ ] -> and the step
+of pointer arithmetic. A cast is written after: x(U8), p(I64 *).
+Operators with HolyC's precedence (a & b + c is (a & b) + c):
++ - * / % \` << >> & | ^ ~ ! && ^^ ||, 0 < x < 10, and the
+assignments += -= *= /= %= &= |= ^= <<= >>=.
+if / else, while, do, for, switch (with case 1...5: and default:,
+and start: / end: for a sub-switch), goto and labels, try / catch /
+throw, lock. Functions with default arguments, ... (argc, argv),
+prototypes, pointers to functions, static locals, and calls with or
+without parens. sizeof and offset. #define (with arguments), #undef,
+#ifdef #ifndef #if #else #endif.
+Built in: Print, GodWord, GodDoodle, GodSong, Beep, BellRing,
+Sleep, Rand, RandU16, Cd, Dir, Panic, Exit, the maths (Abs Min Max
+Sqrt Sqr Pow Exp Ln Log10 Log2 Sin Cos Tan ATan ASin ACos Floor
+Ceil Round Clamp Sign GCD), memory (MAlloc CAlloc Free MSize MemCpy
+MemSet MemCmp), text (StrLen StrCpy StrNew StrCmp StrICmp StrNCmp
+StrPrint CatPrint StrMatch Str2I64 Str2F64), bits (Bt Bts Btr Btc
+Bsf Bsr) and PutExcept. Fs->except_ch is what a catch caught.
+$TR-$
+
+$TR,"A CLASS, A POINTER, A LIST"$
+$FG,11$  class CNode { I64 v; CNode *next; };
+  CNode a, b;
+  a.v = 1; b.v = 2; a.next = &b; b.next = NULL;
+  CNode *p = &a;
+  while (p) { "%d\\n", p->v; p = p->next; }$FG$
+Members are packed, with no gaps, as TempleOS lays them out.
+Reading or writing a NULL or a wild address says so, and which line.
 $TR-$
 `,
 
@@ -239,3 +264,29 @@ $TR-$
 $MA,"OPEN TROPHIES.EXE",LM="@open:trophies"$
 `,
 };
+
+/* The pages that are not in the list until something has been earned (kernel/vroom_gate_core.js). They live apart from TOPICS and PAGES so nothing that walks those -- the trophy that asks for
+   every page to be read, a search, a check -- can find them while the gate is shut. Ask `topicsNow()` and `pageNow(id)`. */
+export const GATED_TOPICS = [['vroom', 'VROOM']];
+export const GATED_PAGES = {
+vroom: `$FG,14$$TX+CX,"VROOM"$$FG$
+$HL$
+Something in the garage started its engine. VROOM.EXE is a racing game:
+a radio-controlled courier car in a life-size, snowed-in mountain town.
+It is light, it bounces, and it will land on its roof. That is allowed.
+
+$TR,"DRIVING"$
+$FG,11$Up / W$FG$ gas   $FG,11$Down / S$FG$ brake and reverse   $FG,11$Left Right / A D$FG$ steer
+$FG,11$Space$FG$ use the pickup you hold   $FG,11$R$FG$ reposition (back on the line, after a moment)
+$FG,11$V$FG$ change the radio station   $FG,11$Esc$FG$ pause
+A car left on its roof is put back on the road after three seconds.
+$TR-$
+
+$TR,"THE PICKUPS"$
+Parcels lie on the road. You hold one at a time. The HOT PARCEL turns
+your antenna into a fuse: touch another car and it is theirs.
+$TR-$
+`
+};
+export const topicsNow = () => (vroomOpen() ? TOPICS.concat(GATED_TOPICS) : TOPICS);
+export const pageNow = id => (PAGES[id] || (vroomOpen() ? GATED_PAGES[id] : null) || null);

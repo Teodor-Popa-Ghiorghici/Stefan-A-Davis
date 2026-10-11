@@ -26,7 +26,7 @@ const key = (c, r) => c + ',' + r;
    TOOLS top left, FILES (what you make and import) next to them, GAMES top right, DOCS bottom left (the machine's own papers),
    the bin in the bottom right corner. Each zone is a block of cells that fills left to right, then down; a zone that is
    full spills into the nearest free cell like anything else. Icons that already have a place keep it. */
-export const GAMES = new Set(['Magen', 'TheCook', 'Garden', 'StandBattleArena', 'DungeonSweeper', 'Sweeper', 'Solitaire', 'Jaeger', 'Bekkedal', 'Elephant', 'AfterEgypt']);
+export const GAMES = new Set(['Magen', 'TheCook', 'Garden', 'StandBattleArena', 'DungeonSweeper', 'Sweeper', 'Solitaire', 'Jaeger', 'Bekkedal', 'Elephant', 'AfterEgypt', 'Vroom']);
 export const DOCS = new Set(['AutoExec.HC', 'Welcome.DD', 'Adam', 'Compiler']);
 export const TOOLS = new Set(['TERMINAL', 'Trophies', 'Notes', 'HolyC', 'Garage', 'TheStack', 'Crayon', 'MyDrawings', 'Dave', 'TrophyBox']);
 export function zoneOf(it) {

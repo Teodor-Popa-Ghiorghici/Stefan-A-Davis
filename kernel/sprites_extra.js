@@ -19,6 +19,10 @@ Object.assign(SPRITES, {
   /* the trophy box: a wooden crate with the handle of a gold cup showing over the top */
   trophybox: S(R(0, 0, 16, 16, '#000000') + R(5, 2, 6, 1, '#FFFF55') + R(4, 3, 8, 3, '#FFFF55') + R(10, 3, 2, 3, '#AA5500') + R(2, 6, 12, 8, '#AA5500') + R(2, 6, 12, 1, '#FF5555') +
     R(2, 9, 12, 1, '#552B00') + R(2, 12, 12, 1, '#552B00') + R(2, 6, 1, 8, '#552B00') + R(13, 6, 1, 8, '#552B00') + R(6, 7, 4, 2, '#FFFF55') + R(7, 7, 2, 1, '#000000')),
+  /* VROOM.EXE: a toy kei truck in profile, a parcel in the bed and the antenna that burns down as a fuse */
+  vroom: S(R(1, 0, 1, 1, '#FF5555') + R(1, 1, 1, 6, '#AAAAAA') + R(2, 5, 4, 3, '#AA5500') + R(2, 6, 4, 1, '#FFFF55') + R(0, 8, 8, 5, '#AA0000') + R(0, 8, 8, 1, '#FF5555') +
+    R(8, 6, 6, 7, '#FFFF55') + R(9, 7, 3, 3, '#55FFFF') + R(9, 7, 1, 1, '#FFFFFF') + R(8, 10, 6, 1, '#AA5500') + R(14, 9, 1, 1, '#FFFFFF') + R(14, 11, 2, 2, '#AAAAAA') +
+    R(2, 12, 4, 3, '#000000') + R(10, 12, 4, 3, '#000000') + R(3, 13, 2, 1, '#AAAAAA') + R(11, 13, 2, 1, '#AAAAAA') + R(1, 15, 14, 1, '#555555')),
   bin: S(can),
   binfull: S(R(5, 1, 4, 3, '#FFFFFF') + R(9, 2, 3, 2, '#FFFF55') + R(7, 0, 2, 2, '#55FFFF') + can),
   song: S(R(2, 1, 11, 14, '#AAAAAA') + R(3, 2, 9, 12, '#FFFFFF') + R(6, 4, 4, 1, '#0000AA') + R(9, 4, 1, 6, '#0000AA') +

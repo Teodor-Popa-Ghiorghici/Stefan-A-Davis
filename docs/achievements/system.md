@@ -24,9 +24,9 @@ screensaver after 90 s; the Konami code; Dave's shop and his farewell box (seven
 | sys_video | FIFTEEN FRAMES A SECOND | Import a video and play it. | E | B | - | import{video} |
 | sys_bgvideo | A MOVING WALLPAPER | Set a video as the desktop background. | C | S | - | bg{video} |
 | sys_fits | FIVE FITS | Set a background in all five fits: fill, fit, stretch, centre, tile. | E | S | - | set fits |
-| sys_folder | A PLACE FOR EVERYTHING | Make a folder and drag a file into it. | P | B | - | mkdir + move |
+| sys_folder | A PLACE FOR EVERYTHING | Make a folder and put a file into it, by dragging it in or by cutting and pasting. | P | B | - | move{own} (sent by `vfs_batch.js`, where every drag, drop, cut and paste ends; `own` is a folder that is not one of the machine's) |
 | sys_deep | FOLDERS ALL THE WAY DOWN | Make a path five folders deep. | C | B | - | mkdir{depth>=5} |
-| sys_copy | TWO OF EVERYTHING | Copy a file by holding Ctrl as you drop it. | E | B | - | copy{ctrl} |
+| sys_copy | TWO OF EVERYTHING | Copy a file into a folder, by holding Ctrl as you drop it or by copying and pasting. | E | B | - | copy{n} (from `vfs_batch.js`) |
 | sys_esc | CHANGED MY MIND | Press Esc in the middle of a drag. | E | B | - | drag-cancel |
 | sys_undo | NOT SO FAST | Take a delete back with Ctrl+Z. | E | B | - | undo |
 | sys_bin | THE BIN REMEMBERS | Put something back from the RecycleBin. | E | B | - | trash-restore |
@@ -156,7 +156,7 @@ Legacy mirrors (Cook's 24, Magen's 98) are shown in the ledger but **do not coun
 | meta_25 | TWENTY-FIVE | Earn 25 trophies. | M | B | - | count |
 | meta_50 | HALF A HUNDRED | Earn 50 trophies. | M | S | - | count |
 | meta_100 | A HUNDRED | Earn 100 trophies. | M | S | - | count |
-| meta_200 | TWO HUNDRED | Earn 200 trophies. | M | G | - | count |
+| meta_200 | VROOM | Earn 200 trophies. | M | G | - | count |
 | meta_tiers | BRONZE, SILVER, GOLD | Earn one trophy of each tier. | M | B | - | count |
 | meta_kinds | ONE OF EVERYTHING | Earn one trophy of each kind: progression, skill, explore, creative and joke. | M | B | - | count |
 | meta_each | A LITTLE OF EVERYTHING | Earn a trophy in every game and every toy. | M | S | - | count |

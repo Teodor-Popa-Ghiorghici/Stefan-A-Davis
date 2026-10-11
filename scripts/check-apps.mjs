@@ -140,11 +140,16 @@ const fail = (id, msg) => {
   fails++; console.log(`FAIL ${id.padEnd(12)} ${msg}`);
 };
 let known = 0;
-for (const id of list) {
+/* an app behind a gate (kernel/vroom_gate_core.js) is opened twice: shut, where it is a black NOT YET., and with its key set, where it is the real thing */
+const GATES = { vroom: 'templeos.vroom.v1' };
+const jobs = [];
+list.forEach(id => { jobs.push({ id, label: id }); if (GATES[id]) jobs.push({ id, label: id + ' (gate open)', key: GATES[id] }); });
+for (const { id, label, key } of jobs) {
   await freshBoot();
+  if (key) await page.evaluate(k => localStorage.setItem(k, '1'), key);
   const quiet = await activity();                  /* this page, before the app is ever opened */
   const c1 = await cycle(id);                      /* first: lazy import + one-time setup */
-  if (c1.fatal) { fail(id, c1.fatal); continue; }
+  if (c1.fatal) { fail(label, c1.fatal); continue; }
   const c2 = await cycle(id);                      /* second: the steady-state leak */
   const problems = [];
   if (c1.winsDuring < 1) problems.push('no window opened');
@@ -160,10 +165,10 @@ for (const id of list) {
   if (act.timeouts > quiet.timeouts * 1.5 + 8) problems.push(`timer chain still running after close (${act.timeouts}/s, was ${quiet.timeouts}/s)`);
   const errs = [...c1.errs, ...c2.errs];
   if (errs.length) problems.push(`${errs.length} error(s): ${errs[0]}`);
-  if (problems.length) fail(id, problems.join('; '));
-  else console.log(KNOWN[id] ? `PASS ${id}   (listed in check-apps.known.json - it passes now, remove the entry)` : `PASS ${id}`);
+  if (problems.length) fail(label, problems.join('; '));
+  else console.log(KNOWN[id] ? `PASS ${label}   (listed in check-apps.known.json - it passes now, remove the entry)` : `PASS ${label}`);
 }
 
 await t.close();
-console.log(fails ? `${fails} of ${list.length} apps FAILED` : `${list.length - known} apps clean, ${known} with known pre-existing leaks, 0 new problems`);
+console.log(fails ? `${fails} of ${jobs.length} apps FAILED` : `${jobs.length - known} apps clean, ${known} with known pre-existing leaks, 0 new problems`);
 process.exit(fails ? 1 : 0);

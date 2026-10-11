@@ -4,7 +4,7 @@
    a folder as a folder, a picture in the viewer, a program as the app it is, a document in the editor. */
 import { createWindow, openWindow, toast } from './wm.js';
 import { hcLex, hcParse, hcRun, isPanic } from './holyc.js';
-import { APP_ALIASES } from './commands.js';
+import { aliases } from './commands.js';
 import { lineReport } from './lines.js';
 import { snapshot } from './holyc_env.js';
 import { panic } from './panic.js';
@@ -59,7 +59,8 @@ async function word(up) {
     case 'SAVER': case 'SCREENSAVER': Saver.idle = 0; Saver.start(); return true;
     default: break;
   }
-  if (APP_ALIASES[up]) { openWindow(APP_ALIASES[up]).catch(console.error); return true; }
+  const al = aliases();
+  if (al[up]) { openWindow(al[up]).catch(console.error); return true; }
   return false;
 }
 
