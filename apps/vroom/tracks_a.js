@@ -23,6 +23,7 @@ export const STREET = {
     { type: 'pinch', u0: STREET_R.u(3, 0.4), u1: STREET_R.u(3, 0.52), gap: 1.2 },                           /* two vending machines and a snowbank */
     { type: 'jump', u: STREET_R.u(6, 0.3), rise: 0.18, run: 0.9, gap: 1.4 },                                /* the culvert */
     { type: 'cut', u0: STREET_R.u(0, 0.1), u1: STREET_R.u(1, 0.95), side: 'right', reach: 0.25, lean: 0.45, w: 1.7, floor: 'deep', wall: 'snowbank' },
+    { type: 'star', u: STREET_R.u(0, 0.62), side: 'left', rise: 0.5, floor: 'packed', wall: 'snowbank' },                       /* a drift against the wall of the bakery */
     { type: 'pickups', u: STREET_R.u(0, 0.2) }, { type: 'pickups', u: STREET_R.u(0, 0.7) }, { type: 'pickups', u: STREET_R.u(1, 0.18) }, { type: 'pickups', u: STREET_R.u(1, 0.9) },
     { type: 'pickups', u: STREET_R.u(3, 0.8) }, { type: 'pickups', u: STREET_R.u(4, 0.8) }, { type: 'pickups', u: STREET_R.u(6, 0.62) }, { type: 'pickups', u: STREET_R.u(6, 0.9) }
   ],
@@ -54,6 +55,7 @@ export const FORECOURT = {
     { type: 'jump', u: FORE_R.u(4, 0.75), rise: 0.18, run: 0.9, gap: 1.4 },                                  /* the delivery pallet */
     { type: 'kerb', u0: FORE_R.u(5, 0) - 1.5, u1: FORE_R.u(5, 0) + 2.5, side: 'inner', h: 0.035 },
     { type: 'cut', u0: FORE_R.u(3, 0.5), u1: FORE_R.u(5, 0.5), side: 'left', reach: 0.3, lean: 0.5, w: 1.7, floor: 'deep', wall: 'snowbank' },
+    { type: 'star', u: FORE_R.u(0, 0.15), side: 'right', rise: 0.5, floor: 'asphalt', wall: 'concrete' },                          /* the roof of the air pump's shed */
     { type: 'pickups', auto: 8 }
   ],
   start: { u: FORE_R.u(0, 0.4), rows: 4, gap: 1.5, side: 0.55 }
@@ -85,6 +87,7 @@ export const DINER = {
     { type: 'counter', u0: DINER_R.u(8, 0.3), u1: DINER_R.u(8, 0.7), h: 0.62 },                               /* under a booth's table */
     { type: 'kerb', u0: DINER_R.u(7, 0) - 1.5, u1: DINER_R.u(7, 0) + 2.5, side: 'inner', h: 0.035 },
     { type: 'cut', u0: DINER_R.u(6, 0.3), u1: DINER_R.u(7, 0.8), side: 'left', reach: 0.25, lean: 0.5, w: 1.9, floor: 'tile', wall: 'tin', gate: true },
+    { type: 'star', u: DINER_R.u(2, 0.4), side: 'right', rise: 0.5, floor: 'tile', wall: 'formica' },                              /* on top of the pie case */
     { type: 'pickups', auto: 8 }
   ],
   start: { u: DINER_R.u(0, 0.45), rows: 4, gap: 1.5, side: 0.55 }

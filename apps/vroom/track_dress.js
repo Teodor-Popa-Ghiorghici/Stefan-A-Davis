@@ -7,9 +7,9 @@ import { place } from './raster_math.js';
 import { ix, GREY, COOL, RED, BROWN } from './palette.js';
 
 const ID = place(0, 0, 0);
-export function dress(def, line, width, F) {
+/* the sorting room's hall (its own kit: brick walls, pillars, signs) */
+function hall(def, line, width, F) {
   const out = [];
-  if (def.light !== 'hall') return out;
   let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
   line.samples.forEach(p => { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z); });
   const M = 14, H = 6.5; x0 -= M; x1 += M; z0 -= M; z1 += M;
@@ -53,5 +53,19 @@ export function dress(def, line, width, F) {
   sg('START', 0.2, 4.4, 2.4);
   F.belts.forEach(bl => sg('SORTING', bl.s0 - 4, 7.2, 2.6));
   F.jumps.forEach(j => sg('MIND THE GAP', j.a - 8, 4.2, 2.1));
+  return out;
+}
+
+import { kitOf } from './dress_kit.js';
+import { street, pass, dam, harbour } from './dress_outdoor.js';
+import { forecourt, diner, factory } from './dress_indoor.js';
+const KITS = { street, pass, dam, harbour, forecourt, diner, factory };
+/* what stands round a road: its kit by name (`def.dress`), or the sorting room's hall */
+export function dress(def, line, width, F, cuts, startS) {
+  const kit = KITS[def.dress];
+  if (!kit) return def.light === 'hall' && !def.dress ? hall(def, line, width, F) : [];
+  const K = kitOf(def, line, width, cuts, F, startS); kit(K);
+  const out = K.finish();
+  if (K.sparks) out.push({ mesh: null, m: ID, x: 0, z: 0, r: 1e5, sparks: K.sparks });
   return out;
 }

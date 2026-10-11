@@ -24,6 +24,7 @@ export const PASS = {
     { type: 'jump', u: PASS_R.u(0, 0.55), rise: 0.18, run: 0.9, gap: 1.4 },                                   /* a cornice that has fallen across the road */
     { type: 'pinch', u0: PASS_R.u(4, 0.4), u1: PASS_R.u(4, 0.47), gap: 1.4 },                                /* a rockfall */
     { type: 'kerb', u0: PASS_R.u(7, 0) - 1.5, u1: PASS_R.u(7, 0) + 2.5, side: 'inner', h: 0.035 },
+    { type: 'star', u: PASS_R.u(0, 0.3), side: 'right', rise: 0.5, floor: 'packed', wall: 'snowbank' },                          /* a ledge over the valley */
     { type: 'pickups', auto: 9 }
   ],
   start: { u: PASS_R.u(0, 0.3), rows: 4, gap: 1.5, side: 0.55 }
@@ -51,6 +52,7 @@ export const DAM = {
     { type: 'kerb', u0: DAM_R.u(5, 0) - 1.5, u1: DAM_R.u(5, 0) + 2.5, side: 'inner', h: 0.035 },
     { type: 'cut', u0: DAM_R.u(4, 0.4), u1: DAM_R.u(6, 0.35), side: 'left', reach: 0.3, lean: 0.5, w: 1.9, floor: 'concrete', wall: 'concrete', gate: true },   /* the service road's fence */
     { type: 'cut', u0: DAM_R.u(0, 0.3), u1: DAM_R.u(1, 0.65), side: 'left', reach: 0.3, lean: 0.5, w: 2.2, floor: 'ice', wall: 'snowbank' },                  /* the lake road */
+    { type: 'star', u: DAM_R.u(0, 0.5), side: 'right', rise: 0.5, floor: 'concrete', wall: 'concrete' },                        /* a rafter of the control tower */
     { type: 'pickups', auto: 8 }
   ],
   start: { u: DAM_R.u(7, 0.4), rows: 4, gap: 1.5, side: 0.55 }

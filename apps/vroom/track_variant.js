@@ -37,7 +37,7 @@ export function variantOf(def, v) {
     if (f.u != null) o.u = U(f.u);
     if (f.u0 != null) { const [a, b] = swap(f.u0, f.u1); o.u0 = a; o.u1 = b; }
     if (f.type === 'belt') { if (f.lane) o.lane = lane(f.lane); if (rev) o.speed = -f.speed; }
-    if (f.type === 'kerb' && f.side) o.side = side(f.side);
+    if ((f.type === 'kerb' || f.type === 'star') && f.side) o.side = side(f.side);
     if (f.type === 'cut') {                                      /* a shortcut turned over: the way in becomes the way out, the points it goes through run the other way (and across, if mirrored), and a gate stays at the mouth it was at */
       const into = f.side, outof = f.exitSide || f.side;
       o.side = side(rev ? outof : into); o.exitSide = side(rev ? into : outof);
@@ -66,6 +66,7 @@ function settle(def) {
   const zones = [];
   def.features.forEach(f => {
     if (f.type === 'cut') { zones.push([sOfU(f.u0) - CUT_LEAD - 6, sOfU(f.u0) + 8], [sOfU(f.u1) - 8, sOfU(f.u1) + CUT_TAIL + 6]); return; }       /* the two mouths of a shortcut, not the road between them */
+    if (f.type === 'star') { zones.push([sOfU(f.u) - 7, sOfU(f.u) + 7]); return; }
     if (f.type !== 'jump' && f.type !== 'pickups' && f.u0 != null) zones.push([sOfU(f.u0) - 3, sOfU(f.u1) + 3]);
   });
   const free = (a, b) => zones.every(z => b < z[0] || a > z[1]);

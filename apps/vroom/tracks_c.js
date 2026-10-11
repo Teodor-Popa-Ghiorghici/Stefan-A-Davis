@@ -25,6 +25,7 @@ export const HARBOUR = {
     { type: 'pinch', u0: HARBOUR_R.u(4, 0.3), u1: HARBOUR_R.u(4, 0.36), gap: 1.4 },                          /* two containers that were not stacked straight */
     { type: 'kerb', u0: HARBOUR_R.u(7, 0) - 1.5, u1: HARBOUR_R.u(7, 0) + 2.5, side: 'inner', h: 0.035 },
     { type: 'cut', u0: HARBOUR_R.u(3, 0.2), u1: HARBOUR_R.u(4, 0.9), side: 'left', reach: 0.3, lean: 0.5, w: 1.9, floor: 'ice', wall: 'container', gate: true },    /* the yard's fence */
+    { type: 'star', u: HARBOUR_R.u(0, 0.45), side: 'right', rise: 0.5, floor: 'ice', wall: 'container' },                         /* the deck of the trawler frozen in the ice */
     { type: 'pickups', auto: 8 }
   ],
   start: { u: HARBOUR_R.u(0, 0.3), rows: 4, gap: 1.5, side: 0.55 }
@@ -51,8 +52,11 @@ export const FACTORY = {
     { type: 'counter', u0: FACTORY_R.u(2, 0.35), u1: FACTORY_R.u(2, 0.7), h: 0.62 },                                           /* a low pipe */
     { type: 'jump', u: FACTORY_R.u(6, 0.8), rise: 0.2, run: 1.0, gap: 1.8 },                                                    /* between two machines */
     { type: 'belt', u0: FACTORY_R.u(6, 0.06), u1: FACTORY_R.u(6, 0.25), lane: [-0.6, 0.6], speed: 2.0, rise: 0.04 },              /* the second conveyor */
+    { type: 'press', u0: FACTORY_R.u(7, 0.5), u1: FACTORY_R.u(7, 0.5) + 0.5, period: 3.6, down: 1.1, phase: 0 },                 /* the press, by the welders */
+    { type: 'press', u0: FACTORY_R.u(4, 0.5), u1: FACTORY_R.u(4, 0.5) + 0.5, period: 3.0, down: 0.9, phase: 1.5 },               /* a small one, round the middle block */
     { type: 'kerb', u0: FACTORY_R.u(7, 0) - 1.5, u1: FACTORY_R.u(7, 0) + 2.5, side: 'inner', h: 0.035 },
     { type: 'cut', u0: FACTORY_R.u(6, 0.4), u1: FACTORY_R.u(7, 0.85), side: 'left', reach: 0.25, lean: 0.5, w: 1.9, floor: 'plate', wall: 'container', gate: true },
+    { type: 'star', u: FACTORY_R.u(0, 0.8), side: 'right', rise: 0.5, floor: 'plate', wall: 'container' },                        /* the gantry over the first conveyor */
     { type: 'pickups', auto: 8 }
   ],
   start: { u: FACTORY_R.u(0, 0.8), rows: 4, gap: 1.5, side: 0.55 }

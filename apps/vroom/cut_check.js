@@ -4,18 +4,19 @@ import { buildTrack } from './track_build.js';
 import { allTracks, defFor } from './tracks.js';
 import { createRace } from './race.js';
 import { suite } from './check_kit.js';
+import { tierProfile } from './ai_profiles.js';
 
 const S = suite('cut_check'), { ok } = S;
 const ONLY = (process.env.TRACK || '').split(',').filter(Boolean), ONLYV = (process.env.VARIANT || '').split(',').filter(Boolean);
 const wear = list => Object.fromEntries(list.map(n => [n, true]));
 const SEEDS = [4, 5, 6];
-/* the second lap of a PRO driver in the car, on the road with the cut open for it or not, averaged over three seeds (a lap on ice is a chancy thing) */
+/* the second and third laps of a PRO driver in the car, on the road with the cut open for it or not, averaged over three seeds (a lap on ice is a chancy thing) */
 function lap(T, parts) {
   let sum = 0, inCut = 0, gates = 0, done = true;
   for (const seed of SEEDS) {
-    const race = createRace({ track: T, entries: [{ id: 'a', name: 'A', car: 'courier', tier: 4, parts }], laps: 2, seed, pickups: false });
+    const race = createRace({ track: T, entries: [{ id: 'a', name: 'A', car: 'courier', profile: Object.assign({}, tierProfile(4), { mistake: 0 }), parts }], laps: 3, seed, pickups: false });
     for (let i = 0; i < 60 * 300 && race.state !== 'done'; i++) { race.step(); if (race.field[0].inCut >= 0) inCut++; for (const e of race.events) if (e.type === 'gate') gates++; }
-    const f = race.field[0]; sum += f.lapTimes.length > 1 ? f.lapTimes[1] : f.lapTimes[0] || 999; done = done && f.finished;
+    const f = race.field[0]; sum += ((f.lapTimes[1] || 999) + (f.lapTimes[2] || 999)) / 2; done = done && f.finished;
   }
   return { lap: sum / SEEDS.length, inCut: inCut / SEEDS.length, gates: gates / SEEDS.length, done };
 }
@@ -27,7 +28,8 @@ for (const [tid, tv] of allTracks()) {
     ok(a.done && b.done, tag + name + ': both cars finish');
     ok(a.inCut < 40, tag + name + ': a car without ' + c.needs.join(' and ') + ' keeps to the road (' + a.inCut.toFixed(0) + ' steps in it)');
     ok(b.inCut > 150, tag + name + ': a car with them takes it (' + b.inCut + ' steps in it)');
-    ok(a.lap - b.lap >= 0.8 && a.lap - b.lap <= 4, tag + name + ' saves 0.8 to 4 s a lap (' + (a.lap - b.lap).toFixed(2) + ' s)');
+    const skipped = T.presses.filter(p => ((p.s0 - c.sa + 10 + T.length) % T.length) < ((c.sb - c.sa + 20 + T.length) % T.length)).length, hi = 4 + 1.5 * skipped;        /* a shortcut that goes round a press saves the wait for it too */
+    ok(a.lap - b.lap >= 0.8 && a.lap - b.lap <= hi, tag + name + ' saves 0.8 to ' + hi + ' s a lap (' + (a.lap - b.lap).toFixed(2) + ' s' + (skipped ? ', and it skips ' + skipped + ' press' : '') + ')');
     if (c.gate) ok(b.gates === 1, tag + name + ': the gate is broken once (' + b.gates + ')');
   });
 }

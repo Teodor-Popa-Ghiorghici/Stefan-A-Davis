@@ -118,7 +118,7 @@ export function buildCuts(ctx) {
     /* the gate: a fence across the corridor, a tagged box in the soup, and a mesh that goes when it is broken */
     if (cut.gate) {
       const want = cut.gateAt == null ? 8 : cut.gateAt, gi = cut.gateEnd ? Math.max(1, leave - Math.round(want)) : Math.min(n - 2, enter + Math.round(want)), q = S[gi], tag = k + 1, gw = w + 0.1;
-      out.col.box(q.x, q.y + 0.27, q.z, gw, 0.54, 0.1, SURF.wood.id, tag);
+      out.col.obox(q.x, q.y + 0.27, q.z, gw, 0.54, 0.1, Math.atan2(q.tx, q.tz), SURF.wood.id, tag);
       decor.push({ mesh: gateMesh({ w: gw }), m: place(q.x, q.y, q.z, Math.atan2(q.tx, q.tz), 0, 0, 1), x: q.x, z: q.z, r: gw + 2, gate: tag });
       cutObj.gate = { tag, x: q.x, y: q.y, z: q.z, tx: q.tx, tz: q.tz, w: gw };
       cutObj.needs.push('bumperBar');

@@ -66,7 +66,7 @@ export function create(G) {
     },
     draw() {
       const R = G.R, r = S.race, spec = G.cam.update(S.human.car, S.paused ? 0 : 1 / 60, S.s.track.col);
-      drawView(R, { x: 0, y: 0, w: R.w, h: R.h }, S.s.track, r.field, spec, { pickups: { P: r.pickups, t: r.t > 0 ? r.t : 0 } });
+      drawView(R, { x: 0, y: 0, w: R.w, h: R.h }, S.s.track, r.field, spec, { pickups: { P: r.pickups, t: r.t > 0 ? r.t : 0 }, t: r.t, broken: r.world.broken, me: S.human, headlights: !!(S.human.entry.parts && S.human.entry.parts.headlights), calm: G.cam.calm });
       drawHud(R, r, S.human, { fps: G.showFps ? G.fps : null });
       if (S.s.swapped && r.state === 'count') { mid(R, 'THE ' + CARS[S.s.swapped.from].name + ' IS TOO FAST FOR THIS CLASS.', R.w / 2, 120, C.white, { outline: C.black }); mid(R, 'YOU ARE IN THE ' + CARS[S.s.swapped.to].name + '.', R.w / 2, 128, C.yellow, { outline: C.black }); }
       if (S.paused) drawPause(R, { sel: S.sel, items: items() });

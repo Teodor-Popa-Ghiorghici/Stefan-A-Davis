@@ -7,6 +7,9 @@ import { FLOORS, WALLS } from './track_def.js';
 import { sink, material, stations, across, lerp, smooth } from './track_geo.js';
 import { dress } from './track_dress.js';
 import { buildCuts, cutAt } from './track_cut.js';
+import { buildPresses } from './track_press.js';
+import { buildStars } from './track_star.js';
+import { buildDoors } from './track_door.js';
 import { needsOfDef } from './track_def.js';
 import { SURF } from './tune.js';
 import { ix, BROWN } from './palette.js';
@@ -23,7 +26,7 @@ export function buildTrack(def) {
   const width = S.map(p => widthAt(p.s));
 
   /* the features, in distances along the line */
-  const F = { belts: [], jumps: [], kerbs: [], pinches: [], counters: [], pickups: [] };
+  const F = { belts: [], jumps: [], kerbs: [], pinches: [], counters: [], pickups: [], presses: [] };
   (def.features || []).forEach(f => {
     if (f.type === 'belt') F.belts.push({ s0: sOfU(f.u0), s1: sOfU(f.u1), lane: f.lane, speed: f.speed, rise: f.rise == null ? 0.04 : f.rise });
     else if (f.type === 'jump') { const sj = sOfU(f.u); F.jumps.push({ s: sj, run: f.run, gap: f.gap, rise: f.rise, w: f.w, a: sj - f.run, b: sj, c: sj + f.gap, d: sj + f.gap + f.run }); }
@@ -31,17 +34,19 @@ export function buildTrack(def) {
     else if (f.type === 'pinch') F.pinches.push({ s0: sOfU(f.u0), s1: sOfU(f.u1), gap: f.gap || 2.3 });
     else if (f.type === 'counter') F.counters.push({ s0: sOfU(f.u0), s1: sOfU(f.u1), h: f.h });
     else if (f.type === 'pickups') F.pickups.push({ s: sOfU(f.u), n: f.n || 3, spread: f.spread || 0.7 });
+    else if (f.type === 'press') F.presses.push({ s0: sOfU(f.u0), s1: sOfU(f.u1), period: f.period || 3.6, down: f.down || 1.0, phase: f.phase || 0 });
   });
   const lift = s => { for (const j of F.jumps) { if (s >= j.a && s <= j.b) return j.rise * (s - j.a) / j.run; if (s >= j.c && s <= j.d) return j.rise * (1 - (s - j.c) / j.run); } return 0; };
   const inGap = (s0, s1) => F.jumps.some(j => s0 >= j.b - 1e-3 && s1 <= j.c + 1e-3);
   const extra = [];
   F.jumps.forEach(j => extra.push(j.a, j.b, j.c, j.d));
   F.belts.forEach(b => extra.push(b.s0, b.s0 + BELT_RAMP, b.s1 - BELT_RAMP, b.s1));
-  F.kerbs.forEach(b => extra.push(b.s0, b.s1)); F.pinches.forEach(b => extra.push(b.s0, b.s1)); F.counters.forEach(b => extra.push(b.s0, b.s1));
+  F.kerbs.forEach(b => extra.push(b.s0, b.s1)); F.pinches.forEach(b => extra.push(b.s0, b.s1)); F.counters.forEach(b => extra.push(b.s0, b.s1)); F.presses.forEach(b => extra.push(b.s0, b.s1));
   const ST = stations(L, 1.5, extra), out = sink(L), decor = [];
   /* the shortcuts: built first, because they cut gaps in the main road's walls */
   const cuts = buildCuts({ def, line, widthAt, sOfU, out, decor });
-  const gapped = (side, s) => cuts.some(c => c.gaps.some(g => g.side === side && s >= g.s0 && s <= g.s1));
+  const stars = buildStars({ def, line, widthAt, sOfU, out, decor });
+  const gapped = (side, s) => cuts.concat(stars).some(c => c.gaps.some(g => g.side === side && s >= g.s0 && s <= g.s1));
   const beltAt = s => F.belts.find(b => s >= b.s0 - 1e-3 && s <= b.s1 + 1e-3);
 
   /* the road */
@@ -149,6 +154,7 @@ export function buildTrack(def) {
   F.pinches.forEach(k => { const p = line.at((k.s0 + k.s1) / 2); marks.push({ x: p.x, z: p.z, c: 108, r: 3 }); });
   F.counters.forEach(k => { const p = line.at((k.s0 + k.s1) / 2); marks.push({ x: p.x, z: p.z, c: 90, r: 3 }); });
   F.pickups.forEach(k => { const p = line.at(k.s); marks.push({ x: p.x, z: p.z, c: 104, r: 2 }); });
+  F.presses.forEach(k => { const p = line.at((k.s0 + k.s1) / 2); marks.push({ x: p.x, z: p.z, c: 84, r: 3 }); });
 
   /* where a CPU may put the middle of its car, as offsets left (+) and right (-) of the centreline: inside the walls with a margin, narrowed where a kerb takes the inner edge or a pinch closes the road, and
      tapered so the approach to a narrow place is not a surprise (a driver must be able to see it coming) */
@@ -172,9 +178,11 @@ export function buildTrack(def) {
     const p = line.at(c.s), w = widthAt(c.s) / 2 - 0.55;
     for (let j = 0; j < c.n; j++) { const lat = Math.max(-w, Math.min(w, (j - (c.n - 1) / 2) * c.spread)), a = across(p, lat); spots.push({ i: spots.length, cluster: k, s: c.s, lat, x: a.x, y: p.y + lift(c.s), z: a.z }); }
   });
-  decor.push(...dress(def, line, width, F));
+  buildPresses({ F, line, widthAt, out, decor });
+  const lm = buildDoors({ line, widthAt, F, cuts, stars, startS }); decor.push(...lm.decor);
+  decor.push(...dress(def, line, width, F, cuts.concat(stars.map(t => ({ samples: t.samples, w: t.w }))), startS));
   const built = out.build();
   /* what is under the main road at each sample (the CPU plans its speed on it) and what a car must wear to race it */
   const surfAt = new Uint8Array(S.length); S.forEach((p, i) => { surfAt[i] = SURF[FLOORS[floorAt(p.s)].surf].id; });
-  return { def, id: def.id, name: def.name, laps: def.laps || 3, needs: needsOfDef(def), cuts, gates: cuts.filter(c => c.gate).map(c => c.gate), surfAt, cutAt: (x, z, hint) => cutAt(cuts, x, z, hint), line, length: L, startS, width, widthAt, floorAt, features: F, chunks: built.chunks.map((mesh, i) => ({ mesh, s0: i * 24, s1: (i + 1) * 24 })), col: built.grid, tris: built.tris, grid, nodes, checkpoints, marks, spots, decor, lift, limits: { lo, hi }, speedCap: cap };
+  return { def, id: def.id, name: def.name, laps: def.laps || 3, needs: needsOfDef(def), cuts, gates: cuts.filter(c => c.gate).map(c => c.gate), surfAt, cutAt: (x, z, hint) => cutAt(cuts, x, z, hint), presses: F.presses, stars, doors: lm.doors, line, length: L, startS, width, widthAt, floorAt, features: F, chunks: built.chunks.map((mesh, i) => ({ mesh, s0: i * 24, s1: (i + 1) * 24 })), col: built.grid, tris: built.tris, grid, nodes, checkpoints, marks, spots, decor, lift, limits: { lo, hi }, speedCap: cap };
 }

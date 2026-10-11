@@ -12,6 +12,7 @@ import { pickupLook, useDecision } from './ai_pickups.js';
 import { GRAVITY, STEER, SURF_BY_ID, surfaceGrip } from './tune.js';
 import { CUT_LEAD, CUT_TAIL } from './track_cut.js';
 import { settleSpeed } from './ai_surface.js';
+import { nextClear, clearFor } from './press.js';
 
 const STANLEY = 2.5;                          /* how hard the cross-track error is steered out (1/s) */
 const LEAD = 0.25;                            /* seconds ahead the bend's own steering is taken from: a car's yaw is slow to answer the wheels */
@@ -124,6 +125,19 @@ export function createDriver(track, spec, profile, seed, parts) {
         const pre = Math.round((seen.sp * 0.2 + profile.brakeEarly) / ds);
         vt = plan.v[(seen.near + Math.max(0, pre) + n) % n];
       }
+      /* a press ahead: a driver looks at the beat and arrives when it is up (it can see the slab and hear it): the speed that gets it to the slab at the next time it will be clear, and a stop at the line if it is down now */
+      let pressWait = false;
+      if (ctx && ctx.t != null && track.presses && track.presses.length) {
+        const len = track.length, sp = Math.max(sp0, 2.5);
+        for (const p of track.presses) {
+          const ahead = (((p.s0 - 0.6 - near * ds) % len) + len) % len;
+          if (ahead > 40) continue;
+          const transit = (p.len + 0.8) / Math.max(sp, 3), t1 = ctx.t + ahead / sp;
+          if (clearFor(p, t1, transit)) continue;
+          const tw = nextClear(p, t1, transit);
+          vt = Math.min(vt, ahead < 1.5 ? 0 : Math.max(1.2, ahead / Math.max(0.2, tw - ctx.t))); if (ahead < 6) pressWait = true;
+        }
+      }
       if (slip > 0 && slipKind === 0) steer = clamp(steer + slipDir * 0.45, -1, 1);
       const spd = o.sp, over = spd - vt;
       let throttle = clamp((vt - spd) * 2.5 + 0.2, 0, 1), brake = over > 0.25 ? clamp(over * 0.9, 0, 1) : 0;
@@ -135,7 +149,7 @@ export function createDriver(track, spec, profile, seed, parts) {
       if (slip > 0 && slipKind === 1) { brake = 0; throttle = 1; }
       /* stuck against something: back off for a moment (brake from a standstill is reverse) turning the nose toward where it is going, then go on */
       age += dt;
-      stuckT = sp0 < 0.7 && age > 2 ? stuckT + dt : Math.max(0, stuckT - dt * 2);
+      stuckT = sp0 < 0.7 && age > 2 && !pressWait ? stuckT + dt : Math.max(0, stuckT - dt * 2);
       /* after three tries at backing out of the same place within ten seconds a driver gives up and presses R, as a person would (the sim's own timer is reset by every bit of backing out) */
       cycleT = Math.max(0, cycleT - dt);
       if (cycleT <= 0) cycles = 0;

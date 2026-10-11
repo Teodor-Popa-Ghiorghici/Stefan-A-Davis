@@ -8,15 +8,23 @@ import { STEP, SUBSTEPS, STEER, REPOS, WHEELIE, GRAVITY, GATE } from './tune.js'
 import { wheelForces } from './sim_wheel.js';
 import { integrate, collide, rotFromQuat, quatYaw } from './sim_body.js';
 import { carCollisions } from './sim_cars.js';
+import { PRESS_TAG } from './press.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
 export function createWorld(o) {
   const W = { col: o.col, nodes: o.nodes || [], cars: [], events: [], frame: 0, time: 0, nextId: 0, broken: new Set(), gates: o.gates || [] };
-  /* a track with gates is given a switch for each triangle, fresh for this world: every race starts with every gate whole */
-  if (o.col && o.col.n && o.col.tagTris && Object.keys(o.col.tagTris).length) o.col.off = new Uint8Array(o.col.n); else if (o.col) o.col.off = null;
+  /* a track with gates or presses is given a switch for each triangle, fresh for this world (and a scratch of its own, so two worlds on one road, a car and its ghost, never see each other's gates): every race
+     starts with every gate whole and every press up */
+  if (o.col && o.col.n && o.col.tagTris && Object.keys(o.col.tagTris).length) {
+    W.col = Object.assign({}, o.col, { off: new Uint8Array(o.col.n), mark: new Int32Array(o.col.n), stamp: 0 });
+    for (const tag of Object.keys(W.col.tagTris)) if (+tag >= PRESS_TAG) for (const t of W.col.tagTris[tag]) W.col.off[t] = 1;
+  }
+  /* the press at `tag` is down (a wall) or up (not there) */
+  W.press = (tag, down) => { const tt = W.col.tagTris && W.col.tagTris[tag]; if (!tt || !tt.length) return; const v = down ? 0 : 1; if (W.col.off[tt[0]] === v) return; for (const t of tt) W.col.off[t] = v; };
   /* a car meets a gate (sim_body.js collide): a bar and some speed break it, and the contact is dropped; anything else is a fence. Returns true when the gate is not there for this car. */
   W.gate = (car, tag) => {
+    if (tag >= PRESS_TAG) return false;                                       /* a press that is down is a wall to everything */
     if (W.broken.has(tag)) return true;
     const sp = Math.hypot(car.v[0], car.v[2]);
     if (!(car.parts && car.parts.bumperBar) || sp < GATE.speed) return false;

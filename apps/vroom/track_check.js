@@ -32,9 +32,10 @@ for (const [tid, tv] of allTracks()) {
   /* ---- the things on the road ---- */
   const F = T.features, all = [], wears = Object.fromEntries(T.needs.map(n => [n, true]));          /* what a car must wear to race this road at all (a car on a snow road is driven with its snow tyres on) */
   F.belts.forEach(b => all.push(['belt', b.s0, b.s1])); F.jumps.forEach(j => all.push(['jump', j.a - 4, j.d + 2])); F.kerbs.forEach(k => all.push(['kerb', k.s0, k.s1]));
-  F.pinches.forEach(k => all.push(['pinch', k.s0, k.s1])); F.counters.forEach(k => all.push(['counter', k.s0, k.s1]));
+  F.pinches.forEach(k => all.push(['pinch', k.s0, k.s1])); F.counters.forEach(k => all.push(['counter', k.s0, k.s1])); F.presses.forEach(k => all.push(['press', k.s0, k.s1]));
   const zone = (what, a, b) => { if (a < 0) { all.push([what, a + T.length, T.length]); all.push([what, 0, b]); } else if (b > T.length) { all.push([what, a, T.length]); all.push([what, 0, b - T.length]); } else all.push([what, a, b]); };
   const real = all.slice();
+  T.stars.forEach(st => zone('the foot of a star spur', st.s - 7, st.s + 7));
   T.cuts.forEach(c => { zone('the mouth of a shortcut', c.sa - CUT_LEAD - 2, c.sa + 6); zone('the end of a shortcut', c.sb - 6, c.sb + CUT_TAIL + 2); });
   all.sort((a, b) => a[1] - b[1]);
   let clash = null; for (let i = 0; i + 1 < all.length; i++) if (all[i][2] > all[i + 1][1] - 3) clash = all[i][0] + ' runs into ' + all[i + 1][0];
@@ -131,6 +132,40 @@ for (const [tid, tv] of allTracks()) {
     ok(gates.size === 8, tag + 'and passes every one of the eight stretches between checkpoints (' + gates.size + ')');
     ok(lt.length >= 1 && lt[lt.length - 1] > T.length / 14 && lt[lt.length - 1] < T.length / 6, tag + 'a lap takes a lap (' + (lt.length ? lt.map(x => x.toFixed(1)).join(', ') : 'none') + ' s over ' + T.length.toFixed(0) + ' m)');
     void cp; void best;
+  }
+  /* ---- the hidden stars ---- */
+  for (const st of T.stars) {
+    let near = 1e9; for (const q of sm) if (Math.abs(q.s - st.s) > 14 && Math.abs(q.s - st.s) < T.length - 14) near = Math.min(near, Math.hypot(q.x - st.x, q.z - st.z) - T.widthAt(q.s) / 2);
+    ok(near > 4, tag + 'a star stands well away from the rest of the road (' + near.toFixed(1) + ' m from its edge)');
+    const spec = specOf('courier', 0), w = createWorld({ col: T.col, nodes: T.nodes }), p0 = L.at(((st.s - 14) % T.length + T.length) % T.length), car = w.addCar(spec, { x: p0.x, y: p0.y, z: p0.z, yaw: p0.yaw }, { id: 0, parts: wears });
+    for (let i = 0; i < 30; i++) w.step();
+    const way = [{ x: L.at(st.s - 5).x + L.at(st.s - 5).nx * st.side * (T.widthAt(st.s) / 2 - 0.5), z: L.at(st.s - 5).z + L.at(st.s - 5).nz * st.side * (T.widthAt(st.s) / 2 - 0.5) }, ...st.samples.map(q => ({ x: q.x, z: q.z }))];
+    let k = 0, got = false, best = 1e9, flipped = false;
+    for (let i = 0; i < 60 * 12 && !got; i++) {
+      while (k < way.length - 1 && Math.hypot(way[k].x - car.p[0], way[k].z - car.p[2]) < 2.2) k++;
+      const dx = way[k].x - car.p[0], dz = way[k].z - car.p[2], yaw = Math.atan2(car.R[2], car.R[8]);
+      let e = Math.atan2(dx, dz) - yaw; while (e > Math.PI) e -= 2 * Math.PI; while (e < -Math.PI) e += 2 * Math.PI;
+      const sp = Math.hypot(car.v[0], car.v[2]);
+      car.input = { throttle: sp < 4.5 ? 1 : 0, brake: 0, steer: Math.max(-1, Math.min(1, e * 1.6)), repo: false };
+      w.step();
+      for (const ev of w.events) if (ev.type === 'flip') flipped = true;
+      const d = Math.hypot(car.p[0] - st.x, car.p[2] - st.z); best = Math.min(best, d);
+      if (d < 0.4 && Math.abs(car.p[1] - st.y) < 0.6) got = true;
+    }
+    ok(got && !flipped, tag + 'a car that is driven to the star reaches it, up the ramp (' + (got ? 'got it' : 'closest ' + best.toFixed(2) + ' m') + (flipped ? ', turned over' : '') + ')');
+  }
+  /* ---- the press ---- */
+  for (const pr of F.presses) {
+    const spec = specOf('courier', 0), went = {};
+    for (const down of [true, false]) {
+      const w = createWorld({ col: T.col, nodes: T.nodes }), p = L.at(pr.s0 - 7), car = w.addCar(spec, { x: p.x, y: p.y, z: p.z, yaw: p.yaw }, { id: 0 });
+      for (let i = 0; i < 30; i++) w.step();
+      w.press(pr.tag, down);
+      let past = false;
+      for (let i = 0; i < 240; i++) { car.input = { throttle: 1, brake: 0, steer: 0, repo: false }; w.step(); if (sm[L.nearest(car.p[0], car.p[2])].s > pr.s1 + 1.5) past = true; }
+      went[down] = past;
+    }
+    ok(went[true] === false && went[false] === true, tag + 'a press that is down is a wall and one that is up is not there (a car at full throttle: down ' + (went[true] ? 'went through' : 'stopped') + ', up ' + (went[false] ? 'went through' : 'stopped') + ')');
   }
   /* ---- the jump ---- */
   for (const j of F.jumps) {

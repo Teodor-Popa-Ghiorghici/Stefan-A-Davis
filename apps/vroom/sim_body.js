@@ -116,7 +116,7 @@ export function collide(world, car, h) {
       } else if (!wheel && sl > rad * 0.5) {                                          /* (a wheel at ride height is not swept: the ground is not its to catch) */
         /* a corner that went through a sheet between two substeps */
         const s = rayTri(g, t, px, py, pz, sx / sl, sy / sl, sz / sl, sl);
-        if (s >= 0) {
+        if (s >= 0 && !(g.off !== null && g.tag[t] !== 0 && world.gate(car, g.tag[t]))) {          /* (a gate that gives way is no sheet to be caught on, however fast the corner crossed it) */
           facing(g, t, px, py, pz);
           const c = C.n++;
           C.rx[c] = x - P[0]; C.ry[c] = y - P[1]; C.rz[c] = z - P[2]; C.nx[c] = FN[0]; C.ny[c] = FN[1]; C.nz[c] = FN[2];

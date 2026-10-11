@@ -26,6 +26,14 @@ export function soup() {
       S.quad([x1, y0, z0], [x1, y0, z1], [x1, y1, z1], [x1, y1, z0], surf, null, tag); S.quad([x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0], surf, null, tag);
       return S;
     },
+    /* a closed box turned about the vertical by `yaw` (the way a car faces: forward is (sin, cos)), sx across and sz along */
+    obox(cx, cy, cz, sx, sy, sz, yaw, surf, tag) {
+      const c = Math.cos(yaw), n = Math.sin(yaw), hx = sx / 2, hz = sz / 2, y0 = cy - sy / 2, y1 = cy + sy / 2, P = (lx, y, lz) => [cx + lx * c + lz * n, y, cz - lx * n + lz * c];
+      S.quad(P(-hx, y1, -hz), P(hx, y1, -hz), P(hx, y1, hz), P(-hx, y1, hz), surf, null, tag); S.quad(P(-hx, y0, -hz), P(hx, y0, -hz), P(hx, y0, hz), P(-hx, y0, hz), surf, null, tag);
+      S.quad(P(-hx, y0, hz), P(hx, y0, hz), P(hx, y1, hz), P(-hx, y1, hz), surf, null, tag); S.quad(P(-hx, y0, -hz), P(hx, y0, -hz), P(hx, y1, -hz), P(-hx, y1, -hz), surf, null, tag);
+      S.quad(P(hx, y0, -hz), P(hx, y0, hz), P(hx, y1, hz), P(hx, y1, -hz), surf, null, tag); S.quad(P(-hx, y0, -hz), P(-hx, y0, hz), P(-hx, y1, hz), P(-hx, y1, -hz), surf, null, tag);
+      return S;
+    },
     /* a ramp up along +z from (y0 at z0) to (y1 at z1), x0..x1 wide */
     ramp(x0, x1, z0, z1, y0, y1, surf) { return S.quad([x0, y0, z0], [x1, y0, z0], [x1, y1, z1], [x0, y1, z1], surf); },
     /* a ramp that climbs from (x0, z0) at y0 to (x1, z1) at y1, w wide (centred on the line between them) */

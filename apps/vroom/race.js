@@ -10,6 +10,7 @@ import { createDriver } from './ai.js';
 import { TIERS, HUMAN, styled, tierProfile } from './ai_profiles.js';
 import { createPickups } from './pickups.js';
 import { STEP } from './tune.js';
+import { pressAt } from './press.js';
 
 function dice(seed) { let s = (seed >>> 0) || 1; return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; }; }
 
@@ -98,6 +99,7 @@ export function createRace(o) {
       f.car.input = inp;
       R.pickups.fire(f, inp.fire);
     }
+    for (const p of T.presses) world.press(p.tag, pressAt(p, R.t).down);              /* the presses are down or up by the race clock */
     world.step();
     for (const e of world.events) R.events.push(e);
     R.frame++; R.t += STEP;
