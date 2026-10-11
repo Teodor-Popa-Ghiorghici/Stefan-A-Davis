@@ -1044,15 +1044,14 @@ export default {
       }
       raf = requestAnimationFrame(frame);
 
-      /* the window is gone the moment it is gone; nothing keeps playing */
-      const watch = setInterval(() => {
-        if (document.body.contains(cv)) return;
-        clearInterval(watch);
+      /* the window is gone the moment it is gone; nothing keeps playing. (This was a poll every 900 ms: a window closed just after a tick left its interval alive for most of a second, which
+         check:apps measured as a leak when the timing fell the wrong way. whenGone watches the desktop for the removal itself.) */
+      whenGone(cv, () => {
         alive = false;
         if (slide && slide.snd) slide.snd.stop();
         Song.stop();
         if (raf) cancelAnimationFrame(raf);
-      }, 900);
+      });
     }
   });
   }

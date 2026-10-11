@@ -13,6 +13,7 @@ import { spriteFor } from './icons_dom.js';
 import { registry } from './registry.js';
 import { openWindow } from './wm.js';
 import { plain, words } from '../apps/trophy_kit.js';
+import { isOpen as vroomOpen } from './vroom_gate_core.js';
 
 const KEY = 'templeos.trophies.v1';
 let damaged = false;
@@ -33,7 +34,8 @@ export const Trophies = createTrophies({
 registerAll(Trophies);
 Trophies.damaged = () => damaged;
 Trophies.names = NAMES;
-Trophies.appCount = () => Object.keys(registry).filter(k => k !== 'placeholder').length;
+/* EVERY DOOR: every app that has a window. VROOM is one only once its gate is open -- before that nobody can open it, and a trophy must not ask for a door that is not there (kernel/vroom_gate_core.js) */
+Trophies.appCount = () => Object.keys(registry).filter(k => k !== 'placeholder' && (k !== 'vroom' || vroomOpen())).length;
 Trophies.nameOf = d => words(d.name, Trophies.st.lang);
 Trophies.descOf = d => words(d.desc, Trophies.st.lang);
 Trophies.hintOf = d => words(d.hint, Trophies.st.lang);
@@ -66,6 +68,7 @@ Trophies.boot = () => {
     import('./trophies_pins.js').then(m => m.mountPins(Trophies)).catch(() => {});
     import('./rewards.js').then(m => m.startRewards(Trophies)).catch(() => {});
     import('./trophy_box.js').then(m => m.startBox(Trophies)).catch(() => {});
+    import('./vroom_gate.js').then(m => m.startGate(Trophies)).catch(() => {});
     import('./trophy_gallery.js').then(m => m.start(Trophies)).catch(() => {});
     wire(Trophies);
     window.addEventListener('trophy-earned', ev => onTrophy(ev.detail));
@@ -82,3 +85,5 @@ Trophies.boot = () => {
   } catch (e) { /* never into the machine */ }
 };
 window.Trophies = Trophies;
+/* the one question the rest of the machine asks about VROOM (apps/vroom_scope.js): is the gate open */
+window.VroomGate = { open: () => vroomOpen() };

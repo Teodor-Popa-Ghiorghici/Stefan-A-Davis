@@ -9,7 +9,7 @@ import { compileNode } from '../../kernel/compile.js';
 import { snapshot } from '../../kernel/holyc_env.js';
 import { lineReport } from '../../kernel/lines.js';
 import { sys } from '../../kernel/trophy_hook.js';
-import { APP_ALIASES, APP_HELLO } from '../../kernel/commands.js';
+import { aliases, APP_HELLO } from '../../kernel/commands.js';
 import { complete } from './complete.js';
 
 /* ---- the fallback answering machine --------------------------------------
@@ -235,7 +235,7 @@ export default {
       /* Tab completes a command or a name on the disk; Ctrl+L clears the screen; Ctrl+C gives up on the line (apps/terminal/complete.js) */
       if (ev.key === 'Tab') {
         ev.preventDefault();
-        const r = await complete(input.value, { commands: Object.keys(APP_ALIASES), list: p => ctx.fs.list(p), resolve: resolvePath });
+        const r = await complete(input.value, { commands: Object.keys(aliases()), list: p => ctx.fs.list(p), resolve: resolvePath });
         if (r.matches) Snd.key();
         input.value = r.line; typed.textContent = r.line;
         if (r.show.length) print([r.show.join('   ')], 'l-dim');
@@ -486,8 +486,8 @@ export default {
           break;
       }
 
-      if (APP_ALIASES[cmd]) {
-        const id = APP_ALIASES[cmd];
+      if (aliases()[cmd]) {
+        const id = aliases()[cmd];
         ctx.openWindow(id).catch(console.error);
         print([APP_HELLO[id] || ('OPENED ' + cmd + '.')], 'l-ok');
         return true;

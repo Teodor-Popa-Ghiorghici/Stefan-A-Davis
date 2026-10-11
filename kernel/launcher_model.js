@@ -2,6 +2,7 @@
    Four kinds of thing: a WINDOW that is open (switch to it), an APP (open it), a FILE on the desk or in a folder (open it), and an ACTION (show the desktop, restore the system files...).
    A query is words; every word has to be found (at the start of the name, at the start of a word in it, inside it, in the app's keywords, or as letters in order); the better the match
    the higher it goes, then what is open, then what was used lately. An empty query lists what is open, then what was used lately, then the rest. */
+import { isOpen as vroomOpen } from './vroom_gate_core.js';
 export const KEY = 'templeos.launcher.v1';
 
 /* every app a person can open by name: [registry id, the name it is listed under, what else it is called, args to open it with] */
@@ -37,8 +38,13 @@ export const APPS = [
   ['solitaire', 'SOLITAIRE', 'cards game league klondike'],
   ['sweeper', 'DUNGEON SWEEPER', 'minesweeper mines game dungeon hollow'],
   ['standbattle', 'STAND BATTLE ARENA', 'fighter fighting game arena versus tekken'],
-  ['bottle', 'THE BOTTLE', 'jager jagermeister drink alcohol drunk game pour']
+  ['bottle', 'THE BOTTLE', 'jager jagermeister drink alcohol drunk game pour'],
+  ['vroom', 'VROOM', 'race racing cars car rc toy truck kei courier drive driving game laps']
 ];
+/* a third state next to listed and NOT_LISTED: in the registry and in APPS, but offered only while the question answers yes. VROOM is not found by name, by keyword or by a few letters until its
+   gate has been opened (kernel/vroom_gate_core.js); the empty query does not offer it either. */
+export const GATED = { vroom: () => vroomOpen() };
+export const listed = a => !GATED[a[0]] || !!GATED[a[0]]();
 /* in the registry but not for a person to open by name: they need a file or a path */
 export const NOT_LISTED = ['placeholder', 'editor', 'viewer'];
 
@@ -112,7 +118,7 @@ export function rank(items, query, recent, limit) {
 export function buildItems(wins, files) {
   const out = [];
   (wins || []).forEach(w => out.push({ id: 'win:' + w.key, kind: 'window', name: w.title, words: w.appId || '', hint: w.hidden ? 'PUT AWAY' : 'OPEN', ref: w.key, appId: w.appId }));
-  APPS.forEach(a => out.push({ id: 'app:' + a[0], kind: 'app', name: a[1], words: a[2], hint: 'PROGRAM', app: a[0], args: a[3] || null }));
+  APPS.filter(listed).forEach(a => out.push({ id: 'app:' + a[0], kind: 'app', name: a[1], words: a[2], hint: 'PROGRAM', app: a[0], args: a[3] || null }));
   ACTIONS.forEach(a => out.push({ id: 'do:' + a[0], kind: 'action', name: a[1], words: a[2], hint: 'DO', act: a[0] }));
   (files || []).forEach(f => out.push({ id: 'file:' + f.path, kind: 'file', name: f.name, words: '', hint: f.path, file: f }));
   return out;

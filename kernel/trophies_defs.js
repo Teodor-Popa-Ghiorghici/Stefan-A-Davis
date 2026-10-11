@@ -19,6 +19,8 @@ import { TROPHIES as HIFI } from '../apps/hifi/trophies.js';
 import { TROPHIES as NOTES } from '../apps/notes/trophies.js';
 import { TROPHIES as TOOLS } from '../apps/tools/trophies.js';
 import { TROPHIES as HOLYC, backfill as holycBackfill } from '../apps/holyc/trophies.js';
+import { TROPHIES as VROOM } from '../apps/vroom/trophies.js';
+import { isOpen as vroomOpen } from './vroom_gate_core.js';
 
 /* each app's backfill reader: (read(key) -> object|null, T) -> [trophy ids already earned] */
 export const BACKFILL = [sweeperBackfill, solitaireBackfill, aftereBackfill, gardenBackfill, cookBackfill, magenBackfill, standbattleBackfill, bekkedalBackfill, bottleBackfill, elephantBackfill, crayonBackfill, garageBackfill, holycBackfill];
@@ -42,7 +44,19 @@ export const APPS = [
   ['holyc', 'HOLYC.EXE', HOLYC]
 ];
 export const NAMES = { system: 'THE MACHINE', meta: 'THE LEDGER', sweeper: 'DUNGEON SWEEPER', solitaire: 'SOLITAIRE', aftere: 'AFTEREGYPT', garden: 'THE GARDEN', cook: 'THE COOK', magen: 'MAGEN',
-  standbattle: 'STAND BATTLE', bekkedal: 'BEKKEDAL', bottle: 'THE BOTTLE', elephant: 'THE ELEPHANT', crayon: 'CRAYON', garage: 'THE GARAGE', hifi: 'THE STACK', notes: 'NOTES', holyc: 'HOLYC.EXE', tools: 'THE SMALL TOOLS' };
+  standbattle: 'STAND BATTLE', bekkedal: 'BEKKEDAL', bottle: 'THE BOTTLE', elephant: 'THE ELEPHANT', crayon: 'CRAYON', garage: 'THE GARAGE', hifi: 'THE STACK', notes: 'NOTES', holyc: 'HOLYC.EXE', tools: 'THE SMALL TOOLS', vroom: 'VROOM.EXE' };
+
+/* VROOM's trophies are NOT in the ledger until the gate is open (kernel/vroom_gate_core.js): not registered, so they are in no list, no count, no seal, no search and no pin -- there
+   is nothing to hide. kernel/vroom_gate.js calls this when the two hundredth trophy is earned; registerAll calls it at boot on a machine where the gate already stands. `list` is for
+   a check that wants to see the area appear. It does nothing twice, and nothing for an empty list (a seal of nothing is not a seal). */
+export function registerVroom(T, list) {
+  const own = list || VROOM;
+  if (!own.length || T.apps.indexOf('vroom') >= 0) return false;
+  T.register('vroom', own);
+  T.finalize([{ app: 'vroom', name: NAMES.vroom }], masteryPay);
+  applyRewards(T);
+  return true;
+}
 
 export function registerAll(T) {
   T.register('system', SYSTEM_A.concat(SYSTEM_B));
@@ -50,6 +64,7 @@ export function registerAll(T) {
   T.register('meta', META);
   /* a mastery for each game, and for HOLYC.EXE (a thing to be finished) */
   T.finalize(GAMES.concat(['holyc']).map(id => ({ app: id, name: NAMES[id] })), masteryPay);
+  if (vroomOpen()) registerVroom(T);
   applyRewards(T);
   void TOYS;
 }

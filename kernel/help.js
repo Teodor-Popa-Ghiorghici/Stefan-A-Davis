@@ -1,7 +1,7 @@
 /* The Help window: topics down the left, a DolDoc page on the right. */
 import { createWindow, openWindow, toast } from './wm.js';
 import { ddRender } from './doldoc.js';
-import { TOPICS, PAGES } from './help_text.js';
+import { topicsNow, pageNow } from './help_text.js';
 import { restoreSystemFiles } from './fileops.js';
 import { sys } from './trophy_hook.js';
 
@@ -16,7 +16,7 @@ function act(cmd, show) {
 }
 
 export function openHelp(topic) {
-  topic = PAGES[topic] ? topic : 'start';
+  topic = pageNow(topic) ? topic : 'start';
   if (current && document.body.contains(current.win)) { current.show(topic); return current; }
   let show;
   const made = createWindow({
@@ -28,7 +28,7 @@ export function openHelp(topic) {
       const pane = document.createElement('div');
       pane.className = 'ddpane helppane';
       const btns = {};
-      TOPICS.forEach(([id, name]) => {
+      topicsNow().forEach(([id, name]) => {
         const b = document.createElement('div');
         b.className = 'helptopic';
         b.textContent = name;
@@ -39,7 +39,7 @@ export function openHelp(topic) {
       show = id => {
         Object.keys(btns).forEach(k => btns[k].classList.toggle('on', k === id));
         sys.mark('help', id);
-        ddRender(PAGES[id], pane,
+        ddRender(pageNow(id), pane,
           target => { if (target.charAt(0) === '@') show(target.slice(1)); },
           cmd => act(cmd, show));
         pane.scrollTop = 0;

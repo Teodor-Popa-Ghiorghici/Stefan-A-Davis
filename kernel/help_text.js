@@ -3,6 +3,7 @@
    file has been thrown away. Pages are DolDoc, the same format as the .DD
    files. A link to "@topic" jumps to that page; a macro starting with "@"
    does a thing (@restore, @open:<app>); anything else is HolyC. */
+import { isOpen as vroomOpen } from './vroom_gate_core.js';
 export const TOPICS = [
   ['start', 'START HERE'],
   ['keys', 'MOUSE & KEYS'],
@@ -263,3 +264,29 @@ $TR-$
 $MA,"OPEN TROPHIES.EXE",LM="@open:trophies"$
 `,
 };
+
+/* The pages that are not in the list until something has been earned (kernel/vroom_gate_core.js). They live apart from TOPICS and PAGES so nothing that walks those -- the trophy that asks for
+   every page to be read, a search, a check -- can find them while the gate is shut. Ask `topicsNow()` and `pageNow(id)`. */
+export const GATED_TOPICS = [['vroom', 'VROOM']];
+export const GATED_PAGES = {
+vroom: `$FG,14$$TX+CX,"VROOM"$$FG$
+$HL$
+Something in the garage started its engine. VROOM.EXE is a racing game:
+a radio-controlled courier car in a life-size, snowed-in mountain town.
+It is light, it bounces, and it will land on its roof. That is allowed.
+
+$TR,"DRIVING"$
+$FG,11$Up / W$FG$ gas   $FG,11$Down / S$FG$ brake and reverse   $FG,11$Left Right / A D$FG$ steer
+$FG,11$Space$FG$ use the pickup you hold   $FG,11$R$FG$ reposition (back on the line, after a moment)
+$FG,11$V$FG$ change the radio station   $FG,11$Esc$FG$ pause
+A car left on its roof is put back on the road after three seconds.
+$TR-$
+
+$TR,"THE PICKUPS"$
+Parcels lie on the road. You hold one at a time. The HOT PARCEL turns
+your antenna into a fuse: touch another car and it is theirs.
+$TR-$
+`
+};
+export const topicsNow = () => (vroomOpen() ? TOPICS.concat(GATED_TOPICS) : TOPICS);
+export const pageNow = id => (PAGES[id] || (vroomOpen() ? GATED_PAGES[id] : null) || null);

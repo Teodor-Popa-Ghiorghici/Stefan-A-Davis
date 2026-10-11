@@ -2,6 +2,8 @@
    a later word to a name in the folder it points into, in the disk's own spelling, a folder with a slash, several matches as far as they agree and listed. (pure Node) */
 import { readFileSync } from 'node:fs';
 import { COMMANDS, complete, commonPrefix } from './complete.js';
+import { aliases } from '../../kernel/commands.js';
+import { KEY as VROOM_KEY } from '../../kernel/vroom_gate_core.js';
 
 let bad = 0;
 const ok = (c, m) => { if (!c) { bad++; console.log('FAIL: ' + m); } };
@@ -49,6 +51,18 @@ r = await T('cd ::/Adam/s'); ok(r.line === 'cd ::/Adam/Seth.HC ', 'a name in a f
 r = await complete('type x', { commands: [], list: async () => { throw new Error('no disk'); }, resolve: a => a }); ok(r.line === 'type x', 'a disk that will not answer leaves the line alone');
 /* typed with a space inside later: only the last word is completed */
 r = await T('copy Adam ::/De'); ok(r.line === 'copy Adam ::/Demo/', 'the last word only: "' + r.line + '"');
+
+/* the gate: a word for an app behind it is not a command until the gate is open (kernel/vroom_gate_core.js). COMMANDS is the shell's own list and never has it. */
+{
+  const store = {}; Object.defineProperty(globalThis, 'localStorage', { value: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } }, configurable: true, writable: true });
+  ok(!COMMANDS.some(c => /VROOM|RACE|CARS/.test(c)), 'COMMANDS never lists the gated words');
+  const shut = { commands: Object.keys(aliases()), list: async () => [], resolve: a => a };
+  for (const w of ['vro', 'vroom', 'rac', 'car']) { const r = await complete(w, shut); ok(!/VROOM|RACE|CARS/.test(r.line + r.show.join()), 'shut: ' + w + ' completes to nothing of VROOM: "' + r.line + '"'); }
+  store[VROOM_KEY] = '1';
+  const open = { commands: Object.keys(aliases()), list: async () => [], resolve: a => a };
+  const o2 = await complete('vro', open); ok(o2.line === 'VROOM ', 'open: vro completes to VROOM: "' + o2.line + '"');
+  const o3 = await complete('rac', open); ok(o3.line === 'RACE ', 'open: rac completes to RACE: "' + o3.line + '"');
+}
 
 ok(commonPrefix(['Hello.HC', 'help.TXT']) === 'Hel' && commonPrefix([]) === '' && commonPrefix(['a']) === 'a', 'common prefix, case ignored, first spelling');
 

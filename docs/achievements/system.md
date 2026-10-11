@@ -156,7 +156,7 @@ Legacy mirrors (Cook's 24, Magen's 98) are shown in the ledger but **do not coun
 | meta_25 | TWENTY-FIVE | Earn 25 trophies. | M | B | - | count |
 | meta_50 | HALF A HUNDRED | Earn 50 trophies. | M | S | - | count |
 | meta_100 | A HUNDRED | Earn 100 trophies. | M | S | - | count |
-| meta_200 | TWO HUNDRED | Earn 200 trophies. | M | G | - | count |
+| meta_200 | VROOM | Earn 200 trophies. | M | G | - | count |
 | meta_tiers | BRONZE, SILVER, GOLD | Earn one trophy of each tier. | M | B | - | count |
 | meta_kinds | ONE OF EVERYTHING | Earn one trophy of each kind: progression, skill, explore, creative and joke. | M | B | - | count |
 | meta_each | A LITTLE OF EVERYTHING | Earn a trophy in every game and every toy. | M | S | - | count |

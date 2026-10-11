@@ -1,7 +1,10 @@
 /* What the ledger shows, as plain data (no DOM): the areas down the left side with how far each is, and the cards of one area in the order worth reading them in. Pure, so
    scripts/check-trophies.mjs holds it. `T` is the engine (kernel/trophies_core.js). A card's state is one of: done, open, closed. A mirror (a game's own achievement, shown but
    never counted) is listed apart, under its game. */
-export const ORDER = ['system', 'sweeper', 'solitaire', 'aftere', 'garden', 'cook', 'magen', 'standbattle', 'bekkedal', 'bottle', 'elephant', 'crayon', 'garage', 'hifi', 'notes', 'holyc', 'tools', 'meta'];
+import { vroom } from '../vroom_scope.js';
+export const ORDER = ['system', 'sweeper', 'solitaire', 'aftere', 'garden', 'cook', 'magen', 'standbattle', 'bekkedal', 'bottle', 'vroom', 'elephant', 'crayon', 'garage', 'hifi', 'notes', 'holyc', 'tools', 'meta'];
+/* the areas to show: VROOM's is not there until its gate is open (kernel/vroom_gate_core.js), whatever the engine has registered. Its trophies are not registered before then either (kernel/trophies_defs.js): two locks, one door. */
+export const shown = () => ORDER.filter(id => id !== 'vroom' || vroom().open());
 export const state = (T, d) => T.earned(d.id) ? 'done' : T.closed(d) ? 'closed' : 'open';
 
 /* [have, need] as a fraction in 0..1, or -1 when the trophy is an event with nothing to count */
@@ -9,7 +12,7 @@ export function ratio(T, d) { const p = T.progressOf(d); return p && p[1] > 0 ? 
 
 export function areas(T) {
   const out = [];
-  ORDER.forEach(id => {
+  shown().forEach(id => {
     const all = [...T.defs.values()].filter(d => d.app === id);
     if (!all.length) return;
     const own = all.filter(d => !d.legacy), live = own.filter(d => !T.closed(d) || T.earned(d.id));
@@ -35,7 +38,8 @@ export function sorted(T, list) {
 /* the cards of one area ('all' is every area's nearest ones), through the filter (all / open / done), the kinds switched on and a search */
 export function cards(T, area, o) {
   o = o || {}; const q = (o.query || '').trim().toUpperCase(), kinds = o.kinds || null;
-  let list = [...T.defs.values()].filter(d => (area === 'all' ? !d.legacy : d.app === area));
+  const hideV = !vroom().open();
+  let list = [...T.defs.values()].filter(d => (area === 'all' ? !d.legacy : d.app === area) && !(hideV && d.app === 'vroom'));
   if (o.filter === 'open') list = list.filter(d => state(T, d) === 'open');
   else if (o.filter === 'done') list = list.filter(d => state(T, d) === 'done');
   if (kinds && kinds.length) list = list.filter(d => kinds.indexOf(d.kind) >= 0);

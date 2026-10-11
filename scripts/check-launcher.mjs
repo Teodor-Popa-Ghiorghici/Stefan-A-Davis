@@ -1,7 +1,8 @@
 /* node scripts/check-launcher.mjs: the launcher's choices (kernel/launcher_model.js): every app in the registry can be reached by name (and none is named that is not there), what a few letters find and in what
    order, an open window ahead of the program it is, what was used lately, a name typed from memory, an empty query's offer, and the book of what was used. (pure Node) */
 import { readFileSync } from 'node:fs';
-import { APPS, NOT_LISTED, ACTIONS, fold, wordScore, lettersScore, rank, buildItems, remember, load, save, KEY } from '../kernel/launcher_model.js';
+import { APPS, NOT_LISTED, GATED, listed, ACTIONS, fold, wordScore, lettersScore, rank, buildItems, remember, load, save, KEY } from '../kernel/launcher_model.js';
+import { KEY as VROOM_KEY } from '../kernel/vroom_gate_core.js';
 
 let bad = 0;
 const ok = (c, m) => { if (!c) { bad++; console.log('FAIL: ' + m); } };
@@ -15,6 +16,9 @@ APPS.forEach(a => ok(reg.indexOf(a[0]) >= 0, 'listed app ' + a[0] + ' is not in 
 ok(new Set(APPS.map(a => a[0])).size === APPS.length && new Set(APPS.map(a => a[1])).size === APPS.length, 'no app twice, no name twice');
 ok(new Set(ACTIONS.map(a => a[0])).size === ACTIONS.length, 'no action twice');
 ok(APPS.every(a => a[1] === a[1].toUpperCase() && a[2] === a[2].toLowerCase()), 'names are in capitals, keywords in lower case');
+/* the third state: GATED. In the registry and in APPS, so it passes the two checks above, but offered only while its question says yes */
+ok(Object.keys(GATED).every(id => reg.indexOf(id) >= 0 && APPS.some(a => a[0] === id) && NOT_LISTED.indexOf(id) < 0), 'a gated app is in the registry and in APPS, and is not NOT_LISTED');
+ok(!!GATED.vroom && !listed(APPS.find(a => a[0] === 'vroom')), 'VROOM is gated and the gate is shut (nothing is stored)');
 
 /* folding */
 ok(fold('  Jägermeister ') === 'JAGERMEISTER' && fold('crazy   dave') === 'CRAZY DAVE' && fold(null) === '', 'folding');
@@ -72,6 +76,27 @@ let big = []; for (let i = 0; i < 30; i++) big = remember(big, 'app:x' + i); ok(
 const io = mem(); save(b, io); ok(load(io).join() === b.join(), 'round trip');
 io.setItem(KEY, '{x'); ok(load(io).length === 0, 'a damaged book is empty'); io.setItem(KEY, '{"a":1}'); ok(load(io).length === 0, 'an object is not a book');
 io.setItem(KEY, JSON.stringify(['app:a', 5, null, 'app:b'])); ok(load(io).join() === 'app:a,app:b', 'only strings');
+
+/* ---- the gate: shut, VROOM is found by nothing; open, by its name, a few of its letters and its keywords ---- */
+{
+  const store = mem();
+  Object.defineProperty(globalThis, 'localStorage', { value: store, configurable: true, writable: true });
+  const shut = buildItems([{ key: 'w1', title: 'MAGEN', appId: 'magen', hidden: false }], [{ name: 'Adam.HC', path: '::/Adam/Adam.HC', type: 'code' }]);
+  ok(!shut.some(i => i.app === 'vroom' || /VROOM/.test(i.name)), 'shut: no item is VROOM');
+  ['vroom', 'vro', 'vrm', 'race', 'racing', 'cars', 'truck', 'courier', 'laps', 'kei', 'rc'].forEach(q => ok(!rank(shut, q, [], 12).some(i => i.app === 'vroom'), 'shut: ' + q + ' does not find it'));
+  ok(!rank(shut, '', ['app:vroom'], 40).some(i => i.app === 'vroom'), 'shut: not offered by the empty query, not even from the book of what was used');
+  store.setItem(VROOM_KEY, '1');
+  const open = buildItems([], []);
+  ok(open.some(i => i.id === 'app:vroom' && i.name === 'VROOM'), 'open: it is an item');
+  ok(rank(open, 'vroom', [], 9)[0].id === 'app:vroom', 'open: vroom finds it first');
+  ok(rank(open, 'vro', [], 9)[0].id === 'app:vroom', 'open: a few letters find it');
+  ok(rank(open, 'racing car', [], 9)[0].id === 'app:vroom', 'open: its keywords find it: ' + rank(open, 'racing car', [], 9).map(i => i.id));
+  ok(rank(open, '', [], 99).some(i => i.id === 'app:vroom'), 'open: the empty query lists it among the programs');
+  ok(listed(APPS.find(a => a[0] === 'vroom')), 'open: listed()');
+  store.setItem(VROOM_KEY, ''); ok(!buildItems([], []).some(i => i.app === 'vroom'), 'a key that is empty is a shut gate');
+  Object.defineProperty(globalThis, 'localStorage', { value: { getItem() { throw new Error('storage is gone'); } }, configurable: true, writable: true });
+  ok(!buildItems([], []).some(i => i.app === 'vroom'), 'storage that throws is a shut gate');
+}
 
 console.log(bad ? bad + ' FAILED' : 'check-launcher: ok (' + APPS.length + ' programs, ' + ACTIONS.length + ' actions)');
 process.exit(bad ? 1 : 0);

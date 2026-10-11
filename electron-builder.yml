@@ -38,6 +38,10 @@ files:
   - "!apps/standbattle/check_kit.js"
   - "!apps/standbattle/headless_harness.js"
   - "!apps/standbattle/budget_bot.js"
+  - "!apps/vroom/*_check*.js"
+  - "!apps/vroom/check_kit.js"
+  - "!apps/vroom/headless_harness.js"
+  - "!apps/vroom/budget_bot.js"
 
 asar: true
 compression: normal

@@ -40,7 +40,8 @@ export const META = [
   t('meta_25', 'TWENTY-FIVE', 'B', 'M', 'Earn 25 trophies.', rule.count(25)),
   t('meta_50', 'HALF A HUNDRED', 'S', 'M', 'Earn 50 trophies.', rule.count(50)),
   t('meta_100', 'A HUNDRED', 'S', 'M', 'Earn 100 trophies.', rule.count(100)),
-  t('meta_200', 'TWO HUNDRED', 'G', 'M', 'Earn 200 trophies.', rule.count(200)),
+  /* THE CLUE. The name is the only hint anywhere that the two hundredth trophy opens something (kernel/vroom_gate.js): the id, the tier, the pay and the shelf reward are what they always were. */
+  t('meta_200', 'VROOM', 'G', 'M', 'Earn 200 trophies.', rule.count(200)),
   t('meta_tiers', 'BRONZE, SILVER, GOLD', 'B', 'M', 'Earn one trophy of each tier.', rule.derive(T => tierCount(T, 'B') > 0 && tierCount(T, 'S') > 0 && tierCount(T, 'G') > 0)),
   t('meta_kinds', 'ONE OF EVERYTHING', 'B', 'M', 'Earn one trophy of each kind: progression, skill, explore, creative and joke.', rule.derive(T => ['progress', 'skill', 'explore', 'creative', 'joke'].every(k => kindCount(T, k) > 0))),
   t('meta_each', 'A LITTLE OF EVERYTHING', 'S', 'M', 'Earn a trophy in every game and every toy.', rule.derive(T => GAMES.concat(TOYS).every(a => hasIn(T, a)))),

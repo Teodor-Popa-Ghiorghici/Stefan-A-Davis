@@ -20,6 +20,8 @@ import * as Lang from '../../kernel/songtext.js';
 import { unlocked } from '../../kernel/style_track.js';
 import { FILE as STYLE_SONG } from '../../kernel/style_track_plan.js';
 import { demoSongs } from '../garage/songs.js';
+import { vroom } from '../vroom_scope.js';
+import { vroomFolder } from '../vroom/stack.js';
 
 const TARGET_SECS = 75;                     /* roughly how long a pressed disc plays */
 
@@ -78,6 +80,9 @@ export function stackFolders() {
   /* the style meter's song: here once the meter has read HAPPY BIRTHDAY for the first time. It is a recording, so it is not pressed:
      the disc is the decoded file itself (`mp3`), ready as soon as it is read */
   if (unlocked()) out.push(['STYLE METER', 'white', [['AT ENDS', { mp3: STYLE_SONG, dur: 149.4, once: true, tint: 'white', artist: 'MARZUKU' }]]]);
+
+  /* VROOM's tunes: not on the shelf at all until its gate is open (the trophy called VROOM) */
+  if (vroom().open()) out.push(vroomFolder());
 
   out.forEach(f => f[2].forEach(d => { d[1].reps = d[1].once ? 1 : reps(d[1]); }));
   return out;

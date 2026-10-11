@@ -377,3 +377,24 @@ least every three races of a normal run. The championship takes about 3 hours, e
   [Gematsu announcement](https://www.gematsu.com/2025/04/low-poly-cozy-driving-game-easy-delivery-co-announced-for-pc), [SebTruck mod (paint, bobblehead)](https://thunderstore.io/c/easy-delivery-co/p/shiibe/SebTruck/v/1.1.5/).
 - No name, asset, track, tune or texture from either game is copied. Everything is made new for this machine,
   and `CLAUDE.md` says "inspired by", as the Cook does.
+
+## 14. Decisions made while building (the plan was silent; these are the answers)
+
+Written as they were taken, newest last. Each says what and why.
+
+**Phase 0 -- the gate**
+- **The gate is a question read each time, never remembered** (`kernel/vroom_gate_core.js`, `isOpen(io)` reads `templeos.vroom.v1`). A key set by a check, a save carried over and a key lost with the
+  storage are all true the moment they are, and a store that throws is a *shut* gate: the safe answer for a secret. The core is pure and registers the RESTORE source itself (`handedOver(() => owed())`),
+  so Node sees exactly what the machine sees.
+- **VROOM's trophies are not registered with the engine until the gate opens** (`registerVroom` in `kernel/trophies_defs.js`), rather than registered and hidden behind `until`/closed. A closed trophy is
+  still in `T.defs`, so it would be reachable from every list, search, pin, `TROPHY <NAME>` and count; an unregistered one is simply not there. `apps/trophies/model.js` also drops the area while shut: two locks
+  on one door. An empty list registers nothing (a seal of nothing is not a seal).
+- **The gate opens on `trophies-changed` as well as `trophy-earned`**, because a trophy found in an old save is credited without a card (`T.backfill`) and the only event that makes is `trophies-changed`.
+  A machine that earned TWO HUNDRED before this version existed meets VROOM at its next boot, with the toast.
+- **The toast waits 4.8 s** so the trophy's own card (4.2 s) has gone; the two do not talk over each other.
+- **EVERY DOOR** (`sys_apps_all`, "open every app that has a window") would have asked for a door nobody can open. `Trophies.appCount` leaves `vroom` out until the gate is open; after it opens the count is one
+  higher, and opening the game marks it.
+- **Help, terminal and GO TO keep gated things apart from the lists that other code walks**: `GATED_TOPICS`/`GATED_PAGES` are not in `TOPICS`/`PAGES` (`HELP_PAGES = TOPICS.length` is a trophy), and the terminal's
+  words are `aliases()` not `APP_ALIASES`. `COMMANDS` in `apps/terminal/complete.js` is the shell's own list and never has them; Tab learns them only through `o.commands`.
+- **The check scans the source** (`vroom_gate_check.js`): a file that is not in its allow-list and says VROOM fails it, so a leak added later by someone who did not know about the gate is caught.
+- **Dev-only files** (`apps/vroom/*_check*.js`, `check_kit.js`, `headless_harness.js`, `budget_bot.js`) are left out of the package (`electron-builder.yml`) and forbidden by `check-package.mjs`.
