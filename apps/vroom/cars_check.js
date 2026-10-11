@@ -14,6 +14,7 @@ import { TRACKS } from './track_def.js';
 import { createRace } from './race.js';
 import { suite } from './check_kit.js';
 import { RIVALS, fieldFor } from './rivals.js';
+import { FIELD, tierProfile } from './ai_profiles.js';
 import { liveryFor, liveryOf, liveryDiff, PLAYER } from './livery.js';
 import { TIERS } from './ai_profiles.js';
 import { createRaster, W, H } from './raster.js';
@@ -168,8 +169,8 @@ const SIL = {}; CAR_IDS.forEach(id => { SIL[id] = silhouettes(id); });
   ok(lv.side.w === 32 && lv.side.h === 16 && lv.top.w === 16 && lv.top.h === 16 && clear > 100 && seen.size >= 3 && liveryOf(RIVALS[0]) === liveryOf(RIVALS[0]), 'a livery is a 32 x 16 flank and a 16 x 16 roof with the paint left showing, made once');
   for (const rating of [0, 1, 2, 3, 4]) {
     const f = fieldFor(rating, 7, 11 + rating), tiers = f.map(e => e.tier);
-    ok(new Set(f.map(e => e.name)).size === 7 && new Set(f.map(e => e.car)).size >= 4 && new Set(f.map(e => e.paint)).size === 7 && f.every(e => carsOf(rating).includes(e.car)), RATINGS[rating] + ': a field of seven rivals, in the rating\'s four cars, no two in the same paint (' + f.map(e => e.name + ' ' + CARS[e.car].name).join(', ') + ')');
-    ok(tiers.every(t => t >= Math.max(0, rating - 1) && t <= Math.min(4, rating + 1)) && Math.max(...tiers) > Math.min(...tiers), RATINGS[rating] + ': the drivers are within a tier of the event and not all the same (' + tiers.map(t => TIERS[t].name).join(', ') + ')');
+    ok(new Set(f.map(e => e.name)).size === 7 && new Set(f.map(e => e.car)).size >= 3 && new Set(f.map(e => e.paint)).size === 7 && f.every(e => carsOf(rating).includes(e.car) && !CARS[e.car].noRival), RATINGS[rating] + ': a field of seven rivals, in the rating\'s cars that a CPU may drive (three or four of them), no two in the same paint (' + f.map(e => e.name + ' ' + CARS[e.car].name).join(', ') + ')');
+    ok(tiers.every(t => t >= Math.max(0, FIELD.ofRating[rating] - FIELD.skillStep - 1e-9) && t <= Math.min(4, FIELD.ofRating[rating] + FIELD.skillStep + 1e-9)) && Math.max(...tiers) > Math.min(...tiers), RATINGS[rating] + ': the drivers are within a skill step of the field\'s strength for the event and not all the same (' + tiers.map(t => tierProfile(t).name).join(', ') + ')');
   }
   ok(fieldFor(0, 7, 1).map(e => e.name).join() !== fieldFor(0, 7, 5).map(e => e.name).join(), 'the seed moves the block of rivals on, so two cups do not meet the same seven');
   /* a style is a few of the driver's numbers and nothing that is speed, grip or mass */

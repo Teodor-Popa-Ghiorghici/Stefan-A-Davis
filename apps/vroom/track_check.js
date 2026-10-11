@@ -5,7 +5,7 @@
    The pickups are held to the same promise: every parcel is on the road, clear of the walls and of every belt, jump, kerb, pinch and counter, inside what the CPU may drive, and a car driven straight down its lane takes it.
    (Stars and gates join this check in the phases that add them.)   node apps/vroom/track_check.js */
 import { buildTrack } from './track_build.js';
-import { TRACKS } from './track_def.js';
+import { allTracks, defFor, TRACK_IDS } from './tracks.js';
 import { createRace } from './race.js';
 import { createWorld } from './sim.js';
 import { specOf } from './cars.js';
@@ -15,8 +15,8 @@ import { suite } from './check_kit.js';
 const S = suite('track_check'), { ok } = S;
 const deg = r => r * 180 / Math.PI;
 
-for (const id of Object.keys(TRACKS)) {
-  const T = buildTrack(TRACKS[id]), L = T.line, sm = L.samples, n = sm.length, tag = id + ': ';
+for (const [tid, tv] of allTracks()) {
+  const id = tid + (tv === 'f' ? '' : ':' + tv), T = buildTrack(defFor(tid, tv)), L = T.line, sm = L.samples, n = sm.length, tag = id + ': ';
   /* ---- the line ---- */
   const closing = Math.hypot(sm[0].x - sm[n - 1].x, sm[0].z - sm[n - 1].z);
   ok(closing < L.step * 1.6, tag + 'the line closes (the last sample is ' + closing.toFixed(2) + ' m from the first)');
@@ -148,5 +148,16 @@ for (const id of Object.keys(TRACKS)) {
     ok(!fail, tag + 'a jump is cleared at every speed from 9 to 13 m/s with any of eight things done to the keys in the air, from three places across the road (' + n + ' tries)', fail);
     ok(worst > 6, tag + 'and a car that clears it with the wheel straight carries on (' + worst.toFixed(1) + ' m/s the slowest after the landing; one that held the wheel over in the air may find a wall)', worstWhat);
   }
+}
+/* ---- a variant is the same road turned over ---- */
+for (const tid of TRACK_IDS) {
+  const f = buildTrack(defFor(tid, 'f')), m = buildTrack(defFor(tid, 'm')), r = buildTrack(defFor(tid, 'r')), rm = buildTrack(defFor(tid, 'rm')), tag = tid + ': ';
+  ok([m, r, rm].every(t => Math.abs(t.length - f.length) < 0.5), tag + 'every variant is as long a lap as the road it is made from (' + [f, m, r, rm].map(t => t.length.toFixed(1)).join(', ') + ' m)');
+  let worst = 0; for (let i = 0; i < f.line.samples.length; i += 7) worst = Math.max(worst, Math.abs(m.line.samples[i].x + f.line.samples[i].x), Math.abs(m.line.samples[i].z - f.line.samples[i].z));
+  ok(worst < 0.01, tag + 'the mirrored road is the same road with x turned over (' + worst.toFixed(4) + ' m at the worst of its samples)');
+  const turnF = f.line.samples.reduce((a, p) => a + p.k, 0), turnM = m.line.samples.reduce((a, p) => a + p.k, 0), turnR = r.line.samples.reduce((a, p) => a + p.k, 0);
+  ok(Math.sign(turnF) === -Math.sign(turnM) && Math.sign(turnF) === -Math.sign(turnR) && Math.sign(turnF) === Math.sign(turnF * 1), tag + 'mirrored, or driven the other way, the road turns the other way round (' + [turnF, turnM, turnR].map(x => x.toFixed(1)).join(', ') + ')');
+  ok(f.features.belts.every((b, i) => r.features.belts[i] && r.features.belts[i].speed === -b.speed && rm.features.belts[i].speed === -b.speed && m.features.belts[i].speed === b.speed), tag + 'a belt keeps the way it moves: it runs against you when the road is driven the other way');
+  ok(r.features.pinches.length === f.features.pinches.length && r.features.kerbs.length === f.features.kerbs.length && r.features.counters.length === f.features.counters.length && r.features.jumps.length <= f.features.jumps.length && r.features.pickups.length === f.features.pickups.length, tag + 'everything else on the road is still on it, turned round (a jump may have gone if no stretch had room for it: ' + r.features.jumps.length + ' of ' + f.features.jumps.length + ' kept)');
 }
 S.done();

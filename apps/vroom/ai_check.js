@@ -116,5 +116,11 @@ function lap(tier, car, seed, laps) {
   const KEYS = 'aggression,brakeEarly,gripUse,lineError,mistake,name,pickups,reaction';
   ok(TIERS.every(t => Object.keys(t).sort().join() === KEYS) && RIVALS.every(r => { const p = styled(TIERS[2], r.style); return Object.keys(p).sort().join() === KEYS && p.reaction === TIERS[2].reaction && p.gripUse === TIERS[2].gripUse && p.brakeEarly === TIERS[2].brakeEarly; }), 'a driver is eight numbers (reaction, line error, grip use, early braking, aggression, mistakes, pickups) and a name: no speed, grip or mass, and a rival\'s style moves only its bold, sloppy and keen');
   ok(TIERS.every((t, i) => i === 0 || (t.reaction < TIERS[i - 1].reaction && t.lineError < TIERS[i - 1].lineError && t.gripUse > TIERS[i - 1].gripUse && t.mistake < TIERS[i - 1].mistake && t.pickups > TIERS[i - 1].pickups && t.aggression > TIERS[i - 1].aggression)), 'the tiers climb in every one of them: quicker eyes, a straighter line, more of the tyres, fewer slips, keener on pickups and bolder');
+  /* a tier between two: the field's strength can be any number from ROOKIE to PRO */
+  const { tierProfile, FIELD } = await import('./ai_profiles.js');
+  ok(TIERS.every((t, i) => { const p = tierProfile(i); return p.reaction === t.reaction && Math.abs(p.gripUse - t.gripUse) < 1e-12 && Math.abs(p.mistake - t.mistake) < 1e-12; }), 'a whole number of tier is exactly that tier');
+  let mono = true; for (let t = 0; t < 4; t += 0.25) { const a = tierProfile(t), b = tierProfile(t + 0.25); if (!(b.gripUse >= a.gripUse && b.lineError <= a.lineError && b.reaction <= a.reaction && b.mistake <= a.mistake && b.aggression >= a.aggression && b.pickups >= a.pickups)) mono = false; }
+  ok(mono && tierProfile(-3).name === 'ROOKIE' && tierProfile(9).name === 'PRO' && tierProfile(1.5).gripUse > TIERS[1].gripUse && tierProfile(1.5).gripUse < TIERS[2].gripUse, 'and between them every number is between its neighbours\', climbing all the way, held at either end');
+  ok(FIELD.ofRating.length === 5 && FIELD.ofRating.every((t, i) => t >= 0 && t <= 4 && (i === 0 || t > FIELD.ofRating[i - 1] - 0.5)) && FIELD.skillStep > 0 && FIELD.skillStep <= 1, 'the field\'s strength is a tier for each rating, held between ROOKIE and PRO (' + FIELD.ofRating.join(', ') + '), and a rival\'s skill moves it by at most one');
 }
 S.done();

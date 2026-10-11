@@ -3,8 +3,9 @@
    pickups). Nothing here is a speed, a grip or a mass: a rival is a person with habits, and the only catch-up there is is the deal of the pickups. The cars are the event's: a rival drives the cars of the rating
    it is racing in, which is how a field is mixed (`fieldFor`). Eight race at a time, the human and seven of these, in a block of the eleven that moves on with the seed so no two cups meet the same seven. Pure. */
 import { ix, GREY, RED, BROWN, GREEN, BLUE, MAGENTA, COOL } from './palette.js';
-import { carsOf } from './cars.js';
+import { rivalCars } from './cars.js';
 import { liveryFor } from './livery.js';
+import { FIELD } from './ai_profiles.js';
 
 export const RIVALS = [
   { id: 'nils', name: 'NILS', num: '03', paint: ix(BROWN, 9), stripe: ix(GREY, 15), pattern: 'band', logo: 'fish', skill: -1, style: { aggression: -0.1, pickups: 0.1 } },
@@ -21,13 +22,18 @@ export const RIVALS = [
 ];
 export const RIVAL_BY_ID = Object.fromEntries(RIVALS.map(r => [r.id, r]));
 
-/* the entries for `n` rivals of an event of this rating: a block of the eleven starting where the seed says, each in a car of the rating (the four of it in turn, so the first four are four different
-   cars and the rest are twins in other paint) and at the tier the rating and their own skill give. The entry is what createRace takes. */
+/* the entries for rivals of an event of this rating, named by id: each in a car of the rating (the four of it in turn from `start`, so the first four are four different cars and the rest are twins in other paint)
+   and at the tier the rating and their own skill give. The entry is what createRace takes. A cup keeps its seven ids and its start, so the same people meet you four races running. */
+export function entriesFor(ids, rating, start) {
+  const cars = rivalCars(rating);
+  return ids.map((id, k) => {
+    const r = RIVAL_BY_ID[id];
+    return { id: r.id, name: r.name, car: cars[(k + start) % cars.length], tier: Math.max(0, Math.min(4, FIELD.ofRating[rating] + r.skill * FIELD.skillStep)), paint: r.paint, style: r.style, livery: liveryFor(r), num: r.num };
+  });
+}
+/* `n` rivals of an event of this rating: a block of the eleven starting where the seed says */
 export function fieldFor(rating, n, seed) {
-  const cars = carsOf(rating), start = (seed >>> 0) % RIVALS.length, out = [];
-  for (let k = 0; k < n; k++) {
-    const r = RIVALS[(start + k) % RIVALS.length];
-    out.push({ id: r.id, name: r.name, car: cars[(k + start) % cars.length], tier: Math.max(0, Math.min(4, rating + r.skill)), paint: r.paint, style: r.style, livery: liveryFor(r), num: r.num });
-  }
-  return out;
+  const start = (seed >>> 0) % RIVALS.length, ids = [];
+  for (let k = 0; k < n; k++) ids.push(RIVALS[(start + k) % RIVALS.length].id);
+  return entriesFor(ids, rating, start);
 }

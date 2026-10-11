@@ -18,7 +18,7 @@ export function createWorld(o) {
       id: opts && opts.id != null ? opts.id : W.nextId++, spec, p: new Float64Array(3), q: new Float64Array(4), v: new Float64Array(3), w: new Float64Array(3), R: new Float64Array(9), F: new Float64Array(3), T: new Float64Array(3),
       pw: new Float64Array(n * 3), pprev: new Float64Array(n * 3), sw: new Float64Array(9), hitCool: {},
       wheels: spec.wheels.map(() => ({ ground: false, N: 0, prevX: 0, comp: 0, tri: -1, surf: 0, spin: 0, vf: 0, vs: 0, slide: 0, spill: 0 })),
-      input: { throttle: 0, brake: 0, steer: 0, repo: false }, steer: 0, grip: 1, parts: (opts && opts.parts) || { snowTyres: false, iceChains: false, compound: 0 },
+      input: { throttle: 0, brake: 0, steer: 0, repo: false }, steer: 0, grip: 1, coffee: (opts && opts.mods && opts.mods.coffee) || 1, recover: (opts && opts.mods && opts.mods.recover) || 1, parts: (opts && opts.parts) || { snowTyres: false, iceChains: false, compound: 0 },
       airtime: 0, fallV: 0, roofTime: 0, stuckTime: 0, upside: false, wheelie: false, repoT: 0, ghost: 0, contacts: 0, hardest: 0, lastGood: null, wasRepo: false, lastSurf: -1,
       tSpill: 0, tPower: 0, tTurbo: 0, tStun: 0, tumble: 0, odometer: 0
     };
@@ -105,7 +105,8 @@ export function createWorld(o) {
       }
     }
     if (car.ghost > 0) car.ghost = Math.max(0, car.ghost - STEP);
-    if (car.tSpill > 0) car.tSpill -= STEP; if (car.tPower > 0) car.tPower -= STEP; if (car.tTurbo > 0) car.tTurbo -= STEP; if (car.tStun > 0) car.tStun -= STEP; if (car.tumble > 0) car.tumble -= STEP;
+    /* a BATTERY (parts.js) makes COFFEE last longer and a power cut or a stun wear off sooner: the timers run at a different rate, and at a rate of 1 are exactly the step */
+    if (car.tSpill > 0) car.tSpill -= STEP; if (car.tPower > 0) car.tPower -= STEP * car.recover; if (car.tTurbo > 0) car.tTurbo -= STEP / car.coffee; if (car.tStun > 0) car.tStun -= STEP * car.recover; if (car.tumble > 0) car.tumble -= STEP;
     for (const w of car.wheels) if (w.spill > 0) w.spill -= STEP;
   }
   /* A KNOCK (a pickup's blast, a shock wave, a bomb): a push, a toss up and a spin about the car's own axes (roll about its nose, pitch about its right side, yaw about its top), and for `tumble` seconds the air

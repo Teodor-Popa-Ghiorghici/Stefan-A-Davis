@@ -2,7 +2,9 @@
      num   the few numbers `chassis()` (sim_spec.js) works a whole car out from -- mass in kg, size in metres, where its weight sits (comY high is a car that rolls, comZ behind the axles is one that wheelies),
            its top speed (m/s) and the time its engine takes to get to 95 % of it, which wheels are driven, the grip of its tyres (gripLat, held to the rating's GRIP_MAX) and whether its tail steps out first
            (latBias below 1), and the odd extra: `wheels: 3` is a trike, `ice` the grip a sled's runners have on ice, `steer` the lock of a bus
-     look  what it is drawn as (car_shells_*.js): the shell, its paint and its second colour, and the extras. `wheel` is the tyre: { w: width, kind }. `engine` is how it sounds.
+     noRival  a car the CPU is not given to: it is hard on a driver who is not a person (a trike that comes down off the jump on its tail, a open-wheeler that touches a wall at its first bend), and a field with
+            one of them in it is a field with a gift in it. The player may drive them, and they are the more fun for it.
+   look  what it is drawn as (car_shells_*.js): the shell, its paint and its second colour, and the extras. `wheel` is the tyre: { w: width, kind }. `engine` is how it sounds.
    A rating's four are a heavy one, a light one, a grippy one and a drifty one, and none is the best of its four at more than two of speed, acceleration, grip and weight: cars_check.js holds both, and that every
    top speed is within a tenth of the rating's cap. Nothing in here may pass the rating's envelope (tune.js): `numbersFor` clamps it again whatever is written. Pure data. */
 import { ix, CYAN, RED, BROWN, GREEN, BLUE, MAGENTA, GREY, COOL } from './palette.js';
@@ -17,7 +19,7 @@ export const ROWS = {
   },
   milkfloat: {
     name: 'MILK FLOAT', rating: 0, blurb: 'tall, slow, and heavy enough to shove.',
-    num: { mass: 2.1, length: 0.4, width: 0.2, height: 0.19, comY: 0.072, comZ: 0.0, vtop: 12.2, accel: 3.1, drive: 'fwd', gripLat: 0.97 },
+    num: { mass: 2.1, length: 0.4, width: 0.2, height: 0.19, comY: 0.066, comZ: 0.0, vtop: 12.9, accel: 2.1, drive: 'fwd', gripLat: 1.0 },
     look: { shell: 'box', paint: t(GREY, 14), trim: t(BLUE, 8), extra: ['crates'], engine: 'electric' }
   },
   snowbug: {
@@ -26,8 +28,8 @@ export const ROWS = {
     look: { shell: 'bubble', paint: t(RED, 8), trim: t(GREY, 15), extra: [], engine: 'electric' }
   },
   paperboy: {
-    name: 'PAPERBOY', rating: 0, blurb: 'three wheels and a sack of papers. the back end has opinions.',
-    num: { mass: 1.2, length: 0.38, width: 0.22, height: 0.12, comY: 0.052, comZ: -0.03, vtop: 12.8, accel: 2.0, drive: 'rwd', latBias: 0.95, gripLat: 0.88, wheels: 3, track: 0.2, wheelbase: 0.26 },
+    name: 'PAPERBOY', rating: 0, noRival: true, blurb: 'three wheels and a sack of papers. the back end has opinions.',
+    num: { mass: 1.2, length: 0.38, width: 0.22, height: 0.12, comY: 0.048, comZ: -0.03, vtop: 13, accel: 1.95, drive: 'rwd', latBias: 0.96, gripLat: 0.91, wheels: 3, track: 0.2, wheelbase: 0.26 },
     look: { shell: 'trike', paint: t(BROWN, 12), trim: t(GREEN, 8), extra: ['sack'], engine: 'electric', wheel: { w: 0.034 } }
   },
   /* ---- AMATEUR ---- */
@@ -38,7 +40,7 @@ export const ROWS = {
   },
   tunatruck: {
     name: 'TUNA TRUCK', rating: 1, blurb: 'a box of fish on rear drive. you will feel it in the corners.',
-    num: { mass: 2.5, length: 0.52, width: 0.25, height: 0.18, comY: 0.088, comZ: -0.02, vtop: 13.2, accel: 2.9, drive: 'rwd', gripLat: 0.97, latBias: 1.1, radius: 0.045 },
+    num: { mass: 2.5, length: 0.52, width: 0.25, height: 0.18, comY: 0.08, comZ: -0.02, vtop: 13.6, accel: 2.3, drive: 'rwd', gripLat: 1.03, latBias: 1.1, radius: 0.045 },
     look: { shell: 'fishbox', paint: t(BLUE, 8), trim: t(GREY, 14), extra: ['fin'], engine: 'glow', wheel: { w: 0.04 } }
   },
   ploughboy: {
@@ -59,23 +61,23 @@ export const ROWS = {
   },
   noodlebar: {
     name: 'NOODLE BAR', rating: 2, blurb: 'a food van that is mostly kitchen. heavy, and warm inside.',
-    num: { mass: 2.4, length: 0.48, width: 0.28, height: 0.17, comY: 0.085, comZ: -0.01, vtop: 13.8, accel: 2.6, drive: 'rwd', gripLat: 0.95, latBias: 1.1 },
+    num: { mass: 2.4, length: 0.48, width: 0.28, height: 0.17, comY: 0.082, comZ: -0.01, vtop: 14.2, accel: 2.3, drive: 'rwd', gripLat: 0.98, latBias: 1.1 },
     look: { shell: 'foodvan', paint: t(RED, 7), trim: t(GREY, 15), extra: ['sign'], engine: 'glow' }
   },
   rattler: {
     name: 'RATTLER', rating: 2, blurb: 'a buggy on long springs. it lands everything.',
-    num: { mass: 1.5, length: 0.4, width: 0.17, height: 0.09, comY: 0.062, comZ: -0.02, vtop: 15.0, accel: 1.7, drive: 'rwd', gripLat: 1.0, latBias: 1.0, radius: 0.05, track: 0.22, travel: 0.07, rest: 0.075, clearance: 0.04 },
+    num: { mass: 1.5, length: 0.4, width: 0.17, height: 0.09, comY: 0.062, comZ: -0.02, vtop: 15.0, accel: 1.7, drive: 'rwd', gripLat: 1.0, latBias: 1.06, radius: 0.05, track: 0.22, travel: 0.07, rest: 0.075, clearance: 0.04 },
     look: { shell: 'buggy', paint: t(GREEN, 9), trim: t(BROWN, 13), extra: ['cage'], engine: 'glow', wheel: { w: 0.048, kind: 'knob' } }
   },
   sled: {
     name: 'SLED', rating: 2, blurb: 'a wedge on skis. at home on ice, and nowhere else.',
-    num: { mass: 1.3, length: 0.42, width: 0.2, height: 0.07, comY: 0.04, comZ: -0.02, vtop: 14.0, accel: 2.0, drive: 'rwd', latBias: 0.98, gripLat: 0.92, ice: 0.42 },
+    num: { mass: 1.3, length: 0.42, width: 0.2, height: 0.07, comY: 0.04, comZ: -0.02, vtop: 14.5, accel: 1.8, drive: 'rwd', latBias: 0.98, gripLat: 0.95, ice: 0.42 },
     look: { shell: 'sled', paint: t(CYAN, 11), trim: t(GREY, 14), extra: [], engine: 'electric', ski: true }
   },
   /* ---- SEMI-PRO ---- */
   freezer: {
     name: 'FREEZER', rating: 3, blurb: 'a refrigerated truck. the heaviest thing on the grid.',
-    num: { mass: 3.0, length: 0.62, width: 0.25, height: 0.2, comY: 0.1, comZ: -0.03, vtop: 15.2, accel: 2.6, drive: 'rwd', gripLat: 0.95, latBias: 1.1, radius: 0.05 },
+    num: { mass: 3.0, length: 0.62, width: 0.25, height: 0.2, comY: 0.095, comZ: -0.03, vtop: 16.0, accel: 2.4, drive: 'rwd', gripLat: 0.98, latBias: 1.1, radius: 0.05 },
     look: { shell: 'reefer', paint: t(GREY, 15), trim: t(BLUE, 9), extra: ['stack'], engine: 'glow', wheel: { w: 0.044 } }
   },
   minx: {
@@ -85,7 +87,7 @@ export const ROWS = {
   },
   logger: {
     name: 'LOGGER', rating: 3, blurb: 'a crane truck. everything about the centre of it is too high.',
-    num: { mass: 2.6, length: 0.54, width: 0.24, height: 0.14, comY: 0.115, comZ: -0.02, vtop: 15.4, accel: 2.5, drive: 'rwd', gripLat: 0.95, latBias: 0.98, radius: 0.05 },
+    num: { mass: 2.6, length: 0.54, width: 0.26, height: 0.14, comY: 0.1, comZ: -0.02, vtop: 15.9, accel: 2.3, drive: 'rwd', gripLat: 0.97, latBias: 1.0, radius: 0.05 },
     look: { shell: 'crane', paint: t(BROWN, 14), trim: t(GREY, 3), extra: ['logs'], engine: 'glow', wheel: { w: 0.044 } }
   },
   nightbus: {
@@ -100,18 +102,18 @@ export const ROWS = {
     look: { shell: 'gt', paint: t(GREY, 9), trim: t(RED, 9), extra: ['lip'], engine: 'electric' }
   },
   hornet: {
-    name: 'HORNET', rating: 4, blurb: 'an open-wheel racer. fastest, and it knows it.',
-    num: { mass: 1.15, length: 0.4, width: 0.16, height: 0.07, comY: 0.05, comZ: -0.025, vtop: 17.5, accel: 1.3, drive: 'rwd', gripLat: 1.1, latBias: 0.97, radius: 0.05, track: 0.21 },
+    name: 'HORNET', rating: 4, noRival: true, blurb: 'an open-wheel racer. fastest, and it knows it.',
+    num: { mass: 1.15, length: 0.4, width: 0.16, height: 0.07, comY: 0.05, comZ: -0.012, vtop: 17.5, accel: 1.45, drive: 'rwd', gripLat: 1.12, latBias: 1.08, radius: 0.05, track: 0.21 },
     look: { shell: 'openwheel', paint: t(BROWN, 14), trim: t(GREY, 1), extra: ['wings'], engine: 'electric', wheel: { w: 0.05 } }
   },
   warden: {
     name: 'WARDEN', rating: 4, blurb: 'an armoured van. it was not built to lose a shoving match.',
-    num: { mass: 3.0, length: 0.46, width: 0.28, height: 0.12, comY: 0.07, comZ: 0, vtop: 16.2, accel: 2.3, drive: 'awd', gripLat: 1.05, radius: 0.045 },
+    num: { mass: 3.0, length: 0.46, width: 0.28, height: 0.12, comY: 0.07, comZ: 0, vtop: 16.2, accel: 2.3, drive: 'awd', gripLat: 1.05, latBias: 0.98, radius: 0.045 },
     look: { shell: 'armoured', paint: t(GREY, 5), trim: t(GREY, 13), extra: ['bullbar', 'beacon'], engine: 'glow', wheel: { w: 0.044 } }
   },
   kestrel: {
     name: 'KESTREL', rating: 4, blurb: 'a low prototype that hugs the road. nothing else holds a bend like it.',
-    num: { mass: 1.4, length: 0.46, width: 0.2, height: 0.065, comY: 0.04, comZ: -0.01, vtop: 17.2, accel: 1.4, drive: 'awd', gripLat: 1.2, latBias: 1.12 },
+    num: { mass: 1.4, length: 0.46, width: 0.2, height: 0.065, comY: 0.04, comZ: -0.01, vtop: 17.0, accel: 1.5, drive: 'awd', gripLat: 1.15, latBias: 1.12 },
     look: { shell: 'proto', paint: t(MAGENTA, 8), trim: t(GREY, 15), extra: ['fin'], engine: 'electric' }
   },
   /* ---- SPECIAL: won, not bought (STUNT YARD, stars, cups) ---- */

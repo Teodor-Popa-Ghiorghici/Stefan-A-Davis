@@ -149,6 +149,13 @@ try {
   });
   const lum = () => page.evaluate(() => { const cv = document.querySelector('.win canvas.gamecv'); const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += d[i] + d[i + 1] + d[i + 2]; return s / (d.length / 4); });
   await page.click('.win canvas.gamecv');
+  /* the title, and the way in: ENTER on CHAMPIONSHIP, ENTER on the first cup */
+  await page.waitForTimeout(600);
+  const title = await gamePicture(page);
+  await page.keyboard.press('Enter'); await page.waitForTimeout(400);
+  const cups = await gamePicture(page);
+  ok(title && cups && cups.stray === 0 && cups.hash !== title.hash, 'clue earned: ENTER on the title opens the championship screen (a different picture, every pixel still one of the 128)');
+  await page.keyboard.press('Enter'); await page.waitForTimeout(500);
   const idle = await bar();
   ok(idle === 0, 'clue earned: on the grid the speed bar is empty (' + idle + ' px)');
   await page.waitForTimeout(3600);                                   /* the countdown */
@@ -170,6 +177,11 @@ try {
   ok(hp.hash === hp2.hash, 'clue earned: a paused game does not move');
   await page.keyboard.press('Escape'); await page.waitForTimeout(300);
   ok(await lum() > paused + 4, 'clue earned: ESC again goes on');
+  /* leaving the cup from the pause menu costs a try, and the career is saved where the machine keeps an app's saves */
+  await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+  await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter'); await page.waitForTimeout(500);
+  const career = await page.evaluate(() => { try { return JSON.parse(localStorage.getItem('app_vroom_vroom.v1')); } catch (e) { return null; } });
+  ok(career && career.v === 1 && career.cups && career.cups.rookie.tries === 2 && career.run === null, 'clue earned: quitting a cup costs a try and the career is saved (tries left: ' + (career && career.cups && career.cups.rookie.tries) + ')');
   const fps = await page.evaluate(() => new Promise(res => { let n = 0; const t0 = performance.now(); const f = () => { n++; if (performance.now() - t0 < 2000) requestAnimationFrame(f); else res(n / ((performance.now() - t0) / 1000)); }; requestAnimationFrame(f); }));
   ok(fps >= 20, 'clue earned: the window keeps up (' + fps.toFixed(0) + ' frames a second under the test display, at least 20)', fps.toFixed(1));
   const clue = await term(page, 'trophy vroom');

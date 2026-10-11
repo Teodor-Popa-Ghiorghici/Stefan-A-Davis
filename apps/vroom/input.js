@@ -5,7 +5,7 @@ export function createInput(target, hooks) {
   hooks = hooks || {};
   const down = new Set(), pressed = [];
   const key = e => e.code;
-  const GAME = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyR', 'KeyV', 'Escape', 'Enter', 'KeyP', 'KeyC', 'KeyE', 'ShiftLeft', 'ShiftRight', 'Digit1', 'Digit2', 'Digit3']);
+  const GAME = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyR', 'KeyV', 'Escape', 'Enter', 'KeyP', 'KeyC', 'KeyE', 'ShiftLeft', 'ShiftRight', 'Digit1', 'Digit2', 'Digit3', 'KeyB', 'KeyX', 'Tab', 'Backspace']);
   const onDown = e => { if (!GAME.has(key(e)) || e.ctrlKey || e.metaKey || e.altKey) return; e.preventDefault(); if (!down.has(key(e))) pressed.push(key(e)); down.add(key(e)); };
   const onUp = e => { down.delete(key(e)); };
   const onBlur = () => { down.clear(); if (hooks.blur) hooks.blur(); };
@@ -25,4 +25,13 @@ export function createInput(target, hooks) {
     dispose() { target.removeEventListener('keydown', onDown); target.removeEventListener('keyup', onUp); target.removeEventListener('blur', onBlur); window.removeEventListener('blur', onBlur); down.clear(); pressed.length = 0; }
   };
   return I;
+}
+
+/* what the menu keys did this frame (each press once) */
+export function nav(I) {
+  const t = c => I.take(c);
+  const up = t('ArrowUp') | t('KeyW'), down = t('ArrowDown') | t('KeyS'), lf = t('ArrowLeft') | t('KeyA'), rt = t('ArrowRight') | t('KeyD');
+  const ok = t('Enter') | t('Space'), back = t('Escape') | t('Backspace'), buy = t('KeyB'), alt = t('Tab') | t('KeyC');
+  I.clear();
+  return { up: !!up, down: !!down, left: !!lf, right: !!rt, ok: !!ok, back: !!back, buy: !!buy, alt: !!alt, dx: (rt ? 1 : 0) - (lf ? 1 : 0), dy: (down ? 1 : 0) - (up ? 1 : 0) };
 }

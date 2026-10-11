@@ -41,7 +41,7 @@ files:
   - "!apps/vroom/*_check*.js"
   - "!apps/vroom/check_kit.js"
   - "!apps/vroom/headless_harness.js"
-  - "!apps/vroom/budget_bot.js"
+  - "!apps/vroom/budget_*.js"
   - "!apps/vroom/raster_scene.js"
 
 asar: true

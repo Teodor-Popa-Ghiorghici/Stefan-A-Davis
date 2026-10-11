@@ -7,7 +7,7 @@
 import { createWorld } from './sim.js';
 import { specOf } from './cars.js';
 import { createDriver } from './ai.js';
-import { TIERS, HUMAN, styled } from './ai_profiles.js';
+import { TIERS, HUMAN, styled, tierProfile } from './ai_profiles.js';
 import { createPickups } from './pickups.js';
 import { STEP } from './tune.js';
 
@@ -21,11 +21,11 @@ export function createRace(o) {
   const T = o.track, laps = o.laps || T.laps, L = T.length, rating = o.rating == null ? 0 : o.rating, seed = o.seed == null ? 1 : o.seed;
   const world = createWorld({ col: T.col, nodes: T.nodes });
   const field = o.entries.map((e, i) => {
-    const spec = specOf(e.car, rating), g = T.grid[i % T.grid.length];
-    const car = world.addCar(spec, { x: g.x, y: g.y, z: g.z, yaw: g.yaw }, { id: i, parts: e.parts });
+    const spec = specOf(e.car, rating, e.kit), g = T.grid[i % T.grid.length];
+    const car = world.addCar(spec, { x: g.x, y: g.y, z: g.z, yaw: g.yaw }, { id: i, parts: e.parts, mods: e.mods });
     const near = T.line.nearest(g.x, g.z);
     let dist = T.line.samples[near].s; dist = ((dist - T.startS + L * 1.5) % L) - L / 2 + T.startS;      /* in the half lap round the start line */
-    const profile = e.human ? null : styled(TIERS[Math.min(TIERS.length - 1, e.tier == null ? rating : e.tier)], e.style);
+    const profile = e.human ? null : styled(e.profile || tierProfile(e.tier == null ? rating : e.tier), e.style);      /* `profile` is a driver of its own numbers: the budget bot's person */
     return {
       i, entry: e, name: e.name, human: !!e.human, car, spec, near, dist, prevS: T.line.samples[near].s, prog: 0, lap: 0, lapStart: 0, lapTimes: [], best: null, finished: false, finishT: 0, place: i + 1, lat: 0, wrong: 0,
       driver: profile ? createDriver(T, spec, profile, seed * 31 + i * 7 + 1) : null, in: { throttle: 0, brake: 0, steer: 0, repo: false, fire: false },
@@ -115,7 +115,7 @@ export function createRace(o) {
       }
       rank();
       for (const e of R.events) if (e.type === 'finish') e.place = R.field[e.i].place;
-      const humans = R.field.filter(f => f.human);
+      const humans = R.field.filter(f => f.human || f.entry.proxy);                 /* a `proxy` is a CPU car standing in for a person: the race ends when it does */
       if (R.state === 'racing') {
         const done = humans.length ? humans.every(f => f.finished) : R.field.every(f => f.finished);
         if (done) { R.state = 'over'; R.overT = 0; R.events.push({ type: 'over' }); }
@@ -142,9 +142,9 @@ export function createRace(o) {
   /* the order as a table: the finishers by time, the rest by how far they got */
   R.results = () => {
     rank();
-    return R.order.map((id, k) => { const f = R.field[id]; return { place: k + 1, i: id, name: f.name, human: f.human, car: f.entry.car, time: f.finished ? f.finishT : null, laps: f.lap, best: f.best, prog: f.prog }; });
+    return R.order.map((id, k) => { const f = R.field[id]; return { place: k + 1, i: id, id: f.entry.id, name: f.name, human: f.human, car: f.entry.car, time: f.finished ? f.finishT : null, laps: f.lap, best: f.best, prog: f.prog }; });
   };
   rank();
   return R;
 }
-void HUMAN;
+void HUMAN; void TIERS;
