@@ -72,17 +72,17 @@ export function makePuzzleTutor(host, o) {
       c.append(button('SHOW IT', 'go', () => { T.confirm = false; reveal(); }, snd), button('NO', 'sm', () => { T.confirm = false; renderHints(); }, snd)); T.hintEl.appendChild(c);
     }
   }
-  const hint = () => { if (T.hints < 3) { T.hints++; const pr = P.puzzle(T.p.id); if (!pr.helped) { pr.helped = true; P.save(); } snd.step(); renderHints(); } };
+  const hint = () => { if (T.hints < 3) { T.hints++; T.shown = true; const pr = P.puzzle(T.p.id); if (!pr.helped) { pr.helped = true; P.save(); } snd.step(); renderHints(); } };
   const solution = () => { if (P.solved(T.p.id)) { reveal(true); return; } T.confirm = true; renderHints(); };
   function reveal(free) {
-    const pr = P.puzzle(T.p.id); if (!free) { pr.seen = true; pr.helped = true; P.save(); }
+    const pr = P.puzzle(T.p.id); T.shown = true; if (!free) { pr.seen = true; pr.helped = true; P.save(); }
     lab.editor.typeIn(T.p.model, { replace: true, cps: 160, tick: () => snd.type(), done: () => { lab.editor.focus(); renderList(); } });
     render2();
   }
   const render2 = () => { const pr = P.puzzle(T.p.id); const e = panel.querySelector('.hc-price'); if (e) e.textContent = pr.solved ? 'SOLVED' + (pr.seen ? ' (WITH THE ANSWER)' : pr.helped ? ' (WITH A HINT)' : ' (UNAIDED)') + (pr.paid ? '  +' + pr.paid + ' SUN' : '') : 'SOLVE IT: +' + puzzleSun(T.p.stars, pr.seen) + ' SUN' + (pr.seen ? '  (ANSWER SEEN)' : ''); };
 
   T.open = p => {
-    T.p = p; T.results = null; T.hints = 0; T.confirm = false; T.active = true; T.justSolved = false;
+    T.p = p; T.results = null; T.hints = 0; T.confirm = false; T.active = true; T.justSolved = false; T.shown = false; T.visitTries = 0;
     P.data.last = { puzzle: p.id }; P.setView('puzzles');
     lab.setBoard(p.ch === 'pixels' || !!PICS[p.id]);
     const d = P.draft(p.id);
@@ -96,7 +96,7 @@ export function makePuzzleTutor(host, o) {
   T.check = () => {
     if (!T.active) return;
     const p = T.p, pr = P.puzzle(p.id), src = lab.get();
-    pr.tries++;
+    pr.tries++; T.visitTries++;
     const res = runTests(HC, src, p.tests);
     const before = T.results ? T.results.passed : 0;
     T.results = res;
@@ -104,6 +104,18 @@ export function makePuzzleTutor(host, o) {
     T.prevOk = res.results.map(r => r.ok);
     if (res.passed > before && !res.ok) snd.goal(Math.min(5, res.passed - 1));
     if (!res.ok) { if (!lab.R || !lab.R.err) snd.fail(); }
+    /* A puzzle first solved with a hint or the answer is not stuck there: solved again in a visit where neither was opened or shown, it is an unaided solve (the star, the buff, OWN WORK)
+       and pays what it still owes up to the full price. */
+    const redo = res.ok && pr.solved && (pr.seen || pr.helped) && !T.shown;
+    if (redo) {
+      pr.seen = false; pr.helped = false; T.justSolved = true;
+      const sun = Math.max(0, puzzleSun(p.stars, false) - (pr.paid || 0)); pr.paid = (pr.paid || 0) + sun; P.save();
+      snd.done(); if (sun) o.pay(sun, 'HOLYC: ' + p.title + ' (UNAIDED)');
+      banner(panel, 'UNAIDED  ' + (sun ? '+' + sun + ' SUN' : '★'), 'big', 3600);
+      solvedCall(P, p, { tries: T.visitTries, hints: 0, seen: false });
+      try { if (window.Buffs) window.Buffs.sync(P.buffView()); } catch (e) { /* the buffs are somebody else's business */ }
+      o.solved(p);
+    }
     if (res.ok && !pr.solved) {
       pr.solved = true; T.justSolved = true;
       const sun = puzzleSun(p.stars, pr.seen); pr.paid = sun; P.save();
@@ -111,7 +123,7 @@ export function makePuzzleTutor(host, o) {
       banner(panel, 'SOLVED  +' + sun + ' SUN', 'big', 3600);
       const ch = chapterOf(p), all = ch.list.every(x => P.solved(x.id));
       if (all && !P.data.chapters[ch.id]) { P.data.chapters[ch.id] = true; P.save(); setTimeout(() => { o.pay(CHAPTER_SUN, 'HOLYC: ' + ch.title + ' COMPLETE'); banner(panel, ch.title + ' COMPLETE  +' + CHAPTER_SUN + ' SUN', 'big', 4200); snd.done(); }, 1500); }
-      solvedCall(P, p, { tries: pr.tries, hints: T.hints, seen: pr.seen });
+      solvedCall(P, p, { tries: T.visitTries, hints: T.hints, seen: pr.seen });
       try { if (window.Buffs) window.Buffs.sync(P.buffView()); } catch (e) { /* the buffs are somebody else's business */ }
       o.solved(p);
     }
