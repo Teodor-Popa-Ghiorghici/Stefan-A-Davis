@@ -21,7 +21,7 @@ export const SURF = {
   carpet:    { id: 2, mu: 1.1, drag: 0.35 },
   cardboard: { id: 3, mu: 0.9, drag: 0.05 },
   packed:    { id: 4, mu: 0.55, drag: 0.02, tyres: 0.85 },
-  deep:      { id: 5, mu: 0.45, drag: 0.5, tyres: 0.75 },
+  deep:      { id: 5, mu: 0.45, drag: 0.5, tyres: 0.75, dragTyres: 0.07 },        /* a car without snow tyres sinks (the drag); with them it rides on top */
   ice:       { id: 6, mu: 0.18, drag: 0, chains: 0.6 },
   belt:      { id: 7, mu: 1.0, drag: 0.04, belt: true },         /* a conveyor: its own surface moves (the triangle's belt velocity); see BELT_CARRY */
   wood:      { id: 8, mu: 0.85, drag: 0.02 },
@@ -45,6 +45,8 @@ export const BODY = { mu: 0.45, restitution: 0.22, restSpeed: 0.6, correct: 0.85
 export const CARS = { restitution: 0.3, mu: 0.25, radius: 0.092 };     /* car against car: three spheres, mass-weighted impulses */
 export const AIR = { torque: 7.5, maxRate: 3.2, delay: 0.06, align: 30, damp: 5.5, seek: 0.5, level: 40, levelAfter: 0.15 };   /* a little control in the air: radians a second squared, its cap, and how long off the ground before it works; and what the air itself does: the nose follows the way the car is travelling and the spin dies away, so a jump is an arc and not a tumble */
 export const REPOS = { upside: 3.0, stuck: 3.0, fade: 0.6, ghost: 1.0, lift: 0.1, stuckSpeed: 0.25, floor: -12 };
+/* a fence gate across a shortcut: a car that wears a BUMPER BAR and arrives at `speed` m/s or more breaks it and goes through, keeping `keep` of its speed (less the further it hit from the middle: `offKeep` more at the very edge); any other car meets a fence */
+export const GATE = { speed: 3.0, keep: 0.9, offKeep: 0.25 };
 export const WHEELIE = { pitch: 0.45 };                                 /* radians nose up that a check calls a wheelie */
 
 /* mu for a wheel: the surface, the parts the car wears (snowTyres, iceChains, compound 0..3), what has been spilled on it, and the car's own tyre */

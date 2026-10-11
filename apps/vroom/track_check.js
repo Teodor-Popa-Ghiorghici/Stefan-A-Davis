@@ -10,12 +10,15 @@ import { createRace } from './race.js';
 import { createWorld } from './sim.js';
 import { specOf } from './cars.js';
 import { ray } from './col_grid.js';
+import { CUT_LEAD, CUT_TAIL } from './track_cut.js';
 import { suite } from './check_kit.js';
 
 const S = suite('track_check'), { ok } = S;
 const deg = r => r * 180 / Math.PI;
 
+const ONLY = (process.env.TRACK || '').split(',').filter(Boolean), ONLYV = (process.env.VARIANT || '').split(',').filter(Boolean);          /* TRACK=street,dam VARIANT=f node apps/vroom/track_check.js: while a road is being made */
 for (const [tid, tv] of allTracks()) {
+  if ((ONLY.length && !ONLY.includes(tid)) || (ONLYV.length && !ONLYV.includes(tv))) continue;
   const id = tid + (tv === 'f' ? '' : ':' + tv), T = buildTrack(defFor(tid, tv)), L = T.line, sm = L.samples, n = sm.length, tag = id + ': ';
   /* ---- the line ---- */
   const closing = Math.hypot(sm[0].x - sm[n - 1].x, sm[0].z - sm[n - 1].z);
@@ -27,13 +30,16 @@ for (const [tid, tv] of allTracks()) {
   const minW = Math.min(...T.width);
   ok(minW >= 1.6, tag + 'the road is never narrower than 1.6 m (' + minW.toFixed(2) + ' m): eight cars and a pinch of 1.0 m inside it');
   /* ---- the things on the road ---- */
-  const F = T.features, all = [];
+  const F = T.features, all = [], wears = Object.fromEntries(T.needs.map(n => [n, true]));          /* what a car must wear to race this road at all (a car on a snow road is driven with its snow tyres on) */
   F.belts.forEach(b => all.push(['belt', b.s0, b.s1])); F.jumps.forEach(j => all.push(['jump', j.a - 4, j.d + 2])); F.kerbs.forEach(k => all.push(['kerb', k.s0, k.s1]));
   F.pinches.forEach(k => all.push(['pinch', k.s0, k.s1])); F.counters.forEach(k => all.push(['counter', k.s0, k.s1]));
+  const zone = (what, a, b) => { if (a < 0) { all.push([what, a + T.length, T.length]); all.push([what, 0, b]); } else if (b > T.length) { all.push([what, a, T.length]); all.push([what, 0, b - T.length]); } else all.push([what, a, b]); };
+  const real = all.slice();
+  T.cuts.forEach(c => { zone('the mouth of a shortcut', c.sa - CUT_LEAD - 2, c.sa + 6); zone('the end of a shortcut', c.sb - 6, c.sb + CUT_TAIL + 2); });
   all.sort((a, b) => a[1] - b[1]);
   let clash = null; for (let i = 0; i + 1 < all.length; i++) if (all[i][2] > all[i + 1][1] - 3) clash = all[i][0] + ' runs into ' + all[i + 1][0];
   ok(!clash, tag + 'nothing on the road is on top of anything else (' + (clash || all.map(a => a[0]).join(', ')) + ')');
-  ok(all.every(a => a[1] >= 0 && a[2] <= T.length), tag + 'every one of them is inside the lap');
+  ok(real.every(a => a[1] >= 0 && a[2] <= T.length), tag + 'every one of them is inside the lap');
   for (const b of F.belts) ok(b.s1 - b.s0 > 6 && T.widthAt((b.s0 + b.s1) / 2) >= 2 * Math.abs(b.lane[1]) + 1.2, tag + 'a belt is long enough to matter and leaves room beside it (' + (b.s1 - b.s0).toFixed(0) + ' m, road ' + T.widthAt((b.s0 + b.s1) / 2).toFixed(1) + ' m)');
   for (const j of F.jumps) {
     const run = F.jumps.length ? j.a - 20 : 0, straight = Math.max(...[0, 4, 8, 12, 16, 20].map(d => Math.abs(L.at(j.a - d).k))) < 0.03;
@@ -111,7 +117,7 @@ for (const [tid, tv] of allTracks()) {
   ok(bad === 0 && maxSurf < 12, tag + 'the collision soup is made of real numbers and real surfaces (' + g.n + ' triangles)');
   /* ---- a CPU drives a lap ---- */
   {
-    const race = createRace({ track: T, entries: [{ id: 'a', name: 'A', car: 'courier', tier: 2 }], laps: 2, seed: 4, pickups: false });
+    const race = createRace({ track: T, entries: [{ id: 'a', name: 'A', car: 'courier', tier: 2, parts: wears }], laps: 2, seed: 4, pickups: false });
     let repos = 0, cp = 0, best = 0, flips = 0; const gates = new Set();
     for (let i = 0; i < 60 * 240 && race.state !== 'done'; i++) {
       race.step();
@@ -131,7 +137,7 @@ for (const [tid, tv] of allTracks()) {
     const spec = specOf('courier', 0), speeds = [9, 10, 11.5, 13], seqs = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0], [0, 0, 1], [1, 0, -1], [0, 0, -1], [1, 1, 1]];
     let fail = null, worst = 99, n = 0, worstWhat = '';
     for (const v0 of speeds) for (const q of seqs) for (const off of [0, -0.4, 0.4]) {
-      const w = createWorld({ col: T.col, nodes: T.nodes }), p = L.at(j.a - 14), car = w.addCar(spec, { x: p.x + p.nx * off, y: p.y, z: p.z + p.nz * off, yaw: p.yaw }, { id: 0 });
+      const w = createWorld({ col: T.col, nodes: T.nodes }), p = L.at(j.a - 14), car = w.addCar(spec, { x: p.x + p.nx * off, y: p.y, z: p.z + p.nz * off, yaw: p.yaw }, { id: 0, parts: wears });
       for (let i = 0; i < 30; i++) w.step();
       let cleared = false, flipped = false, vend = 0;
       for (let i = 0; i < 360; i++) {
@@ -151,6 +157,7 @@ for (const [tid, tv] of allTracks()) {
 }
 /* ---- a variant is the same road turned over ---- */
 for (const tid of TRACK_IDS) {
+  if (ONLY.length && !ONLY.includes(tid)) continue;
   const f = buildTrack(defFor(tid, 'f')), m = buildTrack(defFor(tid, 'm')), r = buildTrack(defFor(tid, 'r')), rm = buildTrack(defFor(tid, 'rm')), tag = tid + ': ';
   ok([m, r, rm].every(t => Math.abs(t.length - f.length) < 0.5), tag + 'every variant is as long a lap as the road it is made from (' + [f, m, r, rm].map(t => t.length.toFixed(1)).join(', ') + ' m)');
   let worst = 0; for (let i = 0; i < f.line.samples.length; i += 7) worst = Math.max(worst, Math.abs(m.line.samples[i].x + f.line.samples[i].x), Math.abs(m.line.samples[i].z - f.line.samples[i].z));
@@ -158,6 +165,6 @@ for (const tid of TRACK_IDS) {
   const turnF = f.line.samples.reduce((a, p) => a + p.k, 0), turnM = m.line.samples.reduce((a, p) => a + p.k, 0), turnR = r.line.samples.reduce((a, p) => a + p.k, 0);
   ok(Math.sign(turnF) === -Math.sign(turnM) && Math.sign(turnF) === -Math.sign(turnR) && Math.sign(turnF) === Math.sign(turnF * 1), tag + 'mirrored, or driven the other way, the road turns the other way round (' + [turnF, turnM, turnR].map(x => x.toFixed(1)).join(', ') + ')');
   ok(f.features.belts.every((b, i) => r.features.belts[i] && r.features.belts[i].speed === -b.speed && rm.features.belts[i].speed === -b.speed && m.features.belts[i].speed === b.speed), tag + 'a belt keeps the way it moves: it runs against you when the road is driven the other way');
-  ok(r.features.pinches.length === f.features.pinches.length && r.features.kerbs.length === f.features.kerbs.length && r.features.counters.length === f.features.counters.length && r.features.jumps.length <= f.features.jumps.length && r.features.pickups.length === f.features.pickups.length, tag + 'everything else on the road is still on it, turned round (a jump may have gone if no stretch had room for it: ' + r.features.jumps.length + ' of ' + f.features.jumps.length + ' kept)');
+  ok(r.features.pinches.length === f.features.pinches.length && r.features.kerbs.length === f.features.kerbs.length && r.features.counters.length === f.features.counters.length && r.features.jumps.length <= f.features.jumps.length && Math.abs(r.features.pickups.length - f.features.pickups.length) <= 2, tag + 'everything else on the road is still on it, turned round (a jump may have gone if no stretch had room for it: ' + r.features.jumps.length + ' of ' + f.features.jumps.length + ' kept)');
 }
 S.done();

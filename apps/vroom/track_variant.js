@@ -10,17 +10,18 @@
      stretch that has room for it, and goes if there is none. A cluster of parcels is moved the same way to a stretch where it can be seen coming.
    Pure data in, pure data out. */
 import { loop } from './spline.js';
+import { CUT_LEAD, CUT_TAIL } from './track_cut.js';
 
 export const VARIANTS = ['f', 'r', 'm', 'rm'];
 export const VARIANT_NAME = { f: '', r: 'REVERSED', m: 'MIRRORED', rm: 'REVERSED MIRRORED' };
 export const isVariant = v => VARIANTS.indexOf(v) >= 0;
 
 /* the run-up a jump asks for (metres of straight road before it) and the margin round it that nothing else may use */
-const RUNUP = 22, CURVE = 0.03, CLEAR = 4, AFTER = 3, SEEN = 9;      /* SEEN: a car is shown the way to a parcel from 7 m before it, and nothing may be in that stretch */
+const RUNUP = 22, CURVE = 0.03, CLEAR = 4, AFTER = 3, SEEN = 9, PAD = 9;      /* SEEN: a car is shown the way to a parcel from 7 m before it, and nothing may be in that stretch */
 
 export function variantOf(def, v) {
   v = v || 'f';
-  if (v === 'f') return def;
+  if (v === 'f') { if (!(def.features || []).some(f => f.auto)) return def; const out = Object.assign({}, def, { features: def.features.map(f => Object.assign({}, f)) }); settle(out); return out; }
   const rev = v.indexOf('r') >= 0, mir = v.indexOf('m') >= 0, n = def.controls.length;
   const U = u => (rev ? (((n - 1 - u) % n) + n) % n : u);
   const flip = rev !== mir;                                   /* one turn swaps the sides, two do not */
@@ -37,13 +38,19 @@ export function variantOf(def, v) {
     if (f.u0 != null) { const [a, b] = swap(f.u0, f.u1); o.u0 = a; o.u1 = b; }
     if (f.type === 'belt') { if (f.lane) o.lane = lane(f.lane); if (rev) o.speed = -f.speed; }
     if (f.type === 'kerb' && f.side) o.side = side(f.side);
+    if (f.type === 'cut') {                                      /* a shortcut turned over: the way in becomes the way out, the points it goes through run the other way (and across, if mirrored), and a gate stays at the mouth it was at */
+      const into = f.side, outof = f.exitSide || f.side;
+      o.side = side(rev ? outof : into); o.exitSide = side(rev ? into : outof);
+      if (f.via) o.via = (rev ? f.via.slice().reverse() : f.via.slice()).map(p => [mir ? -p[0] : p[0], p[1]]);
+      if (rev && f.gate) o.gateEnd = !f.gateEnd;
+    }
     return o;
   });
   const out = Object.assign({}, def, {
     id: def.id + ':' + v, name: def.name + ' ' + VARIANT_NAME[v], base: def.id, variant: v,
     controls, features, start: def.start ? Object.assign({}, def.start, { u: U(def.start.u) }) : def.start
   });
-  if (rev) settle(out);
+  if (rev || out.features.some(f => f.auto)) settle(out);
   return out;
 }
 
@@ -57,7 +64,10 @@ function settle(def) {
   const kAt = s => Math.abs(L.at(s).k);
   const straight = (s, back) => { for (let d = 0; d <= back; d += 2) if (kAt(s - d) >= CURVE) return false; return true; };
   const zones = [];
-  def.features.forEach(f => { if (f.type !== 'jump' && f.type !== 'pickups' && f.u0 != null) zones.push([sOfU(f.u0) - 3, sOfU(f.u1) + 3]); });
+  def.features.forEach(f => {
+    if (f.type === 'cut') { zones.push([sOfU(f.u0) - CUT_LEAD - 6, sOfU(f.u0) + 8], [sOfU(f.u1) - 8, sOfU(f.u1) + CUT_TAIL + 6]); return; }       /* the two mouths of a shortcut, not the road between them */
+    if (f.type !== 'jump' && f.type !== 'pickups' && f.u0 != null) zones.push([sOfU(f.u0) - 3, sOfU(f.u1) + 3]);
+  });
   const free = (a, b) => zones.every(z => b < z[0] || a > z[1]);
   /* nearest first from where it was turned to: there, a metre before it, a metre after it, two before ... */
   const nearest = (want, ok) => { for (let d = 0; d < len; d++) { const s = want + (d % 2 ? -1 : 1) * Math.ceil(d / 2); if (ok(s)) return s; } return null; };
@@ -69,11 +79,23 @@ function settle(def) {
     j.u = uOfS(best);
     zones.push([best - run - CLEAR, best + gap + run + AFTER]);
   });
-  packs.forEach(c => {
+  const at = [];
+  packs.filter(c => !c.auto).forEach(c => {
     const best = nearest(sOfU(c.u), s => straight(s, SEEN) && free(s - SEEN, s + 3));
     if (best == null) return;
     c.u = uOfS(best);
-    zones.push([best - SEEN, best + 3]);
+    zones.push([best - SEEN, best + 3]); at.push(best);
   });
-  def.features = def.features.filter(f => keep.indexOf(f) < 0);
+  /* `auto: n` asks for n clusters spread evenly round the lap, each on the nearest straight that has room, a clear 20 m from the next */
+  const made = [], start = sOfU((def.start || { u: 0 }).u);
+  const apart = s => at.every(p => { const d = Math.abs((((s - p) % len) + len) % len); return Math.min(d, len - d) > 22; });
+  packs.filter(c => c.auto).forEach(c => {
+    for (let k = 0; k < c.auto; k++) {
+      const best = nearest((start + 30 + (k + 0.5) * len / c.auto) % len, s => s > SEEN && s < len - 4 && straight(s, SEEN) && free(s - SEEN, s + 3) && apart(s));
+      if (best == null) continue;
+      made.push({ type: 'pickups', u: uOfS(best) });
+      zones.push([best - SEEN, best + 3]); at.push(best);
+    }
+  });
+  def.features = def.features.filter(f => keep.indexOf(f) < 0 && !(f.type === 'pickups' && f.auto)).concat(made);
 }

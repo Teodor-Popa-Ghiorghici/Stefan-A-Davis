@@ -4,7 +4,7 @@
      const car = w.addCar(spec, { x, y, z, yaw }); y is the GROUND under it; the car is set down on its springs
      car.input = { throttle: 0..1, brake: 0..1, steer: -1..1, repo: bool };      w.step();      w.events
    Events each step: land {car, airtime, speed}, flip, upside {car}, wheelie {car}, hit-wall {car, speed}, hit-car {a, b, speed, ma, mb}, repo-start {car}, repo {car}, surface {car, surf}. */
-import { STEP, SUBSTEPS, STEER, REPOS, WHEELIE, GRAVITY } from './tune.js';
+import { STEP, SUBSTEPS, STEER, REPOS, WHEELIE, GRAVITY, GATE } from './tune.js';
 import { wheelForces } from './sim_wheel.js';
 import { integrate, collide, rotFromQuat, quatYaw } from './sim_body.js';
 import { carCollisions } from './sim_cars.js';
@@ -12,7 +12,22 @@ import { carCollisions } from './sim_cars.js';
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
 export function createWorld(o) {
-  const W = { col: o.col, nodes: o.nodes || [], cars: [], events: [], frame: 0, time: 0, nextId: 0 };
+  const W = { col: o.col, nodes: o.nodes || [], cars: [], events: [], frame: 0, time: 0, nextId: 0, broken: new Set(), gates: o.gates || [] };
+  /* a track with gates is given a switch for each triangle, fresh for this world: every race starts with every gate whole */
+  if (o.col && o.col.n && o.col.tagTris && Object.keys(o.col.tagTris).length) o.col.off = new Uint8Array(o.col.n); else if (o.col) o.col.off = null;
+  /* a car meets a gate (sim_body.js collide): a bar and some speed break it, and the contact is dropped; anything else is a fence. Returns true when the gate is not there for this car. */
+  W.gate = (car, tag) => {
+    if (W.broken.has(tag)) return true;
+    const sp = Math.hypot(car.v[0], car.v[2]);
+    if (!(car.parts && car.parts.bumperBar) || sp < GATE.speed) return false;
+    W.broken.add(tag); for (const t of W.col.tagTris[tag]) W.col.off[t] = 1;
+    const info = W.gates.find(x => x.tag === tag);
+    let off = 0; if (info) off = Math.min(1, Math.abs((car.p[0] - info.x) * -info.tz + (car.p[2] - info.z) * info.tx) / (info.w / 2));
+    const keep = GATE.keep - GATE.offKeep * off * off;
+    car.v[0] *= keep; car.v[2] *= keep;
+    W.events.push({ type: 'gate', car: car.id, tag, speed: sp, off });
+    return true;
+  };
   W.addCar = (spec, at, opts) => {
     const n = spec.probes.length, car = {
       id: opts && opts.id != null ? opts.id : W.nextId++, spec, p: new Float64Array(3), q: new Float64Array(4), v: new Float64Array(3), w: new Float64Array(3), R: new Float64Array(9), F: new Float64Array(3), T: new Float64Array(3),

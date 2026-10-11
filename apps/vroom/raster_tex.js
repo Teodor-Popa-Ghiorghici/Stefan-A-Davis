@@ -118,6 +118,29 @@ const GEN = {
   pine: () => make(32, 32, 31, (x, y, u, v, n, r) => (r() < 0.12 + n * 0.12 ? L(COOL, 13) : L(GREEN, 2.6 + n * 2 + (r() - 0.5) * 0.8))),
   /* black rubber, for tyres and the underside of things */
   rubber: () => make(16, 16, 32, (x, y, u, v, n) => L(GREY, 1.4 + n * 1.2)),
+  /* black ice: pale and glassy, with a few cracks and glints */
+  ice: () => make(32, 32, 41, (x, y, u, v, n, r) => {
+    const crack = Math.abs(Math.sin((x * 0.7 + y * 0.35 + n * 5))) < 0.06 || Math.abs(Math.sin((x * 0.3 - y * 0.8 + n * 4))) < 0.045;
+    return crack ? L(COOL, 8 + (r() < 0.3 ? 2 : 0)) : r() < 0.025 ? L(COOL, 15) : L(COOL, 12.2 + n * 2.4 + (r() - 0.5) * 0.5);
+  }),
+  /* steel grating: dark bars with the light coming up between them */
+  grate: () => make(16, 16, 42, (x, y, u, v, n, r) => ((x & 3) === 0 || (y & 7) === 0 ? L(COOL, 8 + n) : L(GREY, 1.6 + n * 0.8))),
+  /* formica: the diner's counter, pale, with a fleck and a worn edge */
+  formica: () => make(32, 32, 43, (x, y, u, v, n, r) => (y < 2 ? L(COOL, 6) : r() < 0.06 ? L(COOL, 14) : L(CYAN, 11.4 + n * 1.5 + (r() - 0.5) * 0.4))),
+  /* the kitchen floor: small white and grey tiles with dark grout */
+  tilefloor: () => make(32, 32, 44, (x, y, u, v, n, r) => ((x & 7) === 0 || (y & 7) === 0 ? L(COOL, 5) : L(GREY, ((x >> 3) + (y >> 3)) & 1 ? 12.2 : 10.4) + (r() - 0.5) * 0.5)),
+  /* rock: the cliff beside the pass and the face of the dam's valley */
+  rock: () => make(32, 32, 45, (x, y, u, v, n, r) => (n > 0.62 ? L(COOL, 12 + (r() < 0.5 ? 0 : 1)) : L(GREY, 3.4 + n * 5 + (r() - 0.5) * 1.4))),
+  /* a shipping container: ribbed steel, red */
+  container: () => make(32, 32, 46, (x, y, u, v, n, r) => ((x & 3) === 0 ? L(RED, 3.6) : y < 2 || y > 29 ? L(RED, 2.4) : L(RED, 5.4 + n * 1.6 + (r() - 0.5) * 0.5))),
+  /* hazard stripes, yellow and black, for presses, gates and the edge of the dam */
+  hazard: () => make(16, 16, 47, (x, y) => ((((x + y) >> 2) & 1) ? L(BROWN, 12) : L(GREY, 1.5))),
+  /* a vending machine: a dark front, a lit window of rows of cans in colours, a coin slot */
+  vending: () => make(32, 32, 48, (x, y, u, v, n, r) => {
+    if (x < 3 || x > 28 || y < 2 || y > 29) return L(RED, 4);
+    if (x >= 5 && x <= 24 && y >= 4 && y <= 20) { const can = ((x - 5) >> 2) + ((y - 4) >> 2) * 5, c = [RED, BLUE, GREEN, BROWN][can % 4]; return (x - 5) % 4 === 3 || (y - 4) % 4 === 3 ? L(GREY, 2) : L(c, 9 + (can % 3)); }
+    return x >= 26 && y > 6 && y < 10 ? L(BROWN, 13) : L(GREY, 2.6 + n);
+  }),
   /* the dark underside of a counter, a shelf, a lorry */
   under: () => make(16, 16, 33, (x, y, u, v, n) => (x === 0 || y === 0 ? L(COOL, 6) : L(COOL, 9.4 + n * 1.2)))
 };

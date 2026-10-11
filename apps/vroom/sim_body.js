@@ -99,6 +99,7 @@ export function collide(world, car, h) {
       const d2 = closest(g, t, x, y, z);
       if (d2 < rad * rad) {
         if (onSeam(g, t)) continue;
+        if (g.off !== null && g.tag[t] !== 0 && world.gate(car, g.tag[t])) continue;             /* a gate that gave way */
         const d = Math.sqrt(d2), face = region() === 0;
         let nx, ny, nz, depth = rad - d;
         if (face) {

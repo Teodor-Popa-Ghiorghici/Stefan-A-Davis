@@ -66,7 +66,7 @@ export function wheelForces(world, car, h) {
     let Fl = thrust * W.drive;
     const tcap = TRACTION * limit; if (Fl > tcap) Fl = tcap; else if (Fl < -tcap) Fl = -tcap;                    /* the motor controller: never more thrust than the tyre can hold */
     if (brake > 0 && !reversing) { const bw = sp.brakeF * brake * W.brake; Fl += -Math.max(-bw, Math.min(bw, vf * mEff / h)); }
-    Fl += -ROLL_RES * N * tanh(vf / ROLL_SMOOTH) - SF.drag * vf + carryX * ax + carryZ * az;
+    Fl += -ROLL_RES * N * tanh(vf / ROLL_SMOOTH) - (parts && parts.snowTyres && SF.dragTyres != null ? SF.dragTyres : SF.drag) * vf + carryX * ax + carryZ * az;
     /* sideways */
     const lat = sp.gripLat / sp.gripLong * (W.front ? 1 : sp.latBias);
     let Fs = -limit * lat * tanh(LAT_K * vs / (Math.abs(vf) + LAT_V0)) + carryX * sx + carryZ * sz;

@@ -43,8 +43,15 @@ export function racingLine(track) {
 export function speedPlan(L, spec, o) {
   o = o || {};
   const n = L.n, ds = L.step, aLat = (o.grip == null ? 0.85 : o.grip) * (spec.aLat || 0.72 * GRAVITY), brake = o.brake == null ? 9 : o.brake, vt = Math.min(spec.vtop, o.vmax || 1e9);
-  const v = new Float64Array(n);
-  for (let i = 0; i < n; i++) { const kk = Math.abs(L.k[i]); v[i] = Math.min(vt, kk > 1e-4 ? Math.sqrt(aLat / kk) : vt, o.cap ? o.cap[i] : 1e9); }
-  for (let pass = 0; pass < 2; pass++) for (let i = n * 2 - 1; i >= 0; i--) { const a = i % n, b = (i + 1) % n, lim = Math.sqrt(v[b] * v[b] + 2 * brake * ds); if (v[a] > lim) v[a] = lim; }
+  /* `mu` is how much of an asphalt road's grip each sample has for this car (snow, ice, with or without the tyres for it): both the bend and the brakes are worth that much. `open` is a road that is not a loop (a shortcut):
+     it ends at speed `o.end`, whatever the brakes need to make it. */
+  const mu = o.mu || null, v = new Float64Array(n);
+  for (let i = 0; i < n; i++) { const kk = Math.abs(L.k[i]), m = mu ? mu[i] : 1; v[i] = Math.min(vt * Math.min(1, Math.sqrt(m) + 0.15), kk > 1e-4 ? Math.sqrt(aLat * m / kk) : vt, o.cap ? o.cap[i] : 1e9); }
+  if (o.open) {
+    if (o.end != null) v[n - 1] = Math.min(v[n - 1], o.end);
+    for (let i = n - 2; i >= 0; i--) { const lim = Math.sqrt(v[i + 1] * v[i + 1] + 2 * brake * (mu ? mu[i + 1] : 1) * ds); if (v[i] > lim) v[i] = lim; }
+    return { v, n, ds };
+  }
+  for (let pass = 0; pass < 2; pass++) for (let i = n * 2 - 1; i >= 0; i--) { const a = i % n, b = (i + 1) % n, lim = Math.sqrt(v[b] * v[b] + 2 * brake * (mu ? mu[b] : 1) * ds); if (v[a] > lim) v[a] = lim; }
   return { v, n, ds };
 }

@@ -19,7 +19,7 @@ const WAIT = 4;                                 /* seconds the race runs on afte
 /* o: { track, entries: [{ id, name, car, human?, tier?, paint? }], laps?, rating?, seed? }; the entry order is the grid order (the first is on pole) */
 export function createRace(o) {
   const T = o.track, laps = o.laps || T.laps, L = T.length, rating = o.rating == null ? 0 : o.rating, seed = o.seed == null ? 1 : o.seed;
-  const world = createWorld({ col: T.col, nodes: T.nodes });
+  const world = createWorld({ col: T.col, nodes: T.nodes, gates: T.gates });
   const field = o.entries.map((e, i) => {
     const spec = specOf(e.car, rating, e.kit), g = T.grid[i % T.grid.length];
     const car = world.addCar(spec, { x: g.x, y: g.y, z: g.z, yaw: g.yaw }, { id: i, parts: e.parts, mods: e.mods });
@@ -28,7 +28,7 @@ export function createRace(o) {
     const profile = e.human ? null : styled(e.profile || tierProfile(e.tier == null ? rating : e.tier), e.style);      /* `profile` is a driver of its own numbers: the budget bot's person */
     return {
       i, entry: e, name: e.name, human: !!e.human, car, spec, near, dist, prevS: T.line.samples[near].s, prog: 0, lap: 0, lapStart: 0, lapTimes: [], best: null, finished: false, finishT: 0, place: i + 1, lat: 0, wrong: 0,
-      driver: profile ? createDriver(T, spec, profile, seed * 31 + i * 7 + 1) : null, in: { throttle: 0, brake: 0, steer: 0, repo: false, fire: false },
+      driver: profile ? createDriver(T, spec, profile, seed * 31 + i * 7 + 1, e.parts) : null, in: { throttle: 0, brake: 0, steer: 0, repo: false, fire: false },
       hold: [], cap: e.parts && e.parts.roofRack ? 2 : 1, bomb: null, leads: 0, zapped: {}, fireWas: false, hitBy: 0
     };
   });
@@ -41,18 +41,25 @@ export function createRace(o) {
 
   function track(f) {
     const c = f.car, S = T.line.samples;
-    let near = T.line.nearest(c.p[0], c.p[2], f.near, 12);
-    const d = (S[near].x - c.p[0]) ** 2 + (S[near].z - c.p[2]) ** 2;
-    if (d > 36) near = T.line.nearest(c.p[0], c.p[2]);                                   /* put back on the line, or thrown a long way: look everywhere */
+    /* a car in a shortcut is the way along it, taken as the same share of the stretch of road it skips: it has gone the short way, so it gains the distance and never loses the lap */
+    const hit = T.cuts.length ? T.cutAt(c.p[0], c.p[2], f.cutHint) : null;
+    f.cutHint = hit; f.inCut = hit ? hit.cut : -1;
+    let near, s;
+    if (hit) { const cut = T.cuts[hit.cut]; s = cut.sa + (cut.sb - cut.sa) * hit.u; near = Math.round(s / T.line.step) % S.length; }
+    else {
+      near = T.line.nearest(c.p[0], c.p[2], f.near, 12);
+      const d = (S[near].x - c.p[0]) ** 2 + (S[near].z - c.p[2]) ** 2;
+      if (d > 36) near = T.line.nearest(c.p[0], c.p[2]);                                   /* put back on the line, or thrown a long way: look everywhere */
+      s = sampleS(near);
+    }
     f.near = near;
-    const s = sampleS(near);
     let dd = s - f.prevS; if (dd > L / 2) dd -= L; else if (dd < -L / 2) dd += L;
     f.dist += dd;                                                                        /* a jump (being put back) is progress along the line like any other: the distance between where the car was and is */
     f.prevS = s;
     f.prog = f.dist - T.startS;
-    f.lat = (c.p[0] - S[near].x) * S[near].nx + (c.p[2] - S[near].z) * S[near].nz;
+    f.lat = hit ? 0 : (c.p[0] - S[near].x) * S[near].nx + (c.p[2] - S[near].z) * S[near].nz;
     const vt = c.v[0] * S[near].tx + c.v[2] * S[near].tz;
-    f.wrong = vt < -1.5 && !f.finished ? f.wrong + STEP : Math.max(0, f.wrong - STEP * 2);
+    f.wrong = !hit && vt < -1.5 && !f.finished ? f.wrong + STEP : Math.max(0, f.wrong - STEP * 2);
   }
   function rank() {
     const f = R.field;

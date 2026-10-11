@@ -4,10 +4,11 @@ import { buildGrid } from './col_grid.js';
 import { SURF } from './tune.js';
 
 export function soup() {
-  const t = [], s = [], b = [];
+  const t = [], s = [], b = [], tg = [];
   const S = {
-    tri(a, bb, c, surf, belt) { t.push(a[0], a[1], a[2], bb[0], bb[1], bb[2], c[0], c[1], c[2]); s.push(surf == null ? SURF.asphalt.id : surf); b.push(belt ? belt[0] : 0, belt ? belt[1] : 0); return S; },
-    quad(a, bb, c, d, surf, belt) { S.tri(a, bb, c, surf, belt); S.tri(a, c, d, surf, belt); return S; },
+    /* `tag` marks a triangle as part of a thing that can be taken away (a gate: 1, 2, ...): a world can switch a tag off and the triangles of it stop being there */
+    tri(a, bb, c, surf, belt, tag) { t.push(a[0], a[1], a[2], bb[0], bb[1], bb[2], c[0], c[1], c[2]); s.push(surf == null ? SURF.asphalt.id : surf); b.push(belt ? belt[0] : 0, belt ? belt[1] : 0); tg.push(tag || 0); return S; },
+    quad(a, bb, c, d, surf, belt, tag) { S.tri(a, bb, c, surf, belt, tag); S.tri(a, c, d, surf, belt, tag); return S; },
     /* flat ground on y from (x0, z0) to (x1, z1), in n x n pieces */
     ground(x0, z0, x1, z1, y, surf, n, belt) {
       n = n || 1;
@@ -18,11 +19,11 @@ export function soup() {
       return S;
     },
     /* a closed box */
-    box(cx, cy, cz, sx, sy, sz, surf) {
+    box(cx, cy, cz, sx, sy, sz, surf, tag) {
       const x0 = cx - sx / 2, x1 = cx + sx / 2, y0 = cy - sy / 2, y1 = cy + sy / 2, z0 = cz - sz / 2, z1 = cz + sz / 2;
-      S.quad([x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1], surf); S.quad([x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1], surf);
-      S.quad([x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1], surf); S.quad([x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], surf);
-      S.quad([x1, y0, z0], [x1, y0, z1], [x1, y1, z1], [x1, y1, z0], surf); S.quad([x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0], surf);
+      S.quad([x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1], surf, null, tag); S.quad([x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1], surf, null, tag);
+      S.quad([x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1], surf, null, tag); S.quad([x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], surf, null, tag);
+      S.quad([x1, y0, z0], [x1, y0, z1], [x1, y1, z1], [x1, y1, z0], surf, null, tag); S.quad([x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0], surf, null, tag);
       return S;
     },
     /* a ramp up along +z from (y0 at z0) to (y1 at z1), x0..x1 wide */
@@ -34,7 +35,7 @@ export function soup() {
     },
     /* a wall standing on y from the line (x0, z0) -> (x1, z1), h tall */
     wall(x0, z0, x1, z1, y, h, surf) { return S.quad([x0, y, z0], [x1, y, z1], [x1, y + h, z1], [x0, y + h, z0], surf); },
-    build() { return buildGrid(Float64Array.from(t), Uint8Array.from(s), Float32Array.from(b)); },
+    build() { return buildGrid(Float64Array.from(t), Uint8Array.from(s), Float32Array.from(b), undefined, Uint8Array.from(tg)); },
     get count() { return s.length; }
   };
   return S;

@@ -9,10 +9,23 @@ import { rounded } from './track_path.js';
 export const FLOORS = {
   lino: { surf: 'lino', tex: 'lino', k: 2.2 }, belt: { surf: 'belt', tex: 'belt', k: 2.4 }, cardboard: { surf: 'cardboard', tex: 'cardboard', k: 1.2 }, asphalt: { surf: 'asphalt', tex: 'asphalt', k: 2.4 },
   planks: { surf: 'wood', tex: 'planks', k: 1.6 }, concrete: { surf: 'asphalt', tex: 'concrete', k: 2.4 }, packed: { surf: 'packed', tex: 'slush', k: 2.4 }, deep: { surf: 'deep', tex: 'drift', k: 2.4 },
-  plate: { surf: 'metal', tex: 'plate', k: 1.4 }, tile: { surf: 'tile', tex: 'checker', k: 1.4 }, carpet: { surf: 'carpet', tex: 'carpet', k: 1.6 }
+  plate: { surf: 'metal', tex: 'plate', k: 1.4 }, tile: { surf: 'tile', tex: 'checker', k: 1.4 }, carpet: { surf: 'carpet', tex: 'carpet', k: 1.6 },
+  ice: { surf: 'ice', tex: 'ice', k: 2 }, grate: { surf: 'metal', tex: 'grate', k: 1 }, counter: { surf: 'tile', tex: 'formica', k: 1.6 }, kitchen: { surf: 'tile', tex: 'tilefloor', k: 1.6 }, snow: { surf: 'packed', tex: 'snow', k: 2.4 }
 };
+/* what a car must wear to race a road at all, from the data alone: SNOW TYRES for snow underfoot, ICE CHAINS for ice, HEADLIGHTS for a blizzard. (A road with none of them is a road for anything.) The route parts are listed
+   cheapest first, as the depot hangs them. */
+export function needsOfDef(def) {
+  const fl = new Set(def.controls.map(c => c.floor)), out = [];
+  if (fl.has('packed') || fl.has('deep')) out.push('snowTyres');
+  if (def.light === 'blizzard') out.push('headlights');          /* a night is raced without them (they see twice as far); a blizzard is not */
+  if (fl.has('ice')) out.push('iceChains');
+  return out;
+}
 /* the walls beside the road: a height (m) and a texture */
-export const WALLS = { none: null, parcels: { h: 0.6, tex: 'parcels', k: 0.6 }, shelf: { h: 0.95, tex: 'shelf', k: 0.95 }, brick: { h: 1.6, tex: 'brick', k: 1.6 }, tin: { h: 1.6, tex: 'tin', k: 1.6 }, kerb: { h: 0.12, tex: 'concrete', k: 0.5 } };
+export const WALLS = {
+  none: null, parcels: { h: 0.6, tex: 'parcels', k: 0.6 }, shelf: { h: 0.95, tex: 'shelf', k: 0.95 }, brick: { h: 1.6, tex: 'brick', k: 1.6 }, tin: { h: 1.6, tex: 'tin', k: 1.6 }, kerb: { h: 0.12, tex: 'concrete', k: 0.5 },
+  snowbank: { h: 0.55, tex: 'snow', k: 0.55 }, rock: { h: 1.9, tex: 'rock', k: 1.9 }, concrete: { h: 0.9, tex: 'concrete', k: 0.9 }, container: { h: 1.1, tex: 'container', k: 1.1 }, rail: { h: 0.35, tex: 'hazard', k: 0.35 }, formica: { h: 0.4, tex: 'formica', k: 0.4 }, fence: { h: 0.6, tex: 'planks', k: 0.6 }
+};
 
 /* SORTING ROOM: a lap of the post office's sorting floor, counter-clockwise (every bend is to the left but the two that make the chicane). Drawn as the corners of the route (track_path.js), then the things on it are
    put on a straight by its number and how far along it they sit. Corner numbers: 0 SW, 1 SE, 2-4 the belts' edge, 5-7 the chicane and the NW corner, 8-10 the west side. */
@@ -44,4 +57,7 @@ export const SORTING = {
   ],
   start: { u: SORT.u(0, 0.45), rows: 4, gap: 1.5, side: 0.55 }
 };
-export const TRACKS = { sorting: SORTING };
+import { STREET, FORECOURT, DINER } from './tracks_a.js';
+import { PASS, DAM } from './tracks_b.js';
+import { HARBOUR, FACTORY } from './tracks_c.js';
+export const TRACKS = { sorting: SORTING, street: STREET, forecourt: FORECOURT, diner: DINER, pass: PASS, dam: DAM, harbour: HARBOUR, factory: FACTORY };

@@ -6,6 +6,9 @@ import { loop } from './spline.js';
 import { FLOORS, WALLS } from './track_def.js';
 import { sink, material, stations, across, lerp, smooth } from './track_geo.js';
 import { dress } from './track_dress.js';
+import { buildCuts, cutAt } from './track_cut.js';
+import { needsOfDef } from './track_def.js';
+import { SURF } from './tune.js';
 import { ix, BROWN } from './palette.js';
 
 /* a belt is raised off the floor, and rises to its height over the first half metre and falls over the last: a step square across the road stopped a car dead */
@@ -35,7 +38,10 @@ export function buildTrack(def) {
   F.jumps.forEach(j => extra.push(j.a, j.b, j.c, j.d));
   F.belts.forEach(b => extra.push(b.s0, b.s0 + BELT_RAMP, b.s1 - BELT_RAMP, b.s1));
   F.kerbs.forEach(b => extra.push(b.s0, b.s1)); F.pinches.forEach(b => extra.push(b.s0, b.s1)); F.counters.forEach(b => extra.push(b.s0, b.s1));
-  const ST = stations(L, 1.5, extra), out = sink(L);
+  const ST = stations(L, 1.5, extra), out = sink(L), decor = [];
+  /* the shortcuts: built first, because they cut gaps in the main road's walls */
+  const cuts = buildCuts({ def, line, widthAt, sOfU, out, decor });
+  const gapped = (side, s) => cuts.some(c => c.gaps.some(g => g.side === side && s >= g.s0 && s <= g.s1));
   const beltAt = s => F.belts.find(b => s >= b.s0 - 1e-3 && s <= b.s1 + 1e-3);
 
   /* the road */
@@ -63,6 +69,7 @@ export function buildTrack(def) {
     if (!belt && fl.surf !== 'belt') {
       const lm = material(ix(BROWN, 11), { zbias: 0.003 }), lw = 0.07, lo = 0.1;
       for (const side of [1, -1]) {
+        if (gapped(side, mid)) continue;
         const a0 = across(pa, side * (wa / 2 - lo)), a1 = across(pa, side * (wa / 2 - lo - lw)), b0 = across(pb, side * (wb / 2 - lo)), b1 = across(pb, side * (wb / 2 - lo - lw));
         out.quad(mid, [a0.x, ya + 0.004, a0.z], [a1.x, ya + 0.004, a1.z], [b1.x, yb + 0.004, b1.z], [b0.x, yb + 0.004, b0.z], [0, 1, 0], [[0, 0], [1, 0], [1, 1], [0, 1]], lm, 'lino', null, false);
       }
@@ -72,6 +79,7 @@ export function buildTrack(def) {
     if (wall) {
       const wm = material(wall.tex), deep = F.jumps.some(j => sa >= j.a - 1e-3 && sb <= j.d + 1e-3) ? 0.4 : 0;
       for (const side of [1, -1]) {
+        if (gapped(side, mid)) continue;
         const A = across(pa, side * wa / 2), B = across(pb, side * wb / 2), n0 = [-side * pa.nx, 0, -side * pa.nz];
         out.quad(mid, [A.x, ya - deep, A.z], [B.x, yb - deep, B.z], [B.x, yb + wall.h, B.z], [A.x, ya + wall.h, A.z], n0, [[sa / wall.k, (ya - deep) / wall.k], [sb / wall.k, (yb - deep) / wall.k], [sb / wall.k, (yb + wall.h) / wall.k], [sa / wall.k, (ya + wall.h) / wall.k]], wm, 'wood');
       }
@@ -164,7 +172,9 @@ export function buildTrack(def) {
     const p = line.at(c.s), w = widthAt(c.s) / 2 - 0.55;
     for (let j = 0; j < c.n; j++) { const lat = Math.max(-w, Math.min(w, (j - (c.n - 1) / 2) * c.spread)), a = across(p, lat); spots.push({ i: spots.length, cluster: k, s: c.s, lat, x: a.x, y: p.y + lift(c.s), z: a.z }); }
   });
-  const decor = dress(def, line, width, F);
+  decor.push(...dress(def, line, width, F));
   const built = out.build();
-  return { def, id: def.id, name: def.name, laps: def.laps || 3, line, length: L, startS, width, widthAt, floorAt, features: F, chunks: built.chunks.map((mesh, i) => ({ mesh, s0: i * 24, s1: (i + 1) * 24 })), col: built.grid, tris: built.tris, grid, nodes, checkpoints, marks, spots, decor, lift, limits: { lo, hi }, speedCap: cap };
+  /* what is under the main road at each sample (the CPU plans its speed on it) and what a car must wear to race it */
+  const surfAt = new Uint8Array(S.length); S.forEach((p, i) => { surfAt[i] = SURF[FLOORS[floorAt(p.s)].surf].id; });
+  return { def, id: def.id, name: def.name, laps: def.laps || 3, needs: needsOfDef(def), cuts, gates: cuts.filter(c => c.gate).map(c => c.gate), surfAt, cutAt: (x, z, hint) => cutAt(cuts, x, z, hint), line, length: L, startS, width, widthAt, floorAt, features: F, chunks: built.chunks.map((mesh, i) => ({ mesh, s0: i * 24, s1: (i + 1) * 24 })), col: built.grid, tris: built.tris, grid, nodes, checkpoints, marks, spots, decor, lift, limits: { lo, hi }, speedCap: cap };
 }
