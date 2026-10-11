@@ -65,7 +65,7 @@ export function createWorld(o) {
         if (car.repoT > 0 && car.repoT <= REPOS.fade * 0.9999) { /* waiting out the fade: the car keeps driving as it was */ }
         const touching = wheelForces(W, car, h);
         car.touching = touching;
-        integrate(car, h, touching);
+        integrate(car, h, touching, W.col);
         const hard = collide(W, car, h);
         if (hard > car.hardest) car.hardest = hard;
         if (car.v[1] < car.minVy) car.minVy = car.v[1];
@@ -93,7 +93,7 @@ export function createWorld(o) {
     if (nose && !car.wheelie) ev.push({ type: 'wheelie', car: car.id });
     car.wheelie = nose;
     car.roofTime = up < 0.1 && speed < 1.5 ? car.roofTime + STEP : 0;
-    car.stuckTime = car.input.throttle > 0.3 && speed < REPOS.stuckSpeed && car.repoT === 0 ? car.stuckTime + STEP : 0;
+    car.stuckTime = (car.input.throttle > 0.3 || car.input.brake > 0.3) && speed < REPOS.stuckSpeed && car.repoT === 0 ? car.stuckTime + STEP : 0;
     if (car.roofTime >= REPOS.upside || car.stuckTime >= REPOS.stuck || car.p[1] < REPOS.floor || (car.input.repo && !car.wasRepo)) { W.reposition(car); car.roofTime = 0; car.stuckTime = 0; }
     car.wasRepo = !!car.input.repo;
     if (car.repoT > 0) {

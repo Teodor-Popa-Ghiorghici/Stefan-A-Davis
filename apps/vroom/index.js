@@ -3,7 +3,7 @@
 import { vroom } from '../vroom_scope.js';
 import { mountLocked } from './locked.js';
 
-let stop = null;
+let stop = null, closed = false;
 
 export default {
   id: 'vroom',
@@ -14,11 +14,14 @@ export default {
   resizable: true,
   fluid: true,
   async mount(root, ctx) {
+    closed = false;
     if (!vroom().open()) { mountLocked(root); return; }
     const { mountGame } = await import('./game.js');
+    if (closed) return;                                  /* the window was closed while the game was loading */
     stop = mountGame(root, ctx);
   },
   unmount() {
+    closed = true;
     if (stop) { try { stop(); } catch (e) { /* the window is going anyway */ } stop = null; }
   }
 };

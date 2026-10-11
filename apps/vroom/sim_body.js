@@ -2,7 +2,7 @@
    collided with the track by a handful of probes: the eight corners and twelve edge midpoints of its box (tiny spheres, plus a swept test so a corner cannot pass through a sheet between two steps)
    and four wheel-sized spheres (a kerb or a wall catches a wheel, below the centre of mass, which is what rolls a tall car over). A contact is an impulse with restitution and friction, solved a few
    times over, and a push out of the surface that never adds up to more than the deepest. Pure: the same numbers in, the same numbers out. */
-import { gather, closest, onSeam, region, CP, rayTri, facing, N as FN } from './col_grid.js';
+import { gather, closest, onSeam, region, CP, rayTri, facing, ray, HIT, N as FN } from './col_grid.js';
 import { GRAVITY, BODY, AIR } from './tune.js';
 
 const QB = new Int32Array(96);
@@ -39,7 +39,7 @@ export function impulseAt(car, rx, ry, rz, jx, jy, jz) {
 }
 
 /* gravity, the air, a little control in the air, and one substep of motion */
-export function integrate(car, h, touching) {
+export function integrate(car, h, touching, col) {
   const sp = car.spec, m = sp.mass, v = car.v, w = car.w, R = car.R, F = car.F, T = car.T;
   F[1] -= m * GRAVITY;
   const speed = Math.hypot(v[0], v[1], v[2]);
@@ -51,7 +51,20 @@ export function integrate(car, h, touching) {
     const k = 1 - AIR.damp * h; w[0] *= k; w[1] *= k; w[2] *= k;
     const hs = Math.hypot(v[0], v[2]);
     let tx = 0, tz = 0;
-    if (hs > 1.5 && R[4] > 0) { const err = Math.asin(Math.max(-1, Math.min(1, R[5]))) - Math.atan2(v[1], hs); tx += AIR.align * err * sp.inertia[0]; }
+    /* near the ground the car comes level with it (a nose-first landing is how a toy car ends up standing on its bumper), more the closer it is; higher up it keeps to the way it is travelling */
+    let lvl = 0;
+    if (col && col.n && R[4] > 0.2 && car.airtime > AIR.levelAfter) {
+      const d = ray(col, car.p[0], car.p[1], car.p[2], 0, -1, 0, AIR.seek);
+      if (d >= 0) {
+        const t = HIT.tri * 3, gn = col.nrm, sg = gn[t + 1] < 0 ? -1 : 1, nx = gn[t] * sg, ny = gn[t + 1] * sg, nz = gn[t + 2] * sg;
+        if (ny > 0.5) {
+          lvl = Math.min(1, 1 - d / AIR.seek);
+          const ux = R[1], uy = R[4], uz = R[7], ax = uy * nz - uz * ny, ay = uz * nx - ux * nz, az = ux * ny - uy * nx;
+          tx += AIR.level * lvl * (ax * R[0] + ay * R[3] + az * R[6]) * sp.inertia[0]; tz += AIR.level * lvl * (ax * R[2] + ay * R[5] + az * R[8]) * sp.inertia[2];
+        }
+      }
+    }
+    if (hs > 1.5 && R[4] > 0) { const err = Math.asin(Math.max(-1, Math.min(1, R[5]))) - Math.atan2(v[1], hs); tx += AIR.align * err * sp.inertia[0] * (1 - lvl); }
     const pi = car.input.throttle - car.input.brake, ro = car.input.steer, A = AIR.torque * sp.airTorque;
     const wbx = R[0] * w[0] + R[3] * w[1] + R[6] * w[2], wbz = R[2] * w[0] + R[5] * w[1] + R[8] * w[2];
     if (pi !== 0 && wbx * pi < AIR.maxRate) tx += pi * A * sp.inertia[0];
@@ -96,7 +109,7 @@ export function collide(world, car, h) {
           depth = rad - cd;
         } else if (d > 1e-9) { nx = (x - CP[0]) / d; ny = (y - CP[1]) / d; nz = (z - CP[2]) / d; }
         else { facing(g, t, px, py, pz); nx = FN[0]; ny = FN[1]; nz = FN[2]; }
-        if (wheel && ny > 0.7) continue;                                          /* the ground is the suspension's */
+        if (wheel && Math.abs(ny) > 0.7) continue;                                /* the ground is the suspension's: in either direction (a landing can press the ride-height sphere below the floor, and a sphere whose last place was under it would be pulled down into it) */
         const c = C.n++;
         C.rx[c] = x - P[0]; C.ry[c] = y - P[1]; C.rz[c] = z - P[2]; C.nx[c] = nx; C.ny[c] = ny; C.nz[c] = nz; C.depth[c] = depth; C.jn[c] = 0; C.fx[c] = C.fy[c] = C.fz[c] = 0;
       } else if (!wheel && sl > rad * 0.5) {                                          /* (a wheel at ride height is not swept: the ground is not its to catch) */

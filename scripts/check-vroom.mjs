@@ -140,9 +140,34 @@ try {
   const shown = await gamePicture(page);
   ok(shown && shown.w === 320 && shown.h === 180 && shown.colours > 25, 'clue earned: the window is the game (a picture of many colours), not the locked one', JSON.stringify(shown && { w: shown.w, colours: shown.colours }));
   ok(shown && shown.stray === 0, 'clue earned: every pixel of the game is one of the 128 colours of VGA128 (none blended, none stray)', shown && shown.stray + ' stray');
-  await page.waitForTimeout(700);
-  const later = await gamePicture(page);
-  ok(shown && later && later.hash !== shown.hash, 'clue earned: the picture moves (the camera drifts down the street)');
+  /* the race, played with real keys. The speed bar (bottom right of the glass) is read off the pixels: how much of it is lit tells how fast the car is going. */
+  const bar = () => page.evaluate(() => {
+    const cv = document.querySelector('.win canvas.gamecv'); if (!cv) return null;
+    const d = cv.getContext('2d').getImageData(271, 168, 44, 4).data; let lit = 0;
+    for (let i = 0; i < d.length; i += 4) if (d[i + 1] > 200 && d[i] < 200) lit++; else if (d[i] > 200 && d[i + 1] < 120) lit++;
+    return lit / 4;
+  });
+  const lum = () => page.evaluate(() => { const cv = document.querySelector('.win canvas.gamecv'); const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += d[i] + d[i + 1] + d[i + 2]; return s / (d.length / 4); });
+  await page.click('.win canvas.gamecv');
+  const idle = await bar();
+  ok(idle === 0, 'clue earned: on the grid the speed bar is empty (' + idle + ' px)');
+  await page.waitForTimeout(3600);                                   /* the countdown */
+  await page.keyboard.down('KeyW'); await page.waitForTimeout(2600);
+  const fast = await bar();
+  ok(fast > 18, 'clue earned: holding W for 2.6 s after GO lights the speed bar (' + fast + ' of 44 px)', String(fast));
+  await page.keyboard.up('KeyW'); await page.keyboard.down('Space'); await page.waitForTimeout(1500); await page.keyboard.up('Space');
+  const slow = await bar();
+  ok(slow < fast - 6, 'clue earned: the brake slows it (' + slow + ' px)', fast + ' -> ' + slow);
+  const mid = await gamePicture(page);
+  ok(mid && mid.stray === 0 && mid.hash !== shown.hash, 'clue earned: the race moves and every pixel is still one of the 128', mid && mid.stray + ' stray');
+  const before = await lum();
+  await page.keyboard.press('Escape'); await page.waitForTimeout(250);
+  const paused = await lum();
+  ok(paused < before - 6, 'clue earned: ESC pauses (the picture goes down through the dither, ' + before.toFixed(0) + ' to ' + paused.toFixed(0) + ')');
+  const hp = await gamePicture(page); await page.waitForTimeout(500); const hp2 = await gamePicture(page);
+  ok(hp.hash === hp2.hash, 'clue earned: a paused game does not move');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+  ok(await lum() > paused + 4, 'clue earned: ESC again goes on');
   const fps = await page.evaluate(() => new Promise(res => { let n = 0; const t0 = performance.now(); const f = () => { n++; if (performance.now() - t0 < 2000) requestAnimationFrame(f); else res(n / ((performance.now() - t0) / 1000)); }; requestAnimationFrame(f); }));
   ok(fps >= 20, 'clue earned: the window keeps up (' + fps.toFixed(0) + ' frames a second under the test display, at least 20)', fps.toFixed(1));
   const clue = await term(page, 'trophy vroom');

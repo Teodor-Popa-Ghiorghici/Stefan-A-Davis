@@ -49,6 +49,8 @@ export function chassis(o) {
     brakeF: o.brake || m * GRAVITY * 0.9,                                  /* the most the brakes can ask of the road: a bit under one g, the road's mu limits it */
     steerMax: o.steer || 0.5,                                              /* full lock, radians */
     reverse: o.reverse == null ? 0.5 : o.reverse,                          /* how much of the engine reverse gets */
+    /* what the tyres will really give in a steady bend at speed, m/s^2 (measured on a skidpad: about 0.72 g for a front-drive car with the stick over, less for rear drive, which the throttle turns loose): what a driver's speed plan is a share of */
+    aLat: 0.72 * GRAVITY * (o.gripLat || 1) * (drive === 'rwd' ? 0.93 : 1),
     gripLat: o.gripLat || 1, gripLong: o.gripLong || 1,                    /* this car's tyre: lateral and longitudinal, on top of the surface */
     latBias: o.latBias == null ? 1.12 : o.latBias,                         /* the rear's sideways grip over the front's: above 1 is a car that pushes wide before it spins, below 1 is a drifty one */
     dragK: o.drag == null ? 1 : o.drag, downforce: o.downforce == null ? 1 : o.downforce,

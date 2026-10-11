@@ -23,13 +23,15 @@ export const SURF = {
   packed:    { id: 4, mu: 0.55, drag: 0.02, tyres: 0.85 },
   deep:      { id: 5, mu: 0.45, drag: 0.5, tyres: 0.75 },
   ice:       { id: 6, mu: 0.18, drag: 0, chains: 0.6 },
-  belt:      { id: 7, mu: 1.0, drag: 0.5, belt: true },          /* drag here is the belt's grip on a wheel: it carries a car toward its own speed in about a second */
+  belt:      { id: 7, mu: 1.0, drag: 0.04, belt: true },         /* a conveyor: its own surface moves (the triangle's belt velocity); see BELT_CARRY */
   wood:      { id: 8, mu: 0.85, drag: 0.02 },
   metal:     { id: 9, mu: 0.8, drag: 0 },
   tile:      { id: 10, mu: 0.75, drag: 0 },
   rubber:    { id: 11, mu: 1.2, drag: 0.1 }
 };
 export const SURF_BY_ID = Object.values(SURF).sort((a, b) => a.id - b.id);
+/* a belt carries what is slower than itself up to its own speed: a standing car is moved off at this share of its weight (about 1.9 m/s^2), and fades out as it reaches the belt's speed; a car already faster than the belt feels nothing but its rolling drag */
+export const BELT_CARRY = 0.12;
 export const SPILL_GRIP = 0.3, SPILL_TIME = 2.0;       /* antifreeze or a snowball splash: mu x 0.3 for two seconds */
 export const COMPOUND = [1, 1.05, 1.1, 1.15];          /* TYRE COMPOUND, three levels (0 is the stock tyre): a multiplier on every surface's mu, held by the rating's cap */
 
@@ -39,7 +41,7 @@ export const SUSP = { freq: 7, zeta: 0.35, rest: 0.06, travel: 0.05, bump: 6000 
 export const STEER = { rate: 7.5, gain: 2.0 };                        /* how quickly the wheels turn (rad/s); the lock at speed is the one that asks the road for `gain` times a tyre's grip (v^2 tan(lock) / wheelbase = gain * g), so a keyboard can hold the stick over without spinning */
 export const BODY = { mu: 0.45, restitution: 0.22, restSpeed: 0.6, correct: 0.85, slop: 0.0015, probe: 0.012, angDamp: 0.02, linDrag: 0.0016, downforce: 0.0012 };
 export const CARS = { restitution: 0.3, mu: 0.25, radius: 0.092 };     /* car against car: three spheres, mass-weighted impulses */
-export const AIR = { torque: 7.5, maxRate: 3.2, delay: 0.06, align: 30, damp: 5.5 };   /* a little control in the air: radians a second squared, its cap, and how long off the ground before it works; and what the air itself does: the nose follows the way the car is travelling and the spin dies away, so a jump is an arc and not a tumble */
+export const AIR = { torque: 7.5, maxRate: 3.2, delay: 0.06, align: 30, damp: 5.5, seek: 0.5, level: 40, levelAfter: 0.15 };   /* a little control in the air: radians a second squared, its cap, and how long off the ground before it works; and what the air itself does: the nose follows the way the car is travelling and the spin dies away, so a jump is an arc and not a tumble */
 export const REPOS = { upside: 3.0, stuck: 3.0, fade: 0.6, ghost: 1.0, lift: 0.1, stuckSpeed: 0.25, floor: -12 };
 export const WHEELIE = { pitch: 0.45 };                                 /* radians nose up that a check calls a wheelie */
 

@@ -1,0 +1,121 @@
+/* TRACK CHECK (dev-only, not packaged): every track is data, and the data has to make a place a car can drive. For each track in track_def.js: the line closes; the road is wide enough and the walls are on its
+   edges; the start grid is on the road and behind the line; the checkpoints stretch across it in order; the nodes a car is put back on are on the road, facing the right way, and none is in a pit; each thing
+   set on the road (a belt, a jump, a kerb, a pinch, a counter) is where its data says and does what it is for; and a CPU car drives a whole lap of it without being put back, over every checkpoint, in a
+   time that is a lap and not a crawl. The jump is held to the harder promise: whatever a player does with the keys in the air, a car that arrives at a speed a ROOKIE reaches clears it and lands on its wheels.
+   (Pickups, stars and gates join this check in the phases that add them.)   node apps/vroom/track_check.js */
+import { buildTrack } from './track_build.js';
+import { TRACKS } from './track_def.js';
+import { createRace } from './race.js';
+import { createWorld } from './sim.js';
+import { specOf } from './cars.js';
+import { ray } from './col_grid.js';
+import { suite } from './check_kit.js';
+
+const S = suite('track_check'), { ok } = S;
+const deg = r => r * 180 / Math.PI;
+
+for (const id of Object.keys(TRACKS)) {
+  const T = buildTrack(TRACKS[id]), L = T.line, sm = L.samples, n = sm.length, tag = id + ': ';
+  /* ---- the line ---- */
+  const closing = Math.hypot(sm[0].x - sm[n - 1].x, sm[0].z - sm[n - 1].z);
+  ok(closing < L.step * 1.6, tag + 'the line closes (the last sample is ' + closing.toFixed(2) + ' m from the first)');
+  ok(T.length > 150 && T.length < 700, tag + 'a lap is a sensible length (' + T.length.toFixed(0) + ' m)');
+  let turn = 0, maxK = 0; for (let i = 0; i < n; i++) { const a = sm[i], b = sm[(i + 1) % n]; let d = b.yaw - a.yaw; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; turn += d; maxK = Math.max(maxK, Math.abs(sm[i].k)); }
+  ok(Math.abs(Math.abs(turn) - 2 * Math.PI) < 0.35, tag + 'it goes round once (' + deg(turn).toFixed(0) + ' degrees of turn)');
+  ok(1 / maxK >= 3.5, tag + 'no bend tighter than 3.5 m radius (' + (1 / maxK).toFixed(1) + ' m)');
+  const minW = Math.min(...T.width);
+  ok(minW >= 1.6, tag + 'the road is never narrower than 1.6 m (' + minW.toFixed(2) + ' m): eight cars and a pinch of 1.0 m inside it');
+  /* ---- the things on the road ---- */
+  const F = T.features, all = [];
+  F.belts.forEach(b => all.push(['belt', b.s0, b.s1])); F.jumps.forEach(j => all.push(['jump', j.a - 4, j.d + 2])); F.kerbs.forEach(k => all.push(['kerb', k.s0, k.s1]));
+  F.pinches.forEach(k => all.push(['pinch', k.s0, k.s1])); F.counters.forEach(k => all.push(['counter', k.s0, k.s1]));
+  all.sort((a, b) => a[1] - b[1]);
+  let clash = null; for (let i = 0; i + 1 < all.length; i++) if (all[i][2] > all[i + 1][1] - 3) clash = all[i][0] + ' runs into ' + all[i + 1][0];
+  ok(!clash, tag + 'nothing on the road is on top of anything else (' + (clash || all.map(a => a[0]).join(', ')) + ')');
+  ok(all.every(a => a[1] >= 0 && a[2] <= T.length), tag + 'every one of them is inside the lap');
+  for (const b of F.belts) ok(b.s1 - b.s0 > 6 && T.widthAt((b.s0 + b.s1) / 2) >= 2 * Math.abs(b.lane[1]) + 1.2, tag + 'a belt is long enough to matter and leaves room beside it (' + (b.s1 - b.s0).toFixed(0) + ' m, road ' + T.widthAt((b.s0 + b.s1) / 2).toFixed(1) + ' m)');
+  for (const j of F.jumps) {
+    const run = F.jumps.length ? j.a - 20 : 0, straight = Math.max(...[0, 4, 8, 12, 16, 20].map(d => Math.abs(L.at(j.a - d).k))) < 0.03;
+    ok(straight, tag + 'the road is straight for the 20 m before a jump (a run-up that is a bend is a wall)');
+    void run;
+  }
+  /* ---- the start ---- */
+  ok(T.grid.length >= 8, tag + 'the grid has a place for eight cars (' + T.grid.length + ')');
+  let offRoad = 0, ahead = 0, spacing = 9;
+  T.grid.forEach((g, i) => {
+    const near = L.nearest(g.x, g.z), p = sm[near], lat = (g.x - p.x) * p.nx + (g.z - p.z) * p.nz;
+    if (Math.abs(lat) > T.width[near] / 2 - 0.25) offRoad++;
+    if (p.s > T.startS) ahead++;
+    if (ray(T.col, g.x, g.y + 0.3, g.z, 0, -1, 0, 1) < 0) offRoad++;
+    for (let j = 0; j < i; j++) spacing = Math.min(spacing, Math.hypot(g.x - T.grid[j].x, g.z - T.grid[j].z));
+  });
+  ok(offRoad === 0, tag + 'every place on the grid is on the road, clear of the walls and with floor under it');
+  ok(ahead === 0, tag + 'and behind the start line');
+  ok(spacing > 0.55, tag + 'cars on the grid do not overlap (' + spacing.toFixed(2) + ' m between the nearest two)');
+  /* ---- the checkpoints ---- */
+  ok(T.checkpoints.length === 8, tag + 'eight checkpoints');
+  let order = true, across = true; let prev = -1;
+  T.checkpoints.forEach(c => {
+    const d = ((c.s - T.startS + T.length * 2) % T.length); if (d < prev) order = false; prev = d;
+    const mid = [(c.ax + c.bx) / 2, (c.az + c.bz) / 2], near = L.nearest(mid[0], mid[1]), w = Math.hypot(c.ax - c.bx, c.az - c.bz);
+    if (w < T.width[near] + 0.5) across = false;
+  });
+  ok(order, tag + 'they come in order round the lap from the start line');
+  ok(across, tag + 'and each one reaches past both walls: nothing can go round it');
+  /* ---- the nodes ---- */
+  let badNode = 0, wrongWay = 0, inPit = 0;
+  T.nodes.forEach(nd => {
+    const t = ray(T.col, nd.x, nd.y + 0.4, nd.z, 0, -1, 0, 1.2);
+    if (t < 0) badNode++;
+    const p = L.at(nd.s); let d = nd.yaw - p.yaw; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; if (Math.abs(d) > 0.2) wrongWay++;
+    if (F.jumps.some(j => nd.s > j.b - 0.2 && nd.s < j.c + 0.2)) inPit++;
+  });
+  ok(badNode === 0, tag + 'every node a car is put back on has road under it (' + badNode + ' without)');
+  ok(wrongWay === 0, tag + 'and faces along the line');
+  ok(inPit === 0, tag + 'none is in a pit');
+  ok(T.nodes.length > T.length / 8, tag + 'there is one every few metres (' + T.nodes.length + ')');
+  /* ---- the soup ---- */
+  let bad = 0; const g = T.col; for (let i = 0; i < g.tris.length; i++) if (!Number.isFinite(g.tris[i])) bad++;
+  let maxSurf = 0; for (let i = 0; i < g.n; i++) maxSurf = Math.max(maxSurf, g.surf[i]);
+  ok(bad === 0 && maxSurf < 12, tag + 'the collision soup is made of real numbers and real surfaces (' + g.n + ' triangles)');
+  /* ---- a CPU drives a lap ---- */
+  {
+    const race = createRace({ track: T, entries: [{ id: 'a', name: 'A', car: 'courier', tier: 2 }], laps: 2, seed: 4 });
+    let repos = 0, cp = 0, best = 0, flips = 0; const gates = new Set();
+    for (let i = 0; i < 60 * 240 && race.state !== 'done'; i++) {
+      race.step();
+      for (const e of race.events) { if (e.type === 'repo') repos++; if (e.type === 'flip') flips++; }
+      const f = race.field[0], idx = Math.floor(((((f.prog % T.length) + T.length) % T.length) / T.length) * 8);
+      gates.add(idx); cp = f.lap; best = Math.max(best, f.prog);
+    }
+    const f = race.field[0], lt = f.lapTimes;
+    ok(f.finished, tag + 'a CPU car finishes two laps (' + (f.finished ? f.finishT.toFixed(1) + ' s' : 'did not') + ')');
+    ok(repos === 0 && flips === 0, tag + 'without being put back or turned over (' + repos + ' repositions, ' + flips + ' flips)');
+    ok(gates.size === 8, tag + 'and passes every one of the eight stretches between checkpoints (' + gates.size + ')');
+    ok(lt.length >= 1 && lt[lt.length - 1] > T.length / 14 && lt[lt.length - 1] < T.length / 6, tag + 'a lap takes a lap (' + (lt.length ? lt.map(x => x.toFixed(1)).join(', ') : 'none') + ' s over ' + T.length.toFixed(0) + ' m)');
+    void cp; void best;
+  }
+  /* ---- the jump ---- */
+  for (const j of F.jumps) {
+    const spec = specOf('courier', 0), speeds = [9, 10, 11.5, 13], seqs = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0], [0, 0, 1], [1, 0, -1], [0, 0, -1], [1, 1, 1]];
+    let fail = null, worst = 99, n = 0, worstWhat = '';
+    for (const v0 of speeds) for (const q of seqs) for (const off of [0, -0.4, 0.4]) {
+      const w = createWorld({ col: T.col, nodes: T.nodes }), p = L.at(j.a - 14), car = w.addCar(spec, { x: p.x + p.nx * off, y: p.y, z: p.z + p.nz * off, yaw: p.yaw }, { id: 0 });
+      for (let i = 0; i < 30; i++) w.step();
+      let cleared = false, flipped = false, vend = 0;
+      for (let i = 0; i < 360; i++) {
+        const sp = Math.hypot(car.v[0], car.v[2]), nr = L.nearest(car.p[0], car.p[2]), s = sm[nr].s, air = s > j.a && s < j.d + 0.5;
+        car.input = { throttle: air ? q[0] : (sp < v0 ? 1 : 0), brake: air ? q[1] : 0, steer: air ? q[2] * 0.6 : 0, repo: false };
+        w.step();
+        for (const e of w.events) if (e.type === 'flip') flipped = true;
+        if (s > j.d + 3 && s < j.d + 10) { cleared = true; vend = sp; break; }
+      }
+      n++;
+      if (!cleared || flipped) fail = fail || ('v ' + v0 + ', keys ' + q.join('') + ', off ' + off + (flipped ? ' flipped' : ' stuck'));
+      else if (q[2] === 0 && vend < worst) { worst = vend; worstWhat = 'v ' + v0 + ', keys ' + q.join('') + ', off ' + off; }
+    }
+    ok(!fail, tag + 'a jump is cleared at every speed from 9 to 13 m/s with any of eight things done to the keys in the air, from three places across the road (' + n + ' tries)', fail);
+    ok(worst > 6, tag + 'and a car that clears it with the wheel straight carries on (' + worst.toFixed(1) + ' m/s the slowest after the landing; one that held the wheel over in the air may find a wall)', worstWhat);
+  }
+}
+S.done();

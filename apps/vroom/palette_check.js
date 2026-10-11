@@ -28,7 +28,7 @@ ok(CLEAR === 255 && 255 >= SIZE, 'CLEAR is a byte that is no colour');
 
 /* ---- the textures ---- */
 /* the same bytes on every machine: a hash of each, fixed here (change a texture, change its hash, on purpose: node apps/vroom/palette_check.js --print) */
-const HASHES = {"snow": "63c89340", "slush": "3585b53b", "drift": "d1c62e15", "asphalt": "38cb042a", "dash": "7f6bdf4d", "edge": "daa47fc5", "concrete": "278dfa3e", "lino": "d3e157df", "cardboard": "39f6e71f", "tin": "b7d25b37", "brick": "1da66018", "planks": "f23df8cb", "board": "a67d87fc", "window": "7cdd7e94", "glass": "a787c15d", "belt": "a6765f30", "plate": "9b7e4a9d", "checker": "29020b00", "carpet": "f9fabc74", "fence": "50ae9706", "pine": "4962bf1e", "rubber": "7d419dc5", "under": "4aeea744"};
+const HASHES = {"snow": "63c89340", "slush": "3585b53b", "drift": "d1c62e15", "asphalt": "38cb042a", "dash": "7f6bdf4d", "edge": "daa47fc5", "concrete": "278dfa3e", "lino": "7348da0e", "parcels": "bcfbb560", "shelf": "059afbea", "cardboard": "39f6e71f", "tin": "b7d25b37", "brick": "1da66018", "planks": "f23df8cb", "board": "a67d87fc", "window": "7cdd7e94", "glass": "a787c15d", "belt": "a6765f30", "plate": "9b7e4a9d", "checker": "29020b00", "carpet": "f9fabc74", "fence": "50ae9706", "pine": "4962bf1e", "rubber": "7d419dc5", "under": "def62089"};
 ok(TEXTURE_NAMES.length === Object.keys(HASHES).length && TEXTURE_NAMES.every(n => n in HASHES), 'the texture set is what this check knows (' + TEXTURE_NAMES.length + ')', TEXTURE_NAMES.join(' '));
 const stat = {};
 TEXTURE_NAMES.forEach(n => {

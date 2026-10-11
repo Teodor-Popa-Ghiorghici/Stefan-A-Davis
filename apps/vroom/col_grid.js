@@ -3,6 +3,8 @@
    what is it made of), a small sphere (is this corner of the car inside something, and which way out), and a short segment (did this corner pass through a sheet between two steps). No allocation in the
    queries: results land in module-level scratch. Pure. */
 export const CELL = 2;
+/* two triangles whose normals agree to within 15 degrees are one surface to a wheel: the kink between a floor and a ramp, or a belt and the floor, is not a wall (a gentle crease gave a sphere on it a normal along the crease and stopped the car) */
+const SEAM = Math.cos(15 * Math.PI / 180);
 
 /* tris: Float64Array(9 * n) (ax ay az bx by bz cx cy cz); surf: Uint8Array(n); belt: Float32Array(2 * n) (the surface's own velocity, x and z), or null */
 export function buildGrid(tris, surf, belt, cell) {
@@ -22,7 +24,7 @@ export function buildGrid(tris, surf, belt, cell) {
     let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const l = Math.hypot(nx, ny, nz) || 1;
     nrm[i * 3] = nx / l; nrm[i * 3 + 1] = ny / l; nrm[i * 3 + 2] = nz / l;
   }
-  /* edges that are the seam between two triangles of one plane: a sphere that touches such a seam would be pushed along it instead of out of the surface (a "ghost" contact), so the seam is ignored and
+  /* edges that are the seam between two triangles of one surface (see SEAM): a sphere that touches such a seam would be pushed along it instead of out of the surface (a "ghost" contact), so the seam is ignored and
      the triangle whose face is under the sphere does the work. bit 0 is the edge a-b, bit 1 b-c, bit 2 c-a */
   const flat = new Uint8Array(n), seen = new Map(), q = v => Math.round(v * 10000);
   for (let i = 0; i < n; i++) for (let e = 0; e < 3; e++) {
@@ -32,7 +34,7 @@ export function buildGrid(tris, surf, belt, cell) {
     if (prev === undefined) seen.set(k, i * 4 + e);
     else if (prev >= 0) {
       const pi = prev >> 2, pe = prev & 3, d = Math.abs(nrm[i * 3] * nrm[pi * 3] + nrm[i * 3 + 1] * nrm[pi * 3 + 1] + nrm[i * 3 + 2] * nrm[pi * 3 + 2]);
-      if (d > 0.9995 && pi !== i) { flat[i] |= 1 << e; flat[pi] |= 1 << pe; }
+      if (d > SEAM && pi !== i) { flat[i] |= 1 << e; flat[pi] |= 1 << pe; }
       seen.set(k, -1);
     }
   }

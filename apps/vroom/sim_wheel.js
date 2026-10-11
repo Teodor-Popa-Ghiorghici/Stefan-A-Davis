@@ -6,7 +6,7 @@
      the two together can ask for no more than mu * N (a friction circle, the sideways limit scaled by the car's own grip): push the engine past it and the side force shrinks too, which is a slide.
    The forces are added to the car's force and torque (car.F, car.T); the body integrates them (sim_body.js). Pure: no window, no clock. */
 import { ray, HIT } from './col_grid.js';
-import { SURF_BY_ID, surfaceGrip, LAT_K, LAT_V0, ROLL_RES, ROLL_SMOOTH } from './tune.js';
+import { SURF_BY_ID, surfaceGrip, LAT_K, LAT_V0, ROLL_RES, ROLL_SMOOTH, BELT_CARRY } from './tune.js';
 
 const tanh = x => { if (x > 8) return 1; if (x < -8) return -1; const e = Math.exp(2 * x); return (e - 1) / (e + 1); };
 
@@ -43,7 +43,13 @@ export function wheelForces(world, car, h) {
     const cx = mx + dx * t, cy = my + dy * t, cz = mz + dz * t, rx = cx - p[0], ry = cy - p[1], rz = cz - p[2];
     let vx = v[0] + om[1] * rz - om[2] * ry, vy = v[1] + om[2] * rx - om[0] * rz, vz = v[2] + om[0] * ry - om[1] * rx;
     const SF = SURF_BY_ID[S.surf] || SURF_BY_ID[0];
-    if (SF.belt && g.belt) { vx -= g.belt[tri * 2]; vz -= g.belt[tri * 2 + 1]; }
+    let carryX = 0, carryZ = 0;
+    if (SF.belt && g.belt) {
+      const bx = g.belt[tri * 2], bz = g.belt[tri * 2 + 1], bl = Math.hypot(bx, bz);
+      /* a belt carries what is slower than itself up to its own speed, along its own direction (a car at rest is moved off at BELT_CARRY g; one already going faster than the belt is not touched: its wheels just roll) */
+      if (bl > 1e-6) { const along = (vx * bx + vz * bz) / bl, k = Math.max(0, Math.min(1.5, (bl - along) / bl)) * BELT_CARRY * N; carryX = bx / bl * k; carryZ = bz / bl * k; }
+      vx -= bx; vz -= bz;
+    }
     /* the wheel's forward and side on the road */
     const sa = Math.sin(car.steer * W.steer), ca = Math.cos(car.steer * W.steer);
     let ax = R[0] * sa + R[2] * ca, ay = R[3] * sa + R[5] * ca, az = R[6] * sa + R[8] * ca;
@@ -57,10 +63,10 @@ export function wheelForces(world, car, h) {
     /* forward */
     let Fl = thrust * W.drive;
     if (brake > 0 && !reversing) { const bw = sp.brakeF * brake * W.brake; Fl += -Math.max(-bw, Math.min(bw, vf * mEff / h)); }
-    Fl += -ROLL_RES * N * tanh(vf / ROLL_SMOOTH) - SF.drag * vf;
+    Fl += -ROLL_RES * N * tanh(vf / ROLL_SMOOTH) - SF.drag * vf + carryX * ax + carryZ * az;
     /* sideways */
     const lat = sp.gripLat / sp.gripLong * (W.front ? 1 : sp.latBias);
-    let Fs = -limit * lat * tanh(LAT_K * vs / (Math.abs(vf) + LAT_V0));
+    let Fs = -limit * lat * tanh(LAT_K * vs / (Math.abs(vf) + LAT_V0)) + carryX * sx + carryZ * sz;
     const cap = mEff * Math.abs(vs) / h; if (Math.abs(Fs) > cap) Fs = Fs < 0 ? -cap : cap;
     const ll = limit, ls = limit * lat;
     const q = (ll > 1e-9 ? (Fl / ll) * (Fl / ll) : 0) + (ls > 1e-9 ? (Fs / ls) * (Fs / ls) : 0);

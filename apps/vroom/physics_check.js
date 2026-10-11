@@ -164,7 +164,7 @@ function kerb(o, h, v, ang) {
 {
   /* a conveyor moves what stands on it */
   const S = flatSoup().ground(8, -2, 14, 2, 0.001, SURF.belt.id, 6, [1.2, 0]), w = stage(S), car = drop(w, carSpec(), { x: 9 }); settle(w); const x0 = car.p[0]; run(w, 120);
-  ok(car.p[0] - x0 > 1.6 && car.p[0] - x0 < 2.6, 'a conveyor at 1.2 m/s carries a car that stands on it about 2.4 m in two seconds (' + (car.p[0] - x0).toFixed(2) + ' m)');
+  ok(car.p[0] - x0 > 1.6 && car.p[0] - x0 < 2.6, 'a conveyor at 1.2 m/s carries a car that stands on it about 2 m in two seconds (up to its own speed in under a second) (' + (car.p[0] - x0).toFixed(2) + ' m)');
 }
 /* ---- reverse, and the events that say what the car is doing ---- */
 {
@@ -213,7 +213,7 @@ function longRun(seed) {
   ok(a.h !== c.h, 'and another seed is another ten minutes');
   ok(a.finite && c.finite, 'nothing in it ever goes to infinity or NaN');
   /* the hash of that run, fixed: a change to the sim, the tune or the maths changes it, on purpose (node apps/vroom/physics_check.js prints the new one) */
-  const GOLD = 'fedc6cda';
+  const GOLD = '7efda053';
   ok(a.h === GOLD || (console.log('  (the ten-minute hash is ' + a.h + '; set GOLD in physics_check.js when the sim is changed on purpose)'), false), 'the ten-minute hash is the one this sim has always made');
   console.log('  ten minutes of four cars: ' + (a.ms / 1000).toFixed(1) + ' s (' + (a.ms / 36000).toFixed(3) + ' ms a step)');
   ok(a.ms / 36000 < 1.5, 'a step of four cars costs under 1.5 ms (' + (a.ms / 36000).toFixed(3) + ')');

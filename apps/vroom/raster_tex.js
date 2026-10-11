@@ -48,11 +48,29 @@ const GEN = {
   /* a white kerb line on nothing */
   edge: () => make(32, 32, 16, (x) => (x <= 2 ? L(GREY, 13) : CLEAR)),
   concrete: () => make(32, 32, 17, (x, y, u, v, n, r) => L(GREY, 5.5 + n * 2.2 + (r() - 0.5) * 0.8)),
-  /* the sorting-room floor: lino tiles, green-grey, with a dark seam */
+  /* the sorting-room floor: lino tiles, a pale blue-grey, with a darker seam (muted, so a car and the yellow edge lines stand out of it) */
   lino: () => make(32, 32, 18, (x, y, u, v, n, r) => {
-    if (x % 16 === 0 || y % 16 === 0) return L(GREY, 3);
+    if (x % 16 === 0 || y % 16 === 0) return L(COOL, 4.6);
     const alt = ((x >> 4) + (y >> 4)) & 1;
-    return L(alt ? GREEN : CYAN, (alt ? 5.6 : 4.8) + n * 1.4 + (r() - 0.5) * 0.7);
+    return L(COOL, (alt ? 8.4 : 7.3) + n * 1.2 + (r() - 0.5) * 0.6);
+  }),
+  /* a stack of parcels: four boxes in browns, taped across, one with a white label */
+  parcels: () => make(32, 32, 34, (x, y, u, v, n, r) => {
+    const bx = x & 15, by = y & 15, id = (x >> 4) + (y >> 4) * 2;
+    if (bx === 0 || by === 0) return L(BROWN, 3);
+    if (bx >= 7 && bx <= 9) return L(BROWN, 10.5 - (bx === 7 ? 1 : 0));
+    if (id === 1 && bx >= 10 && bx <= 13 && by >= 9 && by <= 12) return L(GREY, 14);
+    return L(BROWN, 5.4 + (id * 7 % 4) * 0.5 + Math.sin(by * Math.PI / 2) * 0.35 + n * 0.8 + (r() - 0.5) * 0.4);
+  }),
+  /* a shelf: a board with parcels standing on it, dark gaps between */
+  shelf: () => make(32, 32, 35, (x, y, u, v, n, r) => {
+    if (y >= 29) return L(BROWN, 3.5);
+    if (y === 28) return L(BROWN, 7);
+    const bay = (x + 4) % 12;
+    if (bay === 0) return L(COOL, 2);
+    const tall = 14 + ((x + 4) / 12 | 0) % 3 * 4;
+    if (y < 28 - tall + 4 && y < 12) return L(COOL, 3.5 + n);
+    return L(BROWN, 6 + (((x + 4) / 12 | 0) % 3) * 0.7 + (bay > 5 && bay < 7 ? 3.5 : 0) + n * 0.7 + (r() - 0.5) * 0.4);
   }),
   /* a cardboard box: tan, fluted across, with a stripe of tape down it */
   cardboard: () => make(32, 32, 19, (x, y, u, v, n, r) => {
@@ -101,7 +119,7 @@ const GEN = {
   /* black rubber, for tyres and the underside of things */
   rubber: () => make(16, 16, 32, (x, y, u, v, n) => L(GREY, 1.4 + n * 1.2)),
   /* the dark underside of a counter, a shelf, a lorry */
-  under: () => make(16, 16, 33, (x, y, u, v, n) => L(COOL, 2 + n * 1.5))
+  under: () => make(16, 16, 33, (x, y, u, v, n) => (x === 0 || y === 0 ? L(COOL, 6) : L(COOL, 9.4 + n * 1.2)))
 };
 
 const made = {};

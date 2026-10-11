@@ -437,3 +437,33 @@ Written as they were taken, newest last. Each says what and why.
 - **Friction impulses accumulate and are clamped as a total** (the first version clamped each iteration to mu times the normal impulse and so applied up to four times what friction could give: landings lost 3 m/s).
 - **A conveyor is a surface with a grip on the wheel** (`SURF.belt.drag` 0.5 N s/m a wheel): a car on it is carried toward the belt's speed in about a second, and one driving against it is slowed.
 - **Events** the sim emits each step: `land`, `flip`, `wheelie`, `hit-wall`, `hit-car`, `surface`, `repo-start`, `repo`. The trophies, the sound and the camera hear these and nothing else.
+
+**Phase 3 -- the vertical slice (SORTING ROOM, the KEI COURIER, three rivals)**
+- **A track is drawn as a polygon with rounded corners** (`track_path.js`): the author gives the corners (place, width, floor, wall, bend radius), the builder makes the control points and refuses a bend that does not fit its
+  straight. Features are put on "straight 6, 66 % of the way along", never on a number that moves when a corner does. The first draft drew control points by hand, and the jump ended up six metres after a bend: a jump with
+  a corner for a run-up is a wall.
+- **The road is 2.2 to 3.7 m wide for a car 0.22 m wide** (about ten car widths; the first draft was sixteen and looked like a field with a car lost in it). The pinch is 1.2 m (five cars), a belt lane 1.3 m, walls 0.6 m of parcels
+  or 0.95 m of shelf, so the camera sees over the parcels into the hall. Bends are 6 to 10 m in radius: the tyres give about 0.72 g in a steady bend (`spec.aLat`, measured on a skidpad), so at 12 m/s the tightest bend a
+  car can hold is about 10 m, and anything tighter makes a driver brake.
+- **The first track is a lap of 332 m, about 30 s** for the CPU at its best, three laps a race (a race of about a minute and a half: a cup of four is about six minutes).
+- **A belt is neutral at speed.** As a drag on the wheel (0.5 N s/m) a belt took a car from 12 m/s to 7 across its length; now it carries what is slower than itself up to its own speed (`BELT_CARRY`, 0.12 of the weight, so a
+  standing car is moved off at about 1.9 m/s^2) and leaves a faster car to its rolling drag. A belt is a narrow raised lane, a bump and a place cars bunch, not a speed trap.
+- **A crease between two triangles under 15 degrees is a seam** (`col_grid.js` `SEAM`; it was 1.8 degrees). The 4 cm step of a belt and the 11 degrees at the foot of a ramp gave a wheel sphere a normal along the crease and
+  stopped the car dead. A belt also rises over its first and last half metre; a step square across the road is a wall.
+- **The air brings a car level with the ground near it** (`AIR.seek` 0.5 m, `level` 40 rad/s^2, after `levelAfter` 0.15 s in the air): above that the nose still follows the way the car is travelling. A car that left a
+  ramp nose-high and landed nose-first stood on its bumper and could not get off it. The 0.15 s keeps a kerb's brief hop out of it (the kerb check still rolls the crane truck and spares the courier).
+- **A ride-height wheel sphere never takes the floor, in either direction.** The sphere is placed to touch the ground at rest, so a hard landing puts its centre under the floor, where "the side it came from" turns the
+  contact into a pull *down*; the car then sank into the road and lost all its speed in six steps. Found by listing the contacts of a bad landing.
+- **A brake at a standstill is reverse, so none is held on the grid** (the first start rolled four cars backwards ten metres during the count), and a pedal held with the car not moving counts as stuck: a car reversing against
+  a wall is put back after 3 s like one driving into it.
+- **The CPU's tyres are a measured number.** The speed plan used the road's mu times g, which no car reaches (the courier gives 11.3 to 13.7 m/s^2 with the stick over, 0.72 to 0.87 g), so every tier was sliding wide and
+  hitting walls and the tiers all lapped the same. `spec.aLat` is 0.72 g (0.93 of that rear-driven); a tier's `gripUse` is the share of it the driver trusts (0.78 ROOKIE to 0.99 PRO), and the first track puts ROOKIE to
+  PRO about 3 % apart in a lap, plus the mistakes and the line error. A track with more bends than SORTING ROOM spreads them further, which phase 4's `ai_check` measures per track.
+- **Steering is felt, braking is seen.** A driver's own heading and position are not delayed (a controller delayed by 0.27 s oscillates); what is seen late is how far round the lap it is (so where the next bend is) and the
+  cars about. A Stanley controller (heading error, a cross-track term that shrinks with speed, the bend's own steering from 0.25 s ahead) replaced pure pursuit, which weaved down a straight at 12 m/s and cut every bend.
+- **A CPU keeps to what the road allows** (`track.limits`: inside the walls with a margin, narrower at a kerb or a pinch, tapered so a narrow place is seen coming; `track.speedCap`: 9 m/s through a pinch) and **backs off
+  when it is stuck** (brake from a standstill, the opposite lock), because a rival that sits against a stack of parcels for 3 s until the sim puts it back is not a rival.
+- **The HUD's speed is `3.6 x m/s`** and says KPH: a toy's, not a real car's. The count is 3.2 s, GO shows for 1.2 s, the fade of being put back is a Bayer dither to black (a fade that never leaves the palette).
+- **The window pauses itself when it loses focus** (a stuck key drives a car into a wall) and the canvas, not the document, takes the keys (as Stand Battle does), so another window's typing never reaches the race.
+- **Dev tools added**: `headless_harness.js` (a race without a screen), `scripts/vroom_map.mjs` (a track from its data), `scripts/vroom_race_shots.mjs` (the real game's frames to PNG). The GUI check drives the race with real keys
+  and reads the speed bar from the pixels.
