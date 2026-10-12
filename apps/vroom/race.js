@@ -1,5 +1,5 @@
 /* A RACE (docs/vroom/plan.md sections 4 and 9): the world with its cars on the grid, a countdown, laps counted along the track's line, the order of the field, and the finish. Pure and seeded, at the sim's
-   fixed 60 Hz: the game, the headless harness and the budget bot all drive it the same way, with `race.step(humanInput)`; a CPU car is asked for its inputs by its driver (ai.js), a human's come from outside.
+   fixed 60 Hz: the game, the headless harness and the budget bot all drive it the same way, with `race.step(humanInput)` (a list of inputs, one for each person in the field, in the 2P split); a CPU car is asked for its inputs by its driver (ai.js), a human's come from outside.
    Progress is the distance a car has covered along the line, unwrapped, counted from the start line: a lap is a multiple of the track's length, so the order of the field is just who is furthest, and
    being put back on the line (REPOSITION) costs the time and not the lap. Events (race.events, a list rebuilt each step) are the sim's own plus
      { type: 'count', n: 3 | 2 | 1 | 0 }   { type: 'lap', i, lap, time, best }   { type: 'finish', i, place, time }   { type: 'over' }
@@ -34,6 +34,7 @@ export function createRace(o) {
       hold: [], cap: e.parts && e.parts.roofRack ? 2 : 1, bomb: null, leads: 0, zapped: {}, fireWas: false, hitBy: 0
     };
   });
+  const people = field.filter(f => f.human);
   const R = { track: T, world, field, laps, rating, state: 'count', t: -COUNT, frame: 0, events: [], order: field.map(f => f.i), winner: -1, overT: 0, humanDone: false };
   R.stats = { leadChanges: 0, swaps: 0, flips: 0 };
   R.starsGot = new Set();                                                        /* the hidden stars picked up (PRACTICE asks for them: `stars: true`) */
@@ -95,7 +96,7 @@ export function createRace(o) {
     for (const f of R.field) {
       let inp;
       if (R.state === 'count') inp = { throttle: 0, brake: 0, steer: 0, repo: false, fire: false };      /* on the grid with the engine idling (brake at a standstill is reverse, so none) */
-      else if (f.human) inp = human || f.in;
+      else if (f.human) inp = (Array.isArray(human) ? human[people.indexOf(f)] : human) || f.in;               /* one person's keys, or (the 2P split) a list of them in the order the people stand in the field */
       else { const ar = around(f), cx = seen(f); cx.around = ar; inp = f.driver.drive(f.car, f.near, ar, STEP, cx); }
       if (f.finished && f.human) inp = { throttle: 0, brake: 0.3, steer: 0, repo: false, fire: false };
       f.car.input = inp;

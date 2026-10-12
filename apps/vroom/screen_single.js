@@ -5,16 +5,17 @@ import { playerLook } from './events.js';
 import { C, panel, mid, left, right, menu, hint, head } from './ui.js';
 import { nav } from './input.js';
 import { CUPS, cupOpen } from './cups.js';
+import { openRoads } from './open_roads.js';
 import { CARS, RATINGS } from './cars.js';
 import { defFor, TRACK_IDS } from './tracks.js';
 
 export function create(G) {
   const S = { track: 0, v: 'f', rating: 0, laps: 3, n: 8, row: 0 };
   /* the roads of the cups that are open (forward only, until a time trial opens the others) */
-  const roads = () => { const c = G.career, out = []; for (const cup of CUPS) if (cupOpen(c, cup.id)) for (const r of cup.races) if (r.v === 'f' && out.indexOf(r.track) < 0) out.push(r.track); for (const id of TRACK_IDS) if (out.indexOf(id) < 0 && out.length === 0) out.push(id); return out; };
+  const roads = () => openRoads(G.career, G.userRoads);
   const top = () => { let m = 0; CUPS.forEach((cup, i) => { if (cupOpen(G.career, cup.id)) m = Math.max(m, cup.races[cup.races.length - 1].rating); }); return m; };
   return {
-    enter() { S.row = 0; S.track = 0; S.rating = Math.min(S.rating, top()); },
+    enter() { G.refreshRoads(); S.row = 0; S.track = 0; S.rating = Math.min(S.rating, top()); },
     update() {
       const k = nav(G.input), r = roads();
       if (k.dy) S.row = (S.row + k.dy + 6) % 6;

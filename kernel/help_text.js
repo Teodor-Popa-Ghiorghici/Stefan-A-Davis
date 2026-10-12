@@ -297,6 +297,22 @@ $FG,11$STUNT YARD$FG$ a skate park in the snow: twenty stars in the air.
 $FG,11$LAST MILE$FG$ the parcel rides in the bed and can fall out; stop on it,
 then stop on the lit door. First to six. $FG,11$CLOCKWORK$FG$ sixteen
 wind-up trucks and no pickups at all.
+$FG,11$2P SPLIT$FG$ two people, one keyboard, the glass cut in two: the left
+hand is W A S D (Space / E / Shift fires, R puts you back), the right is
+the arrows (Enter / Right Shift / 0 fires, / puts you back). Up to six CPU
+cars come too. It pays nothing and keeps nothing.
+$TR-$
+
+$TR,"THE TRACK MAKER"$
+Draw a road of your own: a ring of tiles, one wide, no forks. The arrows
+move, $FG,11$Enter$FG$ does what the tool in hand does (the pen puts the road down
+and follows you; Enter lifts it), $FG,11$1 to 9$FG$ choose the tool, $FG,11$Tab$FG$ the menu:
+theme, laps, name, SAVE, OPEN, NEW, TEST DRIVE. A jump, a belt, a pinch,
+a counter to drive under, pickups and a kerb stand on tiles; the road says
+what is wrong, and at which tile. A road is kept as text,
+$FG,11$::/Home/Vroom/NAME.TRK$FG$, and is then in SINGLE RACE, TIME TRIAL and the
+2P SPLIT after the town's roads. It pays nothing, and it is raced in
+whatever tyres it needs.
 $TR-$
 
 $TR,"THE PICKUPS"$

@@ -4,9 +4,9 @@ import { drawShowroom } from './showroom.js';
 import { playerLook } from './events.js';
 import { C, panel, mid, menu, hint, head } from './ui.js';
 import { nav } from './input.js';
-import { CUPS, cupOpen } from './cups.js';
+import { openRoads } from './open_roads.js';
 import { CARS } from './cars.js';
-import { defFor, TRACK_IDS } from './tracks.js';
+import { defFor, TRACK_IDS, isUserId } from './tracks.js';
 import { VARIANTS } from './track_variant.js';
 import { variantOpen, parOf } from './challenge.js';
 import { starsFound } from './career_modes.js';
@@ -21,9 +21,9 @@ export const MODES = {
 };
 export function create(G) {
   const S = { mode: 'tt', track: 0, v: 'f', row: 0, n: 6 };
-  const roads = () => { const c = G.career, out = []; for (const cup of CUPS) if (cupOpen(c, cup.id)) for (const r of cup.races) if (r.v === 'f' && out.indexOf(r.track) < 0) out.push(r.track); return out.length ? out : [TRACK_IDS[0]]; };
+  const roads = () => openRoads(G.career, S.mode === 'tt' ? G.userRoads : null);        /* a road of the player's own is for a single race and a time trial, not for the modes that look for what a road has hidden or put in it */
   const rows = () => {
-    const c = G.career, r = roads(), id = r[S.track % r.length], open = variantOpen(c, id, S.v), best = c.tt[trackKey(id, S.v)];
+    const c = G.career, r = roads(), id = r[S.track % r.length], open = variantOpen(c, id, S.v), best = isUserId(id) ? G.userBest[id] : c.tt[trackKey(id, S.v)];
     const out = [{ label: 'ROAD', tag: '< ' + defFor(id, 'f').name + ' >' }, { label: 'VARIANT', tag: '< ' + (open ? defFor(id, S.v).name.replace(defFor(id, 'f').name, '').trim() || 'AS DRAWN' : 'SHUT') + ' >', tagColor: open ? undefined : C.mute }];
     if (S.mode === 'lastmile') out.push({ label: 'CARS', tag: '< ' + S.n + ' >' });
     if (S.mode !== 'clockwork') out.push({ label: 'YOUR CAR', tag: '< ' + CARS[c.car].name + ' >' });
@@ -31,7 +31,7 @@ export function create(G) {
     return { out, id, open, best };
   };
   return {
-    enter(a) { S.mode = (a && a.mode) || S.mode; S.row = 0; S.v = 'f'; },
+    enter(a) { S.mode = (a && a.mode) || S.mode; S.row = 0; S.v = 'f'; G.refreshRoads(); },
     state: () => ({ S }),
     update() {
       const k = nav(G.input), m = rows(), n = m.out.length, r = roads();

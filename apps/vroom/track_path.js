@@ -1,7 +1,9 @@
 /* A TRACK DRAWN AS A POLYGON WITH ROUNDED CORNERS. The author puts down the corners of the route (a place, how wide the road is, what it is made of, and the radius of the bend that takes the corner), and this
    makes the dense run of control points the centreline is fitted through (spline.js): straight between the bends, a true arc in each. A route drawn this way is closed by construction (the last corner leads
    to the first), a bend can never be tighter than it was asked, and a thing set on the road is placed by *which straight* and *how far along it* rather than by a number that moves when a corner does.
-   `rounded(verts, { step })` returns { controls, u(edge, t), edges }: `u` turns "edge 3, 40 % of the way along its straight" into the control-point unit track_def.js features are addressed in. Pure. */
+   `rounded(verts, { step, merge })` returns { controls, u(edge, t), edges }: `u` turns "edge 3, 40 % of the way along its straight" into the control-point unit track_def.js features are addressed in. A corner with no bend
+   (r 0) puts a control point of its own on the line, exactly where the straight that starts there puts its first: two points in one place, which the spline (spline.js) fits a stretched stretch of line through (a
+   metre of road a half of its length, so a ramp set there is steeper than its data). `merge` leaves that second point out; the town's own roads were made without it and keep their numbers, the track maker's use it. Pure. */
 
 const hyp = Math.hypot;
 export function rounded(verts, opt) {
@@ -22,7 +24,7 @@ export function rounded(verts, opt) {
   });
   const put = (x, z, w, v, edge, et) => controls.push({ x, z, w, floor: v.floor, wall: v.wall, edge, et });
   const bend = (c, v) => {
-    if (!(c.t > 0 && Math.abs(c.turn) > 1e-3)) { put(v.x, v.z, v.w, v, null, null); return; }
+    if (!(c.t > 0 && Math.abs(c.turn) > 1e-3)) { if (!(opt && opt.merge)) put(v.x, v.z, v.w, v, null, null); return; }
     const sx = v.x - c.d0x * c.t, sz = v.z - c.d0z * c.t, side = Math.sign(c.turn), cx = sx + (-c.d0z * side) * c.r, cz = sz + (c.d0x * side) * c.r;
     const a0 = Math.atan2(sz - cz, sx - cx), len = c.r * Math.abs(c.turn), m = Math.max(2, Math.ceil(len / step));
     for (let k = 0; k < m; k++) { const a = a0 + c.turn * k / m; put(cx + Math.cos(a) * c.r, cz + Math.sin(a) * c.r, v.w, v, null, null); }

@@ -12,6 +12,7 @@ import { drawView } from './scene.js';
 import { drawHud, drawPause } from './hud.js';
 import { modelFor } from './showroom.js';
 import { finishRace } from './career.js';
+import { isUserId, userConclude } from './user_roads.js';
 import { quitCup } from './career.js';
 import { STEP } from './tune.js';
 import { nav } from './input.js';
@@ -21,7 +22,7 @@ import { C, mid } from './ui.js';
 export function create(G) {
   let S = null;
   const items = () => (S.ev.kind === 'cup' ? ['RESUME', 'QUIT (COSTS A TRY)'] : ['RESUME', 'RESTART', 'QUIT']);
-  const back = () => (S.ev.kind === 'cup' ? 'cups' : S.ev.kind === 'single' || S.ev.kind === 'yard' ? 'title' : 'modes');
+  const back = () => (S.ev.back ? S.ev.back : S.ev.kind === 'cup' ? 'cups' : S.ev.kind === 'single' || S.ev.kind === 'yard' ? 'title' : 'modes');
   /* the race of this event: a cup's or a single race's (events.js), a time trial or practice (solo.js), LAST MILE's parcels over a race, or CLOCKWORK's sixteen */
   function begin() {
     const k = S.ev.kind; let s, race;
@@ -44,17 +45,19 @@ export function create(G) {
     race.field.forEach(f => { f.model = modelFor(f.entry.car, f.entry.paint, f.entry.livery, f.entry.num); });
     S.paused = false; G.paused = false; S.sel = 0; S.acc = 0; S.over = false; S.toast = null; G.cam.snap();
     G.audio.begin({ race, human: S.human, kind: k, night: !!(s.track && s.track.def && s.track.def.light === 'night') });
-    G.trophy.begin(S);
+    S.user = isUserId(s.trackId);                                       /* a road of the player's own: nothing is paid, kept or earned on it (user_roads.js) */
+    if (!S.user) G.trophy.begin(S);
     G.live = S;                                                         /* what the checks look at: the race, the player's car, the tally */
   }
   function conclude() {
     const r = S.race, s = S.s, rows = r.results(), mine = rows.find(x => x.human), run = G.career.run;
     let res;
-    if (s.kind === 'tt' || s.kind === 'practice' || s.kind === 'lastmile' || s.kind === 'clockwork') res = modeConclude(G, S, rows, mine);
+    if (S.user) res = userConclude(G, S, rows, mine);
+    else if (s.kind === 'tt' || s.kind === 'practice' || s.kind === 'lastmile' || s.kind === 'clockwork') res = modeConclude(G, S, rows, mine);
     else res = finishRace(G.career, { kind: s.kind, track: s.trackId, v: s.v, rating: s.rating, laps: s.laps, n: s.n, place: mine.place, time: mine.time, tally: S.tally, rows });
     res.sun = G.settleSun(false);
     G.save();
-    G.trophy.end({ S, rows, mine, cup: res.cup, run, career: G.career, lm: s.kind === 'lastmile' && r.lm ? r.lm.result() : null, ghost: s.kind === 'tt' && !!res.record && !!(S.solo && S.solo.ghostRace) });
+    if (!S.user) G.trophy.end({ S, rows, mine, cup: res.cup, run, career: G.career, lm: s.kind === 'lastmile' && r.lm ? r.lm.result() : null, ghost: s.kind === 'tt' && !!res.record && !!(S.solo && S.solo.ghostRace) });
     S.over = true;
     G.audio.finish(s.kind === 'tt' || s.kind === 'practice' || s.kind === 'yard' || mine.place <= 3 ? 'win' : 'miss');
     G.go('finish', { rows, res, kind: s.kind, mine, s, ev: S.ev, tally: S.tally });
@@ -72,7 +75,7 @@ export function create(G) {
         if (k.ok) {
           if (S.sel === 0) S.paused = false;
           else if (S.sel === 1 && S.ev.kind !== 'cup') begin();
-          else { if (S.ev.kind === 'cup') quitCup(G.career); G.save(); G.go(back(), S.ev.kind === 'cup' || S.ev.kind === 'single' || S.ev.kind === 'yard' ? undefined : { mode: S.ev.kind }); }
+          else { if (S.ev.kind === 'cup') quitCup(G.career); G.save(); G.go(back(), S.ev.back || S.ev.kind === 'cup' || S.ev.kind === 'single' || S.ev.kind === 'yard' ? undefined : { mode: S.ev.kind }); }
         }
         return;
       }
@@ -84,7 +87,7 @@ export function create(G) {
       while (S.acc >= STEP && n < 6) {
         S.stepFn(I.drive());
         G.audio.events(r);
-        G.trophy.step(r);
+        if (!S.user) G.trophy.step(r);
         S.tally.eat(r);
         modeEvents(G, S);
         if (r.events.some(e => e.type === 'star')) G.settleSun();

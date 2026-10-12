@@ -11,10 +11,12 @@ import { createAudio } from './audio.js';
 import { createCalls } from './trophy_calls.js';
 import { settle } from './sun.js';
 import { drawRadio } from './radio_hud.js';
+import { loadRoads } from './maker_io.js';
 
-const KEY = 'vroom.v1';
+const KEY = 'vroom.v1', MINE = 'vroom.mine.v1';
 
 export function mountGame(root, ctx) {
+  let alive = true;
   const wrap = document.createElement('div');
   wrap.className = 'gamepane';
   const cv = document.createElement('canvas');
@@ -50,6 +52,12 @@ export function mountGame(root, ctx) {
   const onMix = () => G.audio.relevel();
   window.addEventListener('mixer-changed', onMix);
   G.paused = false;
+  /* the roads of the player's own (maker_io.js): the list the menus offer, the best lap on each (kept apart from the career, user_roads.js), and the way back to the canvas after an in-glass box */
+  G.userRoads = []; G.userList = []; G.userBest = {};
+  G.refreshRoads = () => (ctx && ctx.fs ? loadRoads(ctx.fs) : Promise.resolve([])).then(list => { if (alive) { G.userList = list; G.userRoads = list.filter(r => r.ok).map(r => ({ id: r.id, name: r.name })); } return list; }).catch(() => []);
+  G.saveUserBest = () => { try { const p = ctx && ctx.save ? ctx.save(MINE, JSON.parse(JSON.stringify(G.userBest))) : null; if (p && p.catch) p.catch(() => {}); } catch (e) { /* tried again at the next best */ } };
+  G.focus = () => cv.focus();
+  Promise.resolve(ctx && ctx.load ? ctx.load(MINE) : null).then(v => { if (v && typeof v === 'object') for (const k of Object.keys(v)) if (/^user:/.test(k) && v[k] && typeof v[k].lap === 'number') G.userBest[k] = { lap: v[k].lap, time: +v[k].time || null }; }).catch(() => {});
   G.trophy = createCalls();
   /* the machine's SUN for what the career says is earned and not yet paid (sun.js): once, through Economy.earn with the game's id so the golden eggs can raise it. `keep` false leaves the save to the caller. */
   G.settleSun = keep => {
@@ -61,7 +69,7 @@ export function mountGame(root, ctx) {
   };
   G.screens = createScreens(G);
 
-  let raf = 0, alive = true, last = 0, frames = 0, clock = 0;
+  let raf = 0, last = 0, frames = 0, clock = 0;
   const frame = ts => {
     if (!alive) return;
     raf = requestAnimationFrame(frame);
@@ -84,6 +92,7 @@ export function mountGame(root, ctx) {
     G.trophy.career(G.career);
     G.settleSun();                                              /* whatever the career had earned and was not paid for */
     G.ready = true;
+    G.refreshRoads();
     G.go(G.career.run ? 'cups' : 'title');
   });
   raf = requestAnimationFrame(frame);

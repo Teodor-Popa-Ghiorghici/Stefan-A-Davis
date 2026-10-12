@@ -9,13 +9,14 @@ import { simParts, batteryMods } from './parts.js';
 import { recorder, player, quantize } from './ghost.js';
 import { trackKey, kitOf } from './career.js';
 import { CARS } from './cars.js';
+import { fitted } from './user_roads.js';
 
 export const TT_LAPS = 3, FREE_LAPS = 99, SEED = 7;
 /* ev: { kind: 'tt' | 'practice', track, v, car? }; ghost: { text, car, kit } or null */
 export function createSolo(c, ev, ghost) {
   const T = trackFor(ev.track, ev.v || 'f'), rating = T.def.rating || 0, kit = kitOf(c), car = ev.car || c.car;
   const tt = ev.kind === 'tt', laps = tt ? TT_LAPS : FREE_LAPS;
-  const you = playerEntry(c, car, { kit: JSON.parse(JSON.stringify(kit)) });
+  const you = fitted(T, playerEntry(c, car, { kit: JSON.parse(JSON.stringify(kit)) }));
   const race = createRace({ track: T, entries: [you], laps, rating, seed: SEED, pickups: false, stars: !tt });
   const S = { kind: ev.kind, track: ev.track, v: ev.v || 'f', key: trackKey(ev.track, ev.v || 'f'), T, race, rating, laps, car, kit: JSON.parse(JSON.stringify(kit)), human: race.field[0], rec: recorder(), ghost: null, ghostRace: null };
   if (tt && ghost && ghost.text) {

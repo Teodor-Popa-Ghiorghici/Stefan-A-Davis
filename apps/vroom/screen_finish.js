@@ -12,7 +12,7 @@ import { RIVAL_BY_ID } from './rivals.js';
 export function create(G) {
   let A = null, page = 0, t0 = 0;
   const pages = () => (A.res.cup ? 2 : 1);
-  const leave = () => { if (A.kind === 'cup') G.go('cups'); else if (['tt', 'practice', 'lastmile', 'clockwork'].includes(A.kind)) G.go('modes', { mode: A.kind }); else G.go('title'); };
+  const leave = () => { if (A.ev && A.ev.back) G.go(A.ev.back); else if (A.kind === 'cup') G.go('cups'); else if (['tt', 'practice', 'lastmile', 'clockwork'].includes(A.kind)) G.go('modes', { mode: A.kind }); else G.go('title'); };
   return {
     enter(args) { A = args; page = 0; t0 = G.t; },
     update() {
