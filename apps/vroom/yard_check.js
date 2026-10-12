@@ -15,7 +15,7 @@ import { CAR_IDS, CARS, specOf } from './cars.js';
 import { fresh } from './career.js';
 import { ray } from './col_grid.js';
 import { createRaster } from './raster.js';
-import { drawView } from './scene.js';
+import { drawView } from './scene.js'; import { FAR } from './view.js';
 
 const S = suite('yard_check'), { ok } = S;
 const T = yardTrack();
@@ -104,7 +104,7 @@ console.log('   (the roster drove ' + Object.keys(got).length + ' ways in ' + ((
 {
   const R = createRaster(), full = { x: 0, y: 0, w: 320, h: 180 }, worst = [];
   for (const [x, y, z, yaw] of [[-50, 1, -30, 1.3], [-30, 3, -16, 1.4], [-10, 1, -23, 1.4], [20, 1, -30, 0.1], [30, 1, -36, 0], [-31, 2, 6, 0], [0, 1, 20, 1.5], [40, 1, 0, 3.1]]) {
-    const cam = { x, y: y + 1, z, yaw, pitch: -0.12, roll: 0, fov: 1.0, near: 0.05, far: 130 }, t = [];
+    const cam = { x, y: y + 1, z, yaw, pitch: -0.12, roll: 0, fov: 1.0, near: 0.05, far: FAR }, t = [];
     for (let i = 0; i < 12; i++) { const a = process.hrtime.bigint(); drawView(R, full, T, [], cam, { t: i / 10, stars: new Set() }); t.push(Number(process.hrtime.bigint() - a) / 1e6); }
     t.sort((a, b) => a - b); worst.push(t[6]);
   }

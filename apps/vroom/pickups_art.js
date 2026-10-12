@@ -4,7 +4,7 @@
 import { builder, mat, box } from './raster_mesh.js';
 import { place } from './raster_math.js';
 import { ix, GREY, BROWN, CYAN, RED, COOL } from './palette.js';
-import { parcelTexture } from './pickups_icons.js';
+import { parcelTexture } from './pickups_icons.js'; import { PICKUP_RANGE } from './view.js';
 
 const sph = (b, cx, cy, cz, r, m, seg, rings) => {
   seg = seg || 8; rings = rings || 4; b.use(m);
@@ -42,7 +42,7 @@ export function pickupModels() {
 const MT = new Float64Array(12);
 /* draw everything the pickups have put in the world. `t` is a clock in seconds (the bob and the spin), `cam` the camera (for the distance cull) */
 export function drawPickups(R, P, field, t, cam) {
-  const m = pickupModels(), cx = cam.x, cz = cam.z, far = 70 * 70;
+  const m = pickupModels(), cx = cam.x, cz = cam.z, far = PICKUP_RANGE * PICKUP_RANGE;
   const near = (x, z) => (x - cx) * (x - cx) + (z - cz) * (z - cz) < far;
   for (const s of P.spots) if (s.alive && near(s.x, s.z)) R.draw(m.spot, place(s.x, s.y + 0.13 + 0.016 * Math.sin(t * 3 + s.i), s.z, t * 1.4 + s.i * 0.7, 0, 0, 1, MT));
   for (const o of P.objs) {

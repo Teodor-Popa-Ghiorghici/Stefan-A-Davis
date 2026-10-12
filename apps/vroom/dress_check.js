@@ -11,7 +11,7 @@ import { buildTrack } from './track_build.js';
 import { defFor, TRACK_IDS } from './tracks.js';
 import { YARD } from './yard_def.js';
 import { createRaster } from './raster.js';
-import { drawView, LIGHT } from './scene.js';
+import { drawView, LIGHT } from './scene.js'; import { FAR } from './view.js';
 import { backdrop, backdropOf } from './backdrop.js';
 import { THEME_IDS, blank, cellKey } from './maker_trk.js';
 import { defOf } from './maker_def.js';
@@ -57,7 +57,7 @@ for (const [name, T] of roads.concat(made)) {
 const R = createRaster(320, 180); let worst = 0, worstAt = '';
 for (const [name, T] of roads) {
   for (const f of [0.02, 0.27, 0.52, 0.77]) {
-    const p = T.line.at(T.line.length * f), cam = { x: p.x, y: 0.42, z: p.z, yaw: Math.atan2(p.tx, p.tz), pitch: -0.07, roll: 0, fov: 1.0, near: 0.05, far: 130 };
+    const p = T.line.at(T.line.length * f), cam = { x: p.x, y: 0.42, z: p.z, yaw: Math.atan2(p.tx, p.tz), pitch: -0.07, roll: 0, fov: 1.0, near: 0.05, far: FAR };
     R.resetStats(); drawView(R, { x: 0, y: 0, w: 320, h: 180 }, T, [], cam, { t: 12, headlights: true, calm: true });
     if (R.stats.tris > worst) { worst = R.stats.tris; worstAt = name + ' at ' + (f * 100) + ' %'; }
   }

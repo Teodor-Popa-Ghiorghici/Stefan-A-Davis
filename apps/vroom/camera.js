@@ -1,7 +1,7 @@
 /* THE CHASE CAMERA (docs/vroom/plan.md section 4): behind and above the car, looking down the way it is going. The way it looks is the car's heading blended with the way it is travelling (so a slide does not
    whip the picture round and a spin does not spin the world), eased so a bend turns the view a moment after the car; it pulls in when a wall would be between it and the car; the field of view opens up
    with speed; and a hit or a landing shakes it, unless reduced motion is asked for. A pure function of the car and the time: Node holds it (track_check.js, camera checks in vroom_gate_check's neighbour). */
-import { ray } from './col_grid.js';
+import { ray } from './col_grid.js'; import { FAR } from './view.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const angDiff = (a, b) => { let d = b - a; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; };
@@ -37,7 +37,7 @@ export function createCamera(o) {
     const pitch = Math.atan2(ddy, Math.hypot(ddx, ddz));
     const fov = (o2 && o2.fov) || 1.0, k = clamp(sp / 14, 0, 1.2);
     C.fov += ((fov + 0.12 * k) - C.fov) * (1 - Math.exp(-dt * 4));
-    return { x: cx + nx, y: cy + ny, z: cz2, yaw: C.yaw + nyaw, pitch: pitch, roll: 0, fov: C.fov, near: 0.05, far: (o2 && o2.far) || 130 };
+    return { x: cx + nx, y: cy + ny, z: cz2, yaw: C.yaw + nyaw, pitch: pitch, roll: 0, fov: C.fov, near: 0.05, far: (o2 && o2.far) || FAR };
   };
   C.snap = () => { seeded = false; C.shakeAmp = 0; };
   return C;
