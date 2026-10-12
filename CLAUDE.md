@@ -28,6 +28,7 @@ npm run check:persist   # a Bekkedal save survives quit + relaunch; power-cut lo
 npm run check:apps      # all apps open/close cleanly; fails only on leaks NOT in scripts/check-apps.known.json
 npm run check:listeners # cleanup must not cost behaviour: an open window's listeners still work (crayon draws, folder redraws)
 npm run check:perf      # frame rate and Bekkedal's day clock
+node scripts/check-viewer.mjs  # the picture viewer's arrows: they stay under the pointer through every step of a folder of real photographs, a click never lands on the photograph (set `HOLYTRON_URL=http://127.0.0.1:8099/index.html` to run any of the GUI checks in plain Chromium against a static server instead of Electron)
 npm run check:package   # after `npm run pack`: every file the app loads is packaged, no scaffolding is
 node scripts/smoke.mjs  # ~10 min; node scripts/lint-content.mjs; node apps/*/*_check.js (pure Node)
 node scripts/check-drunk.mjs   # the Jäger journey (pure Node): a blackout is inside one bottle, a little over two minutes away at the very quickest, with the hands slowing as it goes
@@ -639,6 +640,7 @@ The machine's base rule is that all colour comes from `VGA16` (`kernel/god.js`) 
 - `folder`: a folder window: BACK / UP / path, select (click, Ctrl, Shift, rubber band), drag and drop to move or Ctrl-copy,
   right-click menus, F2/Del/Ctrl+C/X/V/D/A/Z, Enter opens, Backspace goes up. `trash`: the RecycleBin (put back, delete for good,
   drag things out). `viewer`: pictures and video; BACKGROUND (five fits), SAVE A COPY, DELETE, arrow keys walk the folder.
+  **Walking a folder of photographs is done quickly, with the pointer left on the arrow, so nothing in the window moves under it or answers a click meant for it** (`apps/viewer/index.js`, `scripts/check-viewer.mjs`): the bar is built once and never emptied (the arrows `.vnav` stay where they are, 38 x 26, with the place in the folder beside them; only the file's own buttons `.vtools` change, in a bar of one fixed height that never wraps), a step is a *destination* (`want`: three quick presses are three steps, and a photograph that arrives after a newer press is dropped), the old photograph stays until the new one is decoded (the pane was blank for a moment and then grew over where the arrow had been, so the next click landed on the photograph), a single click on a photograph does nothing (FIT / 1:1 is a button, and a double click on it does the same, but not within half a second of a step), and a photograph can neither be selected nor dragged.
 - `garage`: `apps/garage/index.js` - THE GARAGE, a studio for a producer and an audiophile that a beginner can still use.
   **The roll** (`grid.js`, `grid_draw.js`; one canvas holds the ruler, the notes and the velocity lane): three tools (DRAW: click to
   put a note down, drag it longer; clicking a note *selects* it so nothing is deleted by accident; on the drum kit DRAW is a step

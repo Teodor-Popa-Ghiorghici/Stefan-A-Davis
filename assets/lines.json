@@ -1,6 +1,6 @@
 {
- "total": 100184,
- "files": 845,
+ "total": 99842,
+ "files": 861,
  "areas": [
   {
    "name": "kernel",
@@ -108,11 +108,6 @@
    "files": 8
   },
   {
-   "name": "viewer",
-   "lines": 308,
-   "files": 3
-  },
-  {
    "name": "folder",
    "lines": 222,
    "files": 2
@@ -120,6 +115,11 @@
   {
    "name": "defrag",
    "lines": 216,
+   "files": 3
+  },
+  {
+   "name": "viewer",
+   "lines": 188,
    "files": 3
   },
   {
@@ -194,8 +194,8 @@
   },
   {
    "name": "the page and shared app kits",
-   "lines": 15634,
-   "files": 154
+   "lines": 15412,
+   "files": 170
   }
  ]
 }

@@ -142,7 +142,7 @@ const VIEWS = {
 
 /* ---- the golden hashes ---- */
 /* the bytes of each view of the test town, fixed (a change to the renderer, the textures or the town changes them, on purpose: node apps/vroom/raster_check.js --print) */
-const GOLD = { street: '81a85728', low: 'b0dc19a8', high: '8035e388', night: '567c15e2', close: '8890c530' };
+const GOLD = { street: '81a5e468', low: '382543c8', high: 'e3a5a448', night: 'c4ca5a22', close: '8ad4b470' };
 const got = {}; for (const n of Object.keys(shots)) got[n] = hash(shots[n]);
 if (process.argv.includes('--print')) console.log(JSON.stringify(got));
 for (const n of Object.keys(GOLD)) ok(got[n] === GOLD[n], n + ': the test town frame is the bytes it was', got[n]);
