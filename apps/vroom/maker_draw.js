@@ -4,10 +4,10 @@ import { ix, GREY, CYAN, BROWN, COOL } from './palette.js';
 import { C, dashed } from './ui.js';
 import { GRID_W, GRID_H, cellKey, MODULES } from './maker_trk.js';
 
-export const TILE_PX = 16, GX = 8, GY = 22;
+export const TILE_PX = 16, GX = 8, GY = 17;
 /* what each theme's road looks like on the grid: the colour of its floor */
 const FLOOR = { hall: ix(GREY, 8), street: ix(GREY, 6), forecourt: ix(GREY, 9), diner: ix(COOL, 12), snow: ix(COOL, 14), ice: ix(CYAN, 12), factory: ix(BROWN, 6) };
-const TILE_A = ix(COOL, 1), TILE_B = ix(COOL, 2), DASH = ix(BROWN, 13), ARROW = ix(GREY, 15);
+const TILE_A = ix(COOL, 3), TILE_B = ix(COOL, 4), DASH = ix(BROWN, 13), ARROW = ix(GREY, 15);
 
 /* an arrow of five pixels in the direction (dx, dy): a shaft and two pixels of head */
 export function arrow(R, cx, cy, dx, dy, col) {

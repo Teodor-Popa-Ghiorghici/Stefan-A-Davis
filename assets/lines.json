@@ -1,6 +1,6 @@
 {
- "total": 99925,
- "files": 844,
+ "total": 100184,
+ "files": 845,
  "areas": [
   {
    "name": "kernel",
@@ -11,11 +11,6 @@
    "name": "bekkedal",
    "lines": 20670,
    "files": 95
-  },
-  {
-   "name": "vroom",
-   "lines": 8890,
-   "files": 124
   },
   {
    "name": "standbattle",
@@ -54,12 +49,12 @@
   },
   {
    "name": "holyc",
-   "lines": 2214,
+   "lines": 2226,
    "files": 33
   },
   {
    "name": "sweeper",
-   "lines": 2067,
+   "lines": 2071,
    "files": 19
   },
   {
@@ -89,8 +84,8 @@
   },
   {
    "name": "terminal",
-   "lines": 693,
-   "files": 3
+   "lines": 716,
+   "files": 4
   },
   {
    "name": "notes",
@@ -114,7 +109,7 @@
   },
   {
    "name": "viewer",
-   "lines": 239,
+   "lines": 308,
    "files": 3
   },
   {
@@ -199,8 +194,8 @@
   },
   {
    "name": "the page and shared app kits",
-   "lines": 6593,
-   "files": 30
+   "lines": 15634,
+   "files": 154
   }
  ]
 }

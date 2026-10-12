@@ -2,7 +2,7 @@
    you have opened (a PRO event in the first week would only be a flat tyre waiting to happen). A podium here gives a cup that has run out of tries one back. */
 import { drawShowroom } from './showroom.js';
 import { playerLook } from './events.js';
-import { C, panel, mid, left, right, menu, hint, head } from './ui.js';
+import { C, panel, mid, menu, hint, head, wrap, fit } from './ui.js';
 import { nav } from './input.js';
 import { CUPS, cupOpen } from './cups.js';
 import { openRoads } from './open_roads.js';
@@ -33,16 +33,16 @@ export function create(G) {
       const R = G.R, c = G.career, look = playerLook(c.look), r = roads();
       drawShowroom(R, { track: G.hall(), car: c.car, rating: CARS[c.car].rating, paint: look.paint, livery: look.livery, num: look.num, t: G.t, zoom: 0.8 });
       head(R, 'SINGLE RACE', 'PICK A ROAD AND GO');
-      const rows = [
-        { label: 'ROAD', tag: '< ' + defFor(r[S.track % r.length], S.v).name + ' >' }, { label: 'RATING', tag: '< ' + RATINGS[S.rating] + ' >' }, { label: 'LAPS', tag: '< ' + S.laps + ' >' },
-        { label: 'CARS', tag: '< ' + S.n + ' >' }, { label: 'YOUR CAR', tag: '< ' + CARS[c.car].name + ' >' }, { label: 'START THE RACE', tag: '' }
+            const rows = [
+        { label: 'ROAD', val: fit(defFor(r[S.track % r.length], S.v).name, 150) }, { label: 'RATING', val: RATINGS[S.rating] }, { label: 'LAPS', val: S.laps },
+        { label: 'CARS', val: S.n }, { label: 'YOUR CAR', val: fit(CARS[c.car].name, 150) }, { label: 'START THE RACE' }
       ];
-      panel(R, 40, 40, 240, rows.length * 13 + 10);
-      menu(R, rows, S.row, 46, 46, 228, { rowH: 13 });
-      mid(R, 'A CAR IS HELD TO THE RATING: IT CAN BE SLOWER, NEVER FASTER.', R.w / 2, 140, C.dim, { outline: C.black });
-      mid(R, 'A PODIUM GIVES BACK A CUP\'S SPENT TRIES.', R.w / 2, 148, C.dim, { outline: C.black });
+      panel(R, 20, 33, 280, rows.length * 14 + 8);
+      menu(R, rows, S.row, 25, 37, 270, { rowH: 14 });
+      panel(R, 20, 130, 280, 34);
+      const note = wrap('A CAR IS HELD TO THE RATING: IT CAN BE SLOWER, NEVER FASTER. A PODIUM GIVES BACK A CUP\'S SPENT TRIES.', 264);
+      note.slice(0, 3).forEach((ln, i) => mid(R, ln, R.w / 2, 134 + i * 9 + (note.length < 3 ? 4 : 0), C.dim));
       hint(R, 'UP DOWN  ROW      LEFT RIGHT  CHANGE      ENTER  GO      ESC  BACK');
-      void left; void right;
     }
   };
 }

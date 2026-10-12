@@ -144,7 +144,7 @@ try {
   /* the race, played with real keys. The speed bar (bottom right of the glass) is read off the pixels: how much of it is lit tells how fast the car is going. */
   const bar = () => page.evaluate(() => {
     const cv = document.querySelector('.win canvas.gamecv'); if (!cv) return null;
-    const d = cv.getContext('2d').getImageData(271, 168, 44, 4).data; let lit = 0;
+    const d = cv.getContext('2d').getImageData(245, 169, 66, 4).data; let lit = 0;
     for (let i = 0; i < d.length; i += 4) if (d[i + 1] > 200 && d[i] < 200) lit++; else if (d[i] > 200 && d[i + 1] < 120) lit++;
     return lit / 4;
   });
@@ -162,7 +162,7 @@ try {
   await page.waitForTimeout(3600);                                   /* the countdown */
   await page.keyboard.down('KeyW'); await page.waitForTimeout(2600);
   const fast = await bar();
-  ok(fast > 18, 'clue earned: holding W for 2.6 s after GO lights the speed bar (' + fast + ' of 44 px)', String(fast));
+  ok(fast > 27, 'clue earned: holding W for 2.6 s after GO lights the speed bar (' + fast + ' of 66 px)', String(fast));
   await page.keyboard.up('KeyW'); await page.keyboard.down('KeyS'); await page.waitForTimeout(1500); await page.keyboard.up('KeyS');
   /* the fire key (SPACE, E, SHIFT) on a car that holds nothing, or something: nothing breaks and the page reports no error */
   for (const k of ['Space', 'KeyE', 'ShiftLeft', 'Space']) { await page.keyboard.press(k); await page.waitForTimeout(80); }

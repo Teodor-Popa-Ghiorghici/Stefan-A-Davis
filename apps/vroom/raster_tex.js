@@ -3,7 +3,7 @@
    CLEAR (255) for a hole you can see through (a fence, a wire, a leaf). Light moves a texel along its own ramp afterwards, so a texture carries its colours and a surface is lit at the pixel.
    `tex.snow()` and the rest are made once, on first use. Pure. */
 import { ix, GREY, BLUE, GREEN, CYAN, RED, BROWN, COOL, CLEAR } from './palette.js';
-import { F3, drawText, widthOf } from '../pixtext.js';
+import { F3, F5, drawText, widthOf } from '../pixtext.js';
 
 function rng(seed) {
   let a = seed >>> 0;
@@ -160,7 +160,9 @@ export function sign(text, fg, bg, w, h) {
   const R = (x, y, rw, rh, c) => { for (let j = 0; j < rh; j++) for (let i = 0; i < rw; i++) { const px = x + i, py = y + j; if (px >= 0 && py >= 0 && px < w && py < h) d[py * w + px] = c; } };
   for (let i = 0; i < w; i++) { d[i] = fg; d[(h - 1) * w + i] = fg; }
   for (let j = 0; j < h; j++) { d[j * w] = fg; d[j * w + w - 1] = fg; }
-  let s = String(text).toUpperCase(); while (s.length > 1 && widthOf(s, F3) > w - 4) s = s.slice(0, -1);
-  drawText(R, s, w / 2, Math.floor((h - 5) / 2), fg, F3);
+  /* the 5 x 7 face when the name fits in it (and the sign is tall enough for it), else the 3 x 5, cut to what fits */
+  let s = String(text).toUpperCase(), f = F3;
+  if (h >= 12 && widthOf(s, F5) <= w - 6) f = F5; else while (s.length > 1 && widthOf(s, F3) > w - 4) s = s.slice(0, -1);
+  drawText(R, s, w / 2, Math.floor((h - f.h) / 2), fg, f);
   return { w, h, ws: Math.log2(w), d };
 }

@@ -17,7 +17,7 @@ import { quitCup } from './career.js';
 import { STEP } from './tune.js';
 import { nav } from './input.js';
 import { CARS } from './cars.js';
-import { C, mid } from './ui.js';
+import { C, mid, panel, textW } from './ui.js';
 
 export function create(G) {
   let S = null;
@@ -106,7 +106,10 @@ export function create(G) {
       drawView(R, { x: 0, y: 0, w: R.w, h: R.h }, S.s.track, S.ghostF ? r.field.concat([S.ghostF]) : r.field, spec, { pickups: { P: r.pickups, t: r.t > 0 ? r.t : 0 }, stars: S.s.kind === 'practice' || S.s.kind === 'yard' ? r.starsGot : null, doors: r.lm ? { target: r.lm.target(S.human.i) } : null, t: r.t, broken: r.world.broken, me: S.human, headlights: !!(S.human.entry.parts && S.human.entry.parts.headlights), calm: G.cam.calm });
       drawHud(R, r, S.human, { fps: G.showFps ? G.fps : null, mode: S.s.kind });
       drawModeHud(R, G, S);
-      if (S.s.swapped && r.state === 'count') { mid(R, 'THE ' + CARS[S.s.swapped.from].name + ' IS TOO FAST FOR THIS CLASS.', R.w / 2, 120, C.white, { outline: C.black }); mid(R, 'YOU ARE IN THE ' + CARS[S.s.swapped.to].name + '.', R.w / 2, 128, C.yellow, { outline: C.black }); }
+      if (S.s.swapped && r.state === 'count') {
+        const a = 'THE ' + CARS[S.s.swapped.from].name + ' IS TOO FAST FOR THIS CLASS.', b = 'YOU ARE IN THE ' + CARS[S.s.swapped.to].name + '.', w = Math.max(textW(a), textW(b)) + 16;
+        panel(R, Math.round((R.w - w) / 2), 118, w, 24); mid(R, a, R.w / 2, 122, C.white); mid(R, b, R.w / 2, 132, C.yellow);
+      }
       if (S.paused) drawPause(R, { sel: S.sel, items: items() });
     }
   };

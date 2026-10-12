@@ -8,7 +8,7 @@ export function runSecret(print) {
   const T = window.Trophies, E = window.Economy;
   let n = 0;
   if (T && T.open) {
-    /* earning some opens more (the 200th opens VROOM's gate and its trophies; the seals are derived), so go round until a pass finds nothing */
+    /* earning some opens more (the 200th opens a gate and its trophies; the seals are derived), so go round until a pass finds nothing */
     for (let pass = 0, got = 1; got && pass < 8; pass++) {
       got = 0;
       T.open().forEach(d => { if (!T.earned(d.id) && T.award(d.id, true)) { n++; got++; } });

@@ -3,7 +3,7 @@
    nothing: it is a game between two people, not the garage's. */
 import { drawShowroom } from './showroom.js';
 import { playerLook } from './events.js';
-import { C, panel, mid, menu, hint, head } from './ui.js';
+import { C, panel, mid, menu, hint, head, fit } from './ui.js';
 import { nav } from './input.js';
 import { CUPS, cupOpen } from './cups.js';
 import { CARS, RATINGS } from './cars.js';
@@ -38,14 +38,15 @@ export function create(G) {
       drawShowroom(R, { track: G.hall(), car: S.car1 || c.car, rating: CARS[S.car1 || c.car].rating, paint: look.paint, livery: look.livery, num: look.num, t: G.t, zoom: 0.8 });
       head(R, '2P SPLIT', 'TWO PEOPLE, ONE KEYBOARD. NOTHING IS PAID OR KEPT.');
       const rows = [
-        { label: 'ROAD', tag: '< ' + defFor(r[S.track % r.length], 'f').name + ' >' }, { label: 'RATING', tag: '< ' + RATINGS[S.rating] + ' >' }, { label: 'LAPS', tag: '< ' + S.laps + ' >' },
-        { label: 'CPU CARS', tag: '< ' + S.rivals + ' >' }, { label: 'P1 CAR', tag: '< ' + CARS[S.car1].name + ' >' }, { label: 'P2 CAR', tag: '< ' + CARS[S.car2].name + ' >' }, { label: 'START THE RACE', tag: '' }
+        { label: 'ROAD', val: fit(defFor(r[S.track % r.length], 'f').name, 150) }, { label: 'RATING', val: RATINGS[S.rating] }, { label: 'LAPS', val: S.laps },
+        { label: 'CPU CARS', val: S.rivals }, { label: 'P1 CAR', val: fit(CARS[S.car1].name, 150) }, { label: 'P2 CAR', val: fit(CARS[S.car2].name, 150) }, { label: 'START THE RACE' }
       ];
-      panel(R, 40, 28, 240, rows.length * 13 + 10);
-      menu(R, rows, S.row, 46, 34, 228, { rowH: 13 });
-      mid(R, 'P1   W A S D   SPACE OR E OR SHIFT FIRES   R PUTS YOU BACK', R.w / 2, 132, C.white, { outline: C.black });
-      mid(R, 'P2   ARROWS   ENTER OR RIGHT SHIFT FIRES   / PUTS YOU BACK', R.w / 2, 141, C.yellow, { outline: C.black });
-      mid(R, 'A CAR IS HELD TO THE RATING: IT CAN BE SLOWER, NEVER FASTER.', R.w / 2, 152, C.dim, { outline: C.black });
+      panel(R, 20, 32, 280, rows.length * 13 + 8);
+      menu(R, rows, S.row, 25, 36, 270, { rowH: 13 });
+      panel(R, 20, 134, 280, 31);
+      mid(R, 'P1   W A S D   SPACE E SHIFT FIRES   R BACK', R.w / 2, 138, C.white);
+      mid(R, 'P2   ARROWS   ENTER R-SHIFT FIRES   / BACK', R.w / 2, 148, C.yellow);
+      mid(R, 'A CAR IS HELD TO THE RATING: SLOWER, NEVER FASTER.', R.w / 2, 157, C.dim, { small: true });
       hint(R, 'UP DOWN  ROW      LEFT RIGHT  CHANGE      ENTER  GO      ESC  BACK');
     }
   };

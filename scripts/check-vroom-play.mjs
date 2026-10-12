@@ -37,13 +37,13 @@ async function picture(y0, y1) {
   }
   return { w: px.w, h: px.h, stray, hash: h };
 }
-/* the speed bar of the view whose bottom edge is `bottom`, read off the pixels: how many columns, counted from the bar's left end (x 271), are filled in the bar's own green or red in all four rows. A pixel of the scene
+/* the speed bar of the view whose bottom edge is `bottom`, read off the pixels: how many columns, counted from the bar's left end (x 245), are filled in the bar's own green or red in all four rows. A pixel of the scene
    that happens to be green is not a column of four, so a car going by behind the bar does not count. */
 const FILL = [ix(GREEN, 10), ix(RED, 10)].map(i => PAL[i]);
 const bar = bottom => page.evaluate(([b, fill]) => {
   const cv = document.querySelector('.win canvas.gamecv'); if (!cv) return null;
-  const d = cv.getContext('2d').getImageData(271, b - 12, 44, 4).data, is = i => fill.some(f => d[i] === f[0] && d[i + 1] === f[1] && d[i + 2] === f[2]);
-  let n = 0; for (let x = 0; x < 44; x++) { if (![0, 1, 2, 3].every(y => is((y * 44 + x) * 4))) break; n++; }
+  const d = cv.getContext('2d').getImageData(245, b - 11, 66, 4).data, is = i => fill.some(f => d[i] === f[0] && d[i + 1] === f[1] && d[i + 2] === f[2]);
+  let n = 0; for (let x = 0; x < 66; x++) { if (![0, 1, 2, 3].every(y => is((y * 66 + x) * 4))) break; n++; }
   return n;
 }, [bottom, FILL]);
 const tap = async (k, n) => { for (let i = 0; i < (n || 1); i++) { await page.keyboard.press(k); await page.waitForTimeout(55); } };
@@ -101,7 +101,7 @@ try {
   await page.waitForTimeout(3800);
   await page.keyboard.down('KeyW'); await page.waitForTimeout(2500);
   const fast = await bar(180);
-  ok(fast > 15, 'and W lights it once the lights are out (' + fast + ' of 44 px)');
+  ok(fast > 22, 'and W lights it once the lights are out (' + fast + ' of 66 px)');
   await page.keyboard.up('KeyW');
   const racing = await picture();
   ok(racing && racing.stray === 0, 'the race on a road of your own is every pixel one of the 128');
@@ -127,10 +127,10 @@ try {
   const idle = [await bar(90), await bar(180)];
   await page.keyboard.down('KeyW');
   const w = await watch(4200);
-  ok(w.hi[0] > 20 && w.hi[1] < 8, 'W (the left hand) lights the TOP half\'s speed bar and not the bottom\'s (top up to ' + w.hi[0] + ', bottom up to ' + w.hi[1] + ' of 44 px)');
+  ok(w.hi[0] > 30 && w.hi[1] < 12, 'W (the left hand) lights the TOP half\'s speed bar and not the bottom\'s (top up to ' + w.hi[0] + ', bottom up to ' + w.hi[1] + ' of 66 px)');
   await page.keyboard.up('KeyW'); await page.keyboard.down('ArrowUp');
   const ar = await watch(4200);
-  ok(ar.hi[1] > 20 && ar.last[0] < w.hi[0], 'the arrows (the right hand) light the BOTTOM half\'s (up to ' + ar.hi[1] + ') while the top car only coasts (' + w.hi[0] + ' to ' + ar.last[0] + ')');
+  ok(ar.hi[1] > 30 && ar.last[0] < w.hi[0], 'the arrows (the right hand) light the BOTTOM half\'s (up to ' + ar.hi[1] + ') while the top car only coasts (' + w.hi[0] + ' to ' + ar.last[0] + ')');
   await page.keyboard.up('ArrowUp');
   const split1 = await picture();
   ok(split1 && split1.stray === 0 && split1.hash !== split0.hash, 'the race moves and every pixel of it is still one of the 128');

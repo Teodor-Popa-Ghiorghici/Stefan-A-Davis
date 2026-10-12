@@ -28,7 +28,11 @@ const apps = readdirSync(join(ROOT, 'apps')).map(id => {
 }).filter(Boolean);
 const loose = readdirSync(join(ROOT, 'apps')).filter(n => EXT.has(extname(n)) && !SKIP.test(n)).map(n => ({ f: n, lines: count(join(ROOT, 'apps', n)) }));
 const rest = [{ f: 'index.html', lines: count(join(ROOT, 'index.html')) }].concat(loose);
-const areas = [area('kernel', kernel), ...apps.sort((a, b) => b.lines - a.lines), area('electron', electron), area('the page and shared app kits', rest)];
+/* A game nobody is told about is not named in the report either (kernel/vroom_gate_core.js: its folder's name would be the third line of what LINES says, before the gate is open): its lines are counted all the same,
+   in the bucket of the page and the shared kits, and the name is not written anywhere in assets/lines.json. */
+const SECRET = new Set(['vroom']), hidden = apps.filter(a => SECRET.has(a.name)), shown = apps.filter(a => !SECRET.has(a.name));
+const kits = area('the page and shared app kits', rest); kits.lines += hidden.reduce((a, x) => a + x.lines, 0); kits.files += hidden.reduce((a, x) => a + x.files, 0);
+const areas = [area('kernel', kernel), ...shown.sort((a, b) => b.lines - a.lines), area('electron', electron), kits];
 const total = areas.reduce((a, x) => a + x.lines, 0), files = areas.reduce((a, x) => a + x.files, 0);
 writeFileSync(join(ROOT, 'assets', 'lines.json'), JSON.stringify({ total, files, areas }, null, 1) + '\n');
 console.log(`${total.toLocaleString()} lines in ${files.toLocaleString()} files; the Charter allowed 100,000 (${(total / 1000).toFixed(0)}%). Wrote assets/lines.json.`);

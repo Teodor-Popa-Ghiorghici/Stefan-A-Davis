@@ -2,7 +2,7 @@
    and dashed and cannot be started), the car (and for LAST MILE how many are racing), and START. A time trial shows the lap to beat; practice says how many stars have been found without saying where. */
 import { drawShowroom } from './showroom.js';
 import { playerLook } from './events.js';
-import { C, panel, mid, menu, hint, head } from './ui.js';
+import { C, panel, mid, menu, hint, head, wrap, fit } from './ui.js';
 import { nav } from './input.js';
 import { openRoads } from './open_roads.js';
 import { CARS } from './cars.js';
@@ -24,9 +24,9 @@ export function create(G) {
   const roads = () => openRoads(G.career, S.mode === 'tt' ? G.userRoads : null);        /* a road of the player's own is for a single race and a time trial, not for the modes that look for what a road has hidden or put in it */
   const rows = () => {
     const c = G.career, r = roads(), id = r[S.track % r.length], open = variantOpen(c, id, S.v), best = isUserId(id) ? G.userBest[id] : c.tt[trackKey(id, S.v)];
-    const out = [{ label: 'ROAD', tag: '< ' + defFor(id, 'f').name + ' >' }, { label: 'VARIANT', tag: '< ' + (open ? defFor(id, S.v).name.replace(defFor(id, 'f').name, '').trim() || 'AS DRAWN' : 'SHUT') + ' >', tagColor: open ? undefined : C.mute }];
-    if (S.mode === 'lastmile') out.push({ label: 'CARS', tag: '< ' + S.n + ' >' });
-    if (S.mode !== 'clockwork') out.push({ label: 'YOUR CAR', tag: '< ' + CARS[c.car].name + ' >' });
+    const out = [{ label: 'ROAD', val: defFor(id, 'f').name }, { label: 'VARIANT', val: open ? defFor(id, S.v).name.replace(defFor(id, 'f').name, '').trim() || 'AS DRAWN' : 'SHUT', valColor: open ? undefined : C.mute }];
+    if (S.mode === 'lastmile') out.push({ label: 'CARS', val: S.n });
+    if (S.mode !== 'clockwork') out.push({ label: 'YOUR CAR', val: CARS[c.car].name });
     out.push({ label: 'START', tag: '', off: !open });
     return { out, id, open, best };
   };
@@ -53,17 +53,19 @@ export function create(G) {
       const R = G.R, c = G.career, look = playerLook(c.look), M = MODES[S.mode], m = rows();
       drawShowroom(R, { track: G.hall(), car: S.mode === 'clockwork' ? 'courier' : c.car, rating: CARS[c.car].rating, paint: look.paint, livery: look.livery, num: look.num, t: G.t, zoom: 0.8 });
       head(R, M.title, 'PICK A ROAD');
-      panel(R, 40, 40, 240, m.out.length * 13 + 10);
-      menu(R, m.out, S.row, 46, 46, 228, { rowH: 13 });
-      const y = 40 + m.out.length * 13 + 16;
-      if (S.mode === 'tt') {
-        const par = parOf(m.id, S.v);
-        mid(R, par ? 'CHALLENGE ' + fmtTime(par) + '      YOUR BEST ' + fmtTime(m.best ? m.best.lap : null) : 'NO CHALLENGE TIME HERE', R.w / 2, y, C.yellow, { outline: C.black });
-      } else if (S.mode === 'practice') mid(R, 'STARS FOUND ' + starsFound(c) + ' OF ' + TRACK_IDS.length, R.w / 2, y, C.yellow, { outline: C.black });
-      else if (S.mode === 'lastmile') mid(R, 'BEST ' + (c.lm.best[trackKey(m.id, S.v)] || 0) + ' TIPS      PARCELS DELIVERED ' + c.lm.delivered, R.w / 2, y, C.yellow, { outline: C.black });
-      else mid(R, 'WON ' + c.cw.wins + ' OF ' + c.cw.races + '      A WIN GIVES THE SNOWMAN', R.w / 2, y, C.yellow, { outline: C.black });
-      if (!m.open) mid(R, 'BEAT THE CHALLENGE ON THE ROAD BEFORE IT IN A TIME TRIAL.', R.w / 2, y + 9, C.red, { outline: C.black });
-      mid(R, M.sub, R.w / 2, 150, C.dim, { outline: C.black });
+      const out = m.out.map(r => (r.val != null ? Object.assign({}, r, { val: fit(r.val, 160) }) : r));
+      panel(R, 20, 32, 280, out.length * 15 + 8);
+      menu(R, out, S.row, 25, 36, 270, { rowH: 15 });
+      const y = 32 + out.length * 15 + 12;
+      panel(R, 20, y, 280, 38);
+      let line;
+      if (S.mode === 'tt') { const par = parOf(m.id, S.v); line = par ? 'CHALLENGE ' + fmtTime(par) + '    YOUR BEST ' + fmtTime(m.best ? m.best.lap : null) : 'NO CHALLENGE TIME HERE'; }
+      else if (S.mode === 'practice') line = 'STARS FOUND ' + starsFound(c) + ' OF ' + TRACK_IDS.length;
+      else if (S.mode === 'lastmile') line = 'BEST ' + (c.lm.best[trackKey(m.id, S.v)] || 0) + ' TIPS    PARCELS DELIVERED ' + c.lm.delivered;
+      else line = 'WON ' + c.cw.wins + ' OF ' + c.cw.races + '    A WIN GIVES THE SNOWMAN';
+      mid(R, line, R.w / 2, y + 5, C.yellow, { heavy: true });
+      if (!m.open) mid(R, 'BEAT THE CHALLENGE ON THE ROAD BEFORE IT, IN A TIME TRIAL.', R.w / 2, y + 16, C.red);
+      wrap(M.sub, 264).slice(0, 2).forEach((ln, i) => mid(R, ln, R.w / 2, y + (m.open ? 18 : 26) + i * 8 - (m.open ? 0 : 2), C.dim));
       hint(R, 'UP DOWN  ROW      LEFT RIGHT  CHANGE      ENTER  GO      ESC  BACK');
     }
   };

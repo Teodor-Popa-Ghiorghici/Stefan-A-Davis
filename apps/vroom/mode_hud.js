@@ -1,6 +1,6 @@
 /* WHAT THE OTHER MODES ADD TO THE RACE SCREEN: a toast for what just happened, the ghost's gap and the challenge in a time trial, the stars found in practice, the parcel, the tip and the lit door in LAST MILE. And what
    each of them does to the career when it is over (career_modes.js): the board's lines and news are made here, in the shape finishRace's are, so the finish screen can show them. Pure but for the raster and the game it is given. */
-import { C, left, mid, right } from './ui.js';
+import { C, panel, mid, textW } from './ui.js';
 import { fmtTime } from './hud.js';
 import { starFound, yardStar, yardCount, YARD_STARS, ttFinish, lastMileDone, clockworkDone } from './career_modes.js';
 import { parOf } from './challenge.js';
@@ -24,28 +24,35 @@ export function modeEvents(G, S) {
     else if (e.type === 'lost') say(G, S, 'THE PARCEL FELL OFF THE WORLD');
   }
 }
-export function drawModeHud(R, G, S) {
-  const r = S.race, k = S.s.kind, h = S.human, cx = R.w / 2;
-  if (S.toast && G.t < S.toast.until) mid(R, S.toast.text, cx, 34, C.yellow, { big: true, outline: C.black });
+/* the lines a mode puts at the top of the glass, [text, colour]: on a plate between the position and the clock */
+const dirOf = (a, d) => (Math.abs(a) < 0.5 ? 'AHEAD ' : a > 0 ? 'RIGHT ' : 'LEFT ') + Math.round(d) + ' M';
+function modeLines(G, S) {
+  const r = S.race, k = S.s.kind, h = S.human, L = [];
   if (k === 'tt') {
     const par = parOf(S.s.trackId, S.s.v);
-    if (par) mid(R, 'CHALLENGE ' + fmtTime(par), cx, 3, C.dim, { outline: C.black });
-    if (S.solo && S.solo.ghostRace) { const g = S.solo.ghostRace.field[0], d = h.prog - g.prog; mid(R, d >= 0 ? 'GHOST ' + d.toFixed(1) + ' M BEHIND' : 'GHOST ' + (-d).toFixed(1) + ' M AHEAD', cx, 10, d >= 0 ? C.green : C.red, { outline: C.black }); }
+    if (par) L.push(['CHALLENGE ' + fmtTime(par), C.dim]);
+    if (S.solo && S.solo.ghostRace) { const g = S.solo.ghostRace.field[0], d = h.prog - g.prog; L.push([d >= 0 ? 'GHOST ' + d.toFixed(1) + ' M BEHIND' : 'GHOST ' + (-d).toFixed(1) + ' M AHEAD', d >= 0 ? C.green : C.red]); }
   } else if (k === 'yard') {
-    mid(R, 'STUNT YARD   STARS ' + yardCount(G.career) + '/' + YARD_STARS + '   (ESC TO LEAVE)', cx, 3, C.dim, { outline: C.black });
+    L.push(['STARS ' + yardCount(G.career) + '/' + YARD_STARS, C.white], ['ESC LEAVES', C.dim]);
     const n = S.solo && S.solo.nearest && S.solo.nearest();
-    if (n) mid(R, 'NEAREST STAR  ' + (Math.abs(n.a) < 0.5 ? 'AHEAD' : n.a > 0 ? 'TO THE RIGHT' : 'TO THE LEFT') + '  ' + Math.round(n.d) + ' M', cx, 11, C.yellow, { outline: C.black });
-  } else if (k === 'practice') mid(R, 'STARS FOUND ' + Object.keys(G.career.stars).length + '   (ESC TO LEAVE)', cx, 3, C.dim, { outline: C.black });
+    if (n) L.push(['STAR ' + dirOf(n.a, n.d), C.yellow]);
+  } else if (k === 'practice') L.push(['STARS FOUND ' + Object.keys(G.career.stars).length, C.dim], ['ESC LEAVES', C.dim]);
   else if (k === 'lastmile' && r.lm) {
     const lm = r.lm, s = lm.st[h.i], tgt = lm.target(h.i), d = tgt >= 0 ? r.track.doors[tgt] : null, P = s.parcel;
-    mid(R, 'DOOR ' + Math.min(s.k + 1, lm.n) + '/' + lm.n + '   TIP ' + lm.tip(h.i) + '   ' + (P.state === 'bed' ? 'PARCEL IN THE BED' : 'PARCEL OUT'), cx, 3, P.state === 'bed' ? C.white : C.red, { outline: C.black });
-    if (d) {
-      const dx = d.x - h.car.p[0], dz = d.z - h.car.p[2], yaw = Math.atan2(h.car.R[2], h.car.R[8]); let a = Math.atan2(dx, dz) - yaw; while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI;
-      mid(R, (Math.abs(a) < 0.5 ? 'AHEAD' : a > 0 ? 'TO THE RIGHT' : 'TO THE LEFT') + '  ' + Math.round(Math.hypot(dx, dz)) + ' M', cx, 11, C.yellow, { outline: C.black });
-    }
-    if (s.hold > 0) mid(R, 'HOLD STILL', cx, 60, C.green, { big: true, outline: C.black });
-    left(R, 'DELIVERED ' + s.delivered, 5, 24, C.dim, { outline: C.black }); void right;
+    L.push(['DOOR ' + Math.min(s.k + 1, lm.n) + '/' + lm.n + '  TIP ' + lm.tip(h.i), C.white], [P.state === 'bed' ? 'PARCEL IN THE BED' : 'PARCEL OUT', P.state === 'bed' ? C.green : C.red]);
+    if (d) { const dx = d.x - h.car.p[0], dz = d.z - h.car.p[2], yaw = Math.atan2(h.car.R[2], h.car.R[8]); let a = Math.atan2(dx, dz) - yaw; while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; L.push(['DOOR ' + dirOf(a, Math.hypot(dx, dz)), C.yellow]); }
   }
+  return L;
+}
+export function drawModeHud(R, G, S) {
+  const r = S.race, k = S.s.kind, h = S.human, cx = R.w / 2, L = modeLines(G, S);
+  if (L.length) {
+    const w = Math.min(150, Math.max(...L.map(l => textW(l[0]))) + 14), x = Math.round(cx - w / 2), hh = L.length * 9 + 5;
+    panel(R, x, 3, w, hh, { edge: C.rule });
+    L.forEach((l, i) => mid(R, l[0], cx, 6 + i * 9, l[1]));
+  }
+  if (S.toast && G.t < S.toast.until) { const w = textW(S.toast.text, { heavy: true }) + 16; panel(R, Math.round(cx - w / 2), 62, w, 15, { edge: C.yellow }); mid(R, S.toast.text, cx, 66, C.yellow, { heavy: true }); }
+  if (k === 'lastmile' && r.lm && r.lm.st[h.i].hold > 0) { const w = textW('HOLD STILL', { heavy: true }) + 16; panel(R, Math.round(cx - w / 2), 84, w, 15, { edge: C.green }); mid(R, 'HOLD STILL', cx, 88, C.green, { heavy: true }); }
 }
 /* the career is told, and the board's numbers are made */
 export function modeConclude(G, S, rows, mine) {

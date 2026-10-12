@@ -4,7 +4,7 @@
    is raced exactly as the town's are (maker_def.js builds the same data), and nothing on it is paid or earned (user_roads.js). The editing is maker_edit.js and the files maker_io.js. */
 import { drawShowroom } from './showroom.js';
 import { playerLook } from './events.js';
-import { C, panel, left, menu, hint, head, wrap } from './ui.js';
+import { C, panel, band, left, right, menu, hint, wrap, fit, arrow } from './ui.js';
 import { nav } from './input.js';
 import { CARS } from './cars.js';
 import { registerTrack } from './tracks.js';
@@ -14,7 +14,7 @@ import { TOOLS, HELP, paint, removeRoad, put, clearTile, analyse } from './maker
 import { saveRoad, idOf, DIR } from './maker_io.js';
 import { drawGrid } from './maker_draw.js';
 
-const PX = 204, PW = 112, ROWH = 7;                         /* the menu on the right */
+const PX = 207, PW = 106, ROWH = 11, SHOWN = 11;           /* the menu on the right: eleven rows of seventeen show at a time, and it follows the cursor */
 const ROWS = TOOLS.map(t => ({ tool: t.id })).concat([{ id: 'theme' }, { id: 'laps' }, { id: 'name' }, { id: 'save' }, { id: 'open' }, { id: 'new' }, { id: 'test' }, { id: 'back' }]);
 
 export function create(G) {
@@ -104,28 +104,40 @@ export function create(G) {
     draw() {
       const R = G.R, c = G.career, look = playerLook(c.look), an = S.an || (S.an = analyse(S.t));
       drawShowroom(R, { track: G.hall(), car: c.car, rating: CARS[c.car].rating, paint: look.paint, livery: look.livery, num: look.num, t: G.t, zoom: 0.8 });
-      head(R, 'TRACK MAKER', (S.t.name + (S.dirty ? ' *' : '')));
+      R.rect(0, 0, R.w, R.h, C.black);
+      band(R, 0, 0, R.w, 13);
+      /* a bar of one line: what this is, and the road's name */
+      R.rect(0, 13, R.w, 1, C.rule);
+      left(R, 'TRACK MAKER', 6, 3, C.yellow, { heavy: true });
+      right(R, fit(S.t.name + (S.dirty ? ' *' : ''), 170), R.w - 6, 3, C.white);
       drawGrid(R, S, an);
       const open = S.list[S.pick];
       const rows = ROWS.map(r => {
         if (r.tool) { const i = TOOLS.findIndex(t => t.id === r.tool); return { label: (i + 1) + ' ' + TOOLS[i].name, tag: S.tool === r.tool ? (S.pen ? 'PEN' : 'ON') : '', tagColor: C.green }; }
-        if (r.id === 'theme') return { label: 'THEME', tag: '< ' + THEMES[S.t.theme].name + ' >' };
-        if (r.id === 'laps') return { label: 'LAPS', tag: '< ' + S.t.laps + ' >' };
-        if (r.id === 'name') return { label: 'NAME', tag: S.t.name.slice(0, 12) };
+        if (r.id === 'theme') return { label: '', val: THEMES[S.t.theme].name };
+        if (r.id === 'laps') return { label: 'LAPS', val: S.t.laps };
+        if (r.id === 'name') return { label: 'NAME', tag: S.t.name.slice(0, 10) };
         if (r.id === 'save') return { label: 'SAVE', tag: S.file ? '' : 'NEW' };
-        if (r.id === 'open') return { label: 'OPEN', tag: open ? '< ' + open.name.slice(0, 11) + ' >' : 'NONE SAVED', off: !open };
+        if (r.id === 'open') return open ? { label: 'OPEN', val: open.name.slice(0, 9) } : { label: 'OPEN', tag: 'NONE', off: true };
         if (r.id === 'new') return { label: 'NEW ROAD' };
         if (r.id === 'test') return { label: 'TEST DRIVE', off: !an.ok };
         return { label: 'BACK' };
       });
-      panel(R, PX - 3, 20, PW + 6, ROWS.length * ROWH + 6);
-      menu(R, rows, S.focus === 'panel' ? S.row : -1, PX, 23, PW, { rowH: ROWH });
-      /* what the road is, and what the tool in hand does */
-      panel(R, 6, 151, R.w - 12, 19);
+      /* the menu is a window on the list: it keeps the row under the cursor (or the tool in hand) in sight */
+      const focusRow = S.focus === 'panel' ? S.row : Math.max(0, ROWS.findIndex(r => r.tool === S.tool));
+      S.top = Math.max(0, Math.min(Math.max(S.top || 0, focusRow - SHOWN + 1), Math.min(focusRow, ROWS.length - SHOWN)));
+      if (focusRow < S.top) S.top = focusRow;
+      panel(R, PX - 4, 16, PW + 8, SHOWN * ROWH + 7);
+      menu(R, rows.slice(S.top, S.top + SHOWN), S.focus === 'panel' ? S.row - S.top : -1, PX, 19, PW, { rowH: ROWH, heavy: false });
+      if (S.top > 0) arrow(R, PX + PW - 2, 17, -1);
+      if (S.top + SHOWN < ROWS.length) arrow(R, PX + PW - 2, 16 + SHOWN * ROWH + 3, 1);
+      /* what the road is, and what the tool in hand does: on a plate under it all */
+      panel(R, 4, 146, R.w - 8, 20);
       const say1 = G.t - S.msgT < 3 ? { s: S.msg, c: C.white } : an.ok ? { s: 'A ROAD: ' + an.info.cells + ' TILES, ' + Math.round(an.info.length) + ' M, ' + an.info.pickups + ' PICKUPS', c: C.green } : { s: (an.problems[0] && an.problems[0].text) || 'PAINT SOME ROAD', c: C.red };
-      wrap(say1.s, R.w - 24).slice(0, 1).forEach(l => left(R, l, 10, 154, say1.c, { outline: -1 }));
-      left(R, HELP[S.tool].slice(0, 72), 10, 162, C.dim, { outline: -1 });
+      left(R, fit(say1.s, R.w - 20), 10, 149, say1.c);
+      left(R, fit(HELP[S.tool], R.w - 20, { small: true }), 10, 158, C.dim, { small: true });
       hint(R, S.focus === 'grid' ? 'ARROWS  MOVE      ENTER  PLACE      1-9  TOOL      TAB  MENU      ESC  BACK' : 'UP DOWN  ROW      LEFT RIGHT  CHANGE      ENTER  DO      TAB  GRID');
+      void wrap;
     }
   };
 }

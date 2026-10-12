@@ -101,7 +101,7 @@ const c0 = fresh(), ev = { track: 'sorting', rating: 0, laps: 2, rivals: 4, seed
   const half = k => { let h = 0x811C9DC5, lit = 0; for (let y = k * HALF; y < (k + 1) * HALF; y++) for (let x = 0; x < w; x++) { h ^= b[y * w + x]; h = Math.imul(h, 16777619) >>> 0; if (b[y * w + x] > 0) lit++; } return { h, lit }; };
   const t = half(0), u = half(1);
   ok(t.h !== u.h && t.lit > 0.5 * w * HALF && u.lit > 0.5 * w * HALF, 'the picture is two different views, each with something in nearly all of it');
-  ok([0, 1].every(k => { let black = 0; const y = k * HALF + HALF - 13; for (let x = 270; x < 316; x++) if (b[y * w + x] === 0) black++; return black === 46; }), 'each half has its speed bar\'s black frame at the foot (a HUD of its own)');
+  ok([0, 1].every(k => { let black = 0; const y = k * HALF + HALF - 12; for (let x = 244; x < 312; x++) if (b[y * w + x] === 0) black++; return black === 68; }), 'each half has its speed bar\'s black frame at the foot (a HUD of its own)');
   /* a frame's cost, split against single */
   const ms = n => { const t0 = process.hrtime.bigint(); G.frame(1 / 60, n); return Number(process.hrtime.bigint() - t0) / 1e6 / n; };
   ms(10); const split = ms(60);

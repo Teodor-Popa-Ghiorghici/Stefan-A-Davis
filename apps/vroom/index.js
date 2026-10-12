@@ -9,8 +9,8 @@ export default {
   id: 'vroom',
   title: 'VROOM.EXE',
   icon: '',
-  width: 680,
-  height: 420,
+  width: 1000,                                         /* the picture is 320 x 180 and the window manager shows it at a whole multiple: 1000 x 600 is three times, 680 x 420 (what it was) only twice */
+  height: 600,
   resizable: true,
   fluid: true,
   async mount(root, ctx) {

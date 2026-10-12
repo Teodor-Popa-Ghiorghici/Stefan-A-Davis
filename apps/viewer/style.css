@@ -1,5 +1,16 @@
 .imgpane { flex: 1 1 auto; min-height: 0; width: 100%; background: #000000; display: flex; align-items: center; justify-content: center; overflow: hidden; color: #AAAAAA; }
-.imgpane img { max-width: 100%; max-height: 100%; object-fit: contain; image-rendering: pixelated; cursor: zoom-in; }
+.imgpane img { max-width: 100%; max-height: 100%; object-fit: contain; image-rendering: pixelated; cursor: default; user-select: none; -webkit-user-drag: none; }
 .imgpane.actual { overflow: auto; align-items: flex-start; justify-content: flex-start; }
-.imgpane.actual img { max-width: none; max-height: none; cursor: zoom-out; margin: auto; }
-.vbar { position: static; flex: none; flex-wrap: wrap; }
+.imgpane.actual img { max-width: none; max-height: none; margin: auto; }
+/* the bar is one row of one height, always: the arrows are in a group of their own at the left and never move, whatever the photograph or the window; what is the file's is in `.vtools` and scrolls if it must */
+.vbar { position: static; flex: none; flex-wrap: nowrap; height: 36px; box-sizing: border-box; gap: 8px; padding: 4px 6px; overflow: hidden; container-type: inline-size; }
+.vnav { flex: none; display: flex; align-items: center; gap: 6px; padding-right: 8px; border-right: 1px solid var(--sch-dim, #555555); min-width: 112px; }
+.vnav .vgo { min-width: 38px; height: 26px; padding: 0 10px; font-size: 22px; line-height: 20px; }
+.vnav .vcount { padding-left: 2px; min-width: 40px; }
+.vtools { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.vtools .appbtn { flex: none; height: 26px; }
+.vtools .vinfo { margin-left: auto; flex: none; }
+.vtools .vdel { margin-left: auto; }
+.vtools .vdel + .vinfo { margin-left: 8px; }
+/* the size of the photograph (or the video's frame rate) is shown when there is room for it after every button, and not at the cost of one */
+@container (max-width: 560px) { .vtools .vinfo { display: none; } }

@@ -12,7 +12,24 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const noSandbox = process.platform === 'linux' && (process.getuid?.() === 0 || process.env.CI);
 
+/* HOLYTRON_URL=http://127.0.0.1:8099/index.html (a static server on the repo root) runs the same script in plain Chromium, for a machine that has no Electron (a CI-less sandbox, a cloud session). Only what the page itself does is
+   tested that way: the templeos:// origin, the sandbox and the CSP are the shell's, and the scripts that check them (check-shell) always want the real thing. Chromium is found by PLAYWRIGHT_BROWSERS_PATH or
+   HOLYTRON_CHROME. */
+async function launchPlain(url) {
+  const { chromium } = await import('playwright');
+  const exe = process.env.HOLYTRON_CHROME || undefined;
+  const browser = await chromium.launch({ ...(exe ? { executablePath: exe } : {}), args: ['--no-sandbox'] });
+  console.log('[target] plain chromium at ' + url + ' (no Electron shell)');
+  return {
+    kind: 'chromium',
+    url,
+    async newPage(opts = {}) { return browser.newPage({ viewport: opts.viewport || { width: 1400, height: 900 } }); },
+    async close() { await browser.close().catch(() => {}); },
+  };
+}
+
 export async function launchTarget() {
+  if (process.env.HOLYTRON_URL) return launchPlain(process.env.HOLYTRON_URL);
   const kind = 'electron';
   console.log('[target] ' + (process.env.HOLYTRON_EXE ? 'electron (packaged: ' + process.env.HOLYTRON_EXE + ')' : 'electron (source)'));
 

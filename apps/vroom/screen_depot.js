@@ -4,7 +4,7 @@
 import { drawCar } from './car_art.js';
 import { stand, modelFor } from './showroom.js';
 import { roomDraw, boardMesh, frameMesh, frameAt, boardAt, ROWS, ROW_NAMES, BENCH } from './depot_scene.js';
-import { C, panel, mid, left, right, hint, head, wrap, tips } from './ui.js';
+import { C, panel, mid, left, right, hint, head, wrap, tips, textW, tri, fit } from './ui.js';
 import { nav } from './input.js';
 import { playerLook } from './events.js';
 import { ROUTE, TUNING, COSMETICS, MAX_LEVEL } from './parts.js';
@@ -63,7 +63,7 @@ export function create(G) {
       /* the camera slides along the wall with the cursor: close to the boards for the parts, back at the bench for the looks, so the truck is in the picture while it is painted */
       const PRE = [{ z: 1.05, y: 0.95, ly: 1.3 }, { z: 1.05, y: 0.88, ly: 1.12 }, { z: 0.42, y: 0.62, ly: 0.8 }][row], k = 1 - Math.exp(-1 / 60 * 6);
       cam.tx += ((row === 2 ? 0 : at.x) - cam.tx) * k; cam.z += (PRE.z - cam.z) * k; cam.y += (PRE.y - cam.y) * k; cam.ty += (PRE.ly - cam.ty) * k;
-      const px = cam.tx * 0.7, dx = cam.tx * 0.9 - px, dz = 2.4 - cam.z, view = { x: 0, y: 17, w: R.w, h: 95 };
+      const px = cam.tx * 0.7, dx = cam.tx * 0.9 - px, dz = 2.4 - cam.z, view = { x: 0, y: 28, w: R.w, h: 80 };
       R.view(view, { x: px, y: cam.y, z: cam.z, yaw: Math.atan2(dx, dz), pitch: Math.atan2(cam.ty - cam.y, Math.hypot(dx, dz)), roll: 0, fov: 0.85, near: 0.05, far: 30 });
       R.env({ sun: { dir: [0.1, 1, -0.3], i: 0.55 }, ambient: [0.5, 0.85], fog: { start: 8, end: 40 }, lights: [] });
       R.sky({ ramp: 7, horizon: 3, zenith: 3 });
@@ -78,31 +78,32 @@ export function create(G) {
       const spec = specOf(c.car), car = stand(spec, BENCH.x, BENCH.y + 0.01, BENCH.z, G.t * 0.5 + 0.6, G.t * 5);
       drawCar(R, modelFor(c.car, look.paint, look.livery, look.num), car, BENCH.y + 0.01, {});
       head(R, 'DEPOT', ROW_NAMES[row] + '   ' + (col + 1) + '/' + ROWS[row].length);
-      right(R, tips(c.tips), R.w - 6, 4, C.yellow, { outline: C.black });
+      right(R, tips(c.tips), R.w - 5, 4, C.yellow, { small: true });
       this.strip(R, c, it);
       hint(R, mode ? (mode === 'dial' ? 'LEFT RIGHT  WEIGHT      B  BUY MORE RANGE      ENTER  DONE' : 'LEFT RIGHT  LOOK      B  BUY      ENTER  TAKE IT      ESC  BACK') : 'ARROWS  MOVE      ENTER  BUY OR OPEN      ESC  BACK');
     },
-    /* the strip along the bottom: the name, what it does, and what it costs */
+    /* the strip along the bottom: the name, what it does, and what it costs, on a plate of its own */
     strip(R, c, it) {
-      const y = 112, h = 58;
+      const y = 111, h = 54, cx = R.w / 2;
       panel(R, 4, y, R.w - 8, h);
       if (it.kind === 'look') {
         const items = COSMETICS[it.of].items, own = mode === 'look' ? items[pre] : items.find(x => x.id === c.look[it.of]);
-        mid(R, COSMETICS[it.of].name, R.w / 2, y + 4, C.yellow, { big: true, outline: C.black });
-        const have = !!c.own.look[it.of][own.id];
-        mid(R, (mode === 'look' ? '< ' : '') + own.name + (mode === 'look' ? ' >' : ''), R.w / 2, y + 16, C.white, { outline: -1 });
-        mid(R, have ? (c.look[it.of] === own.id ? 'ON THE TRUCK' : 'YOURS') : own.price > 0 ? own.price + ' TIPS' : 'FOUND, NOT SOLD', R.w / 2, y + 26, have ? C.green : own.price > 0 && c.tips >= own.price ? C.yellow : C.red, { outline: -1 });
-        mid(R, mode === 'look' ? 'ENTER TAKES IT. B BUYS IT.' : 'ENTER TO LOOK AT THEM ALL.', R.w / 2, y + 40, C.dim, { outline: -1 });
+        mid(R, COSMETICS[it.of].name, cx, y + 5, C.yellow, { heavy: true });
+        const have = !!c.own.look[it.of][own.id], nm = fit(own.name, 220);
+        mid(R, nm, cx, y + 17, C.white);
+        if (mode === 'look') { const w = textW(nm); tri(R, cx - w / 2 - 10, y + 20, -1, C.yellow); tri(R, cx + w / 2 + 6, y + 20, 1, C.yellow); }
+        mid(R, have ? (c.look[it.of] === own.id ? 'ON THE TRUCK' : 'YOURS') : own.price > 0 ? own.price + ' TIPS' : 'FOUND, NOT SOLD', cx, y + 28, have ? C.green : own.price > 0 && c.tips >= own.price ? C.yellow : C.red);
+        mid(R, mode === 'look' ? 'ENTER TAKES IT. B BUYS IT.' : 'ENTER TO LOOK AT THEM ALL.', cx, y + 40, C.dim);
       } else {
         const def = it.kind === 'route' ? ROUTE[it.id] : TUNING[it.id], o = offer(c, it), lv = levelOf(c, it), maxLv = it.kind === 'route' ? 1 : MAX_LEVEL;
-        mid(R, def.name, R.w / 2, y + 4, C.yellow, { big: true, outline: C.black });
-        wrap(def.blurb, R.w - 60).forEach((ln, i) => mid(R, ln, R.w / 2, y + 16 + i * 7, C.white, { outline: -1 }));
-        for (let i = 0; i < maxLv; i++) { R.rect(R.w / 2 - maxLv * 6 + i * 12, y + 34, 10, 4, i < lv ? C.green : C.mute); }
+        mid(R, def.name, cx, y + 5, C.yellow, { heavy: true });
+        wrap(def.blurb, R.w - 28).slice(0, 2).forEach((ln, i) => mid(R, ln, cx, y + 16 + i * 8, C.white));
+        for (let i = 0; i < maxLv; i++) R.rect(cx - maxLv * 7 + i * 14, y + 34, 12, 5, i < lv ? C.green : C.rule);
         const price = o && o.price != null ? o.price : null;
-        mid(R, price == null ? 'ALL FITTED' : price + ' TIPS' + (c.tips < price ? '   NEED ' + (price - c.tips) + ' MORE' : ''), R.w / 2, y + 42, price == null ? C.green : c.tips >= price ? C.yellow : C.red, { outline: -1 });
-        if (it.id === 'ballast') mid(R, 'DIAL ' + (c.ballast > 0 ? '+' : '') + c.ballast + ' OF +-' + c.own.tune.ballast, R.w / 2, y + 50, C.dim, { outline: -1 });
+        mid(R, price == null ? 'ALL FITTED' : price + ' TIPS' + (c.tips < price ? '   NEED ' + (price - c.tips) + ' MORE' : ''), cx, y + 43, price == null ? C.green : c.tips >= price ? C.yellow : C.red, { heavy: true });
+        if (it.id === 'ballast') right(R, 'DIAL ' + (c.ballast > 0 ? '+' : '') + c.ballast + ' OF +-' + c.own.tune.ballast, R.w - 10, y + 43, C.dim, { small: true });
       }
-      if (msg && G.t - msgT < 2.5) mid(R, msg, R.w / 2, y - 8, C.white, { outline: C.black });
+      if (msg && G.t - msgT < 2.5) { const w = textW(msg) + 14; panel(R, cx - w / 2, y - 14, w, 12, { edge: C.yellow }); mid(R, msg, cx, y - 11, C.white); }
     }
   };
 }
