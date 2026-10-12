@@ -1,12 +1,12 @@
-/* THE EGGS SHELF: what Dave sells once he has nothing else (kernel/eggs_core.js says what an egg is and costs). One big card instead of a grid: the egg, how many of the forty are
+/* THE EGGS SHELF: what Dave sells once he has nothing else (kernel/eggs_core.js says what an egg is and costs). One big card instead of a grid: the egg, how many are
    yours as a clutch, the price of the next, and what every one of them has reached so far. Pure drawing and text; the shop calls `fillEggs` and answers what it says. */
-import { MAX, PER_EGG, DIALS } from '../../kernel/eggs_core.js';
+import { MAX, PER_EGG, EXTRA, DIALS, percent } from '../../kernel/eggs_core.js';
 
 export const EGG_OPEN = [
   'YOU HAVE BOUGHT EVERYTHING. EVERYTHING. THERE IS ONE THING LEFT, AND I KEPT IT IN A BOX. IT IS AN EGG.',
   'GOLD. SUN. EGG. IT DOES NOT HATCH. IT GIVES: HALF A PER CENT TO EVERYTHING THAT CAN TAKE IT.',
   'EACH ONE COSTS MORE THAN THE LAST. THAT IS NOT GREED. THAT IS THE LAW OF EGGS.',
-  'FORTY IS ALL I HAVE. I ONLY LAID FORTY. DO NOT ASK WHO LAID THEM.'
+  'THERE IS NO LAST ONE. I DO NOT KNOW WHERE THEY COME FROM. DO NOT ASK WHO LAYS THEM.'
 ];
 export const EGG_BOUGHT = [
   'IT IS WARM. IT IS ALREADY IN THE WIRING. SOMETHING IN EVERY GAME IS A LITTLE BETTER AND NONE OF THEM CAN SAY WHAT.',
@@ -14,7 +14,7 @@ export const EGG_BOUGHT = [
   'THE NEXT ONE IS DEARER. I AM SORRY. I AM NOT SORRY. I AM A LITTLE SORRY.',
   'ANOTHER ONE. THE GAMES NOTICED. THE GARDEN NOTICED FIRST.'
 ];
-export const EGG_LAST = 'THAT IS ALL FORTY. THE CLUTCH IS FULL. I HAVE NOTHING LEFT TO SELL YOU. I AM GOING TO CRY IN THE BACK.';
+export const EGG_LAST = 'THAT IS FORTY. A FULL CLUTCH. THE HENS DO NOT KNOW WHEN TO STOP AND NEITHER DO I. THE NEXT ONE IS DEARER. I AM GOING TO CRY IN THE BACK.';
 export const EGG_BROKE = (price, have) => 'THE EGG IS ' + price + ' SUN. YOU HAVE ' + have + '. THE EGG IS NOT FLEXIBLE.';
 const pick = a => a[Math.floor(Math.random() * a.length)];
 
@@ -52,27 +52,26 @@ function drawClutch(cv, n) {
 export function fillEggs(host, o) {
   const E = window.Eggs, el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
   host.innerHTML = '';
-  const n = E.count(), next = E.next(), have = window.Economy.balance(), full = E.full();
+  const n = E.count(), next = E.next(), have = window.Economy.balance();
   const card = el('div', 'eggcard');
   const cv = el('canvas', 'eggpic'); cv.width = 80; cv.height = 104; drawEgg(cv, n > 0);
   const body = el('div', 'eggbody');
-  body.append(el('div', 'eggname', 'THE GOLDEN SUN EGG'), el('div', 'eggcount', n + ' OF ' + MAX + ' ARE YOURS'));
+  body.append(el('div', 'eggname', 'THE GOLDEN SUN EGG'), el('div', 'eggcount', n + (n === 1 ? ' EGG IS' : ' EGGS ARE') + ' YOURS' + (n > MAX ? '  (' + MAX + ' IN THE CLUTCH, ' + (n - MAX) + ' MORE)' : '')));
   const clutch = el('canvas', 'eggclutch'); clutch.width = 240; clutch.height = 40; drawClutch(clutch, n); body.appendChild(clutch);
-  const buy = el('div', 'eggbuy' + (full ? ' done' : have < next ? ' broke' : ''), full ? 'THE CLUTCH IS FULL' : 'BUY THE NEXT ONE: ' + next + ' SUN');
+  const buy = el('div', 'eggbuy' + (have < next ? ' broke' : ''), 'BUY THE NEXT ONE: ' + next + ' SUN');
   buy.addEventListener('mousedown', ev => {
     ev.stopPropagation();
-    if (full) { o.say(EGG_LAST); return; }
     if (have < next) { o.say(EGG_BROKE(next, have)); if (o.snd && o.snd.deny) o.snd.deny(); return; }
-    if (E.buy()) { if (o.snd && o.snd.purchase) o.snd.purchase(); o.say(E.full() ? EGG_LAST : pick(EGG_BOUGHT)); o.onBuy(); }
+    if (E.buy()) { if (o.snd && o.snd.purchase) o.snd.purchase(); o.say(E.count() === MAX ? EGG_LAST : pick(EGG_BOUGHT)); o.onBuy(); }
   });
   body.appendChild(buy);
   card.append(cv, body);
   host.appendChild(card);
   const table = el('div', 'eggtable');
-  table.appendChild(el('div', 'eggh', 'WHAT EVERY EGG REACHES   +' + PER_EGG + '% EACH, ' + (n * PER_EGG) + '% NOW, ' + (MAX * PER_EGG) + '% AT THE MOST'));
+  table.appendChild(el('div', 'eggh', 'WHAT EVERY EGG REACHES   +' + PER_EGG + '% EACH FOR THE FIRST ' + MAX + ', THEN +' + EXTRA + '% EACH FOR EVER. +' + percent(n).toFixed(1).replace(/\.0$/, '') + '% NOW'));
   DIALS.forEach(d => {
     const row = el('div', 'eggrow');
-    row.append(el('b', '', d.name), el('i', '', '+' + (n * PER_EGG) + '%'), el('span', '', d.text));
+    row.append(el('b', '', d.name), el('i', '', '+' + percent(n).toFixed(1).replace(/\.0$/, '') + '%'), el('span', '', d.text));
     table.appendChild(row);
   });
   host.appendChild(table);
