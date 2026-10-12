@@ -12,6 +12,9 @@ import { createInput } from './input.js';
 import { drawView } from './scene.js';
 import { drawHud, drawResults, drawPause } from './hud.js';
 import { STEP } from './tune.js';
+import { drunk } from '../drunk_scope.js';
+import { trophies } from '../trophy_scope.js';
+import { watch } from './drunk_drive.js';
 
 export function mountGame(root, ctx) {
   const wrap = document.createElement('div');
@@ -30,6 +33,7 @@ export function mountGame(root, ctx) {
   const cam = createCamera(); cam.calm = calmQ();
   const onCalm = () => { cam.calm = calmQ(); };
   window.addEventListener('calm-changed', onCalm);
+  const TR = trophies('vroom'), DR = drunk(), look = watch((n, p) => TR.emit(n, p));
   const G = { track: null, race: null, human: null, paused: false, sel: 0, acc: 0, fps: 0 };
   const input = createInput(cv, { blur: () => { if (G.race && G.race.state !== 'done' && G.race.state !== 'over') G.paused = true; } });
 
@@ -68,6 +72,7 @@ export function mountGame(root, ctx) {
       let n = 0;
       while (G.acc >= STEP && n < 6) {
         r.step(input.drive());
+        look(r, G.human, { stage: DR.stage(), out: DR.out() });
         for (const e of r.events) {
           if (e.type === 'hit-wall' && e.car === G.human.i) cam.shake(Math.min(0.03, e.speed * 0.003));
           if (e.type === 'land' && e.car === G.human.i) cam.shake(Math.min(0.03, e.speed * 0.004));

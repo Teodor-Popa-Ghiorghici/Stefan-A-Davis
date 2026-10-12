@@ -92,7 +92,7 @@ const mem = () => { let saved = null; const paid = []; return { saved: () => sav
 
 /* ---- the catalogue ------------------------------------------------------------------------------------------------------------------------------------ */
 const PREFIX = { system: 'sys_', meta: 'meta_', sweeper: 'sw_', solitaire: 'sol_', aftere: 'ae_', garden: 'gd_', cook: 'ck_', magen: 'mg_', standbattle: 'sb_', bekkedal: 'bk_', bottle: 'bt_',
-  elephant: 'el_', crayon: 'cr_', garage: 'gr_', hifi: 'hf_', notes: 'nt_', tools: 'tl_', holyc: 'hc_' };
+  elephant: 'el_', crayon: 'cr_', garage: 'gr_', hifi: 'hf_', notes: 'nt_', tools: 'tl_', holyc: 'hc_', vroom: 'vr_' };
 const M = mem(), T = createTrophies(M.env);
 registerAll(T);
 const all = [...T.defs.values()];
