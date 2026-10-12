@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 /* node scripts/make-lines.mjs -- count the lines of the machine itself and write assets/lines.json, which the LINES command and Charter.DD's button read.
    The Charter allowed 100,000 lines for everything; this says how the machine is doing against it, honestly. What counts is what ships and runs: index.html,
-   kernel/, apps/ and electron/, as .js .cjs .mjs .css .html, without the dev-only checks (`*_check*.js`, the harnesses). Run it again before a release. */
+   kernel/, apps/ and electron/, as .js .cjs .mjs .css .html, without the dev-only checks (`*_check*.js`, the harnesses, the budget bots, the renderer's test town: the files electron-builder.yml leaves out of the package). Run it again before a release. */
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, dirname, resolve, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const EXT = new Set(['.js', '.cjs', '.mjs', '.css', '.html']);
-const SKIP = /(_check[a-z_]*\.js$|^check_kit\.js$|^headless_harness\.js$|^budget_bot\.js$)/;
+const SKIP = /(_check[a-z_]*\.js$|^check_kit\.js$|^headless_harness\.js$|^budget_[a-z_]*\.js$|^raster_scene\.js$)/;
 
 const count = f => { const s = readFileSync(f, 'utf8'); let n = 0; for (let i = 0; i < s.length; i++) if (s.charCodeAt(i) === 10) n++; return n + (s.length && s.charCodeAt(s.length - 1) !== 10 ? 1 : 0); };
 function walk(dir, out) {
