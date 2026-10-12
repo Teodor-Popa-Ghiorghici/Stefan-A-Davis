@@ -18,7 +18,7 @@ import { FIELD, tierProfile } from './ai_profiles.js';
 import { liveryFor, liveryOf, liveryDiff, PLAYER } from './livery.js';
 import { TIERS } from './ai_profiles.js';
 import { createRaster, W, H } from './raster.js';
-import { drawView } from './scene.js';
+import { drawView } from './scene.js'; import { FAR } from './view.js';
 
 const S = suite('cars_check'), { ok } = S;
 const T = buildTrack(TRACKS.sorting);
@@ -181,7 +181,7 @@ const SIL = {}; CAR_IDS.forEach(id => { SIL[id] = silhouettes(id); });
 {
   const R = createRaster(), T2 = T, field = [], f8 = fieldFor(0, 7, 3).concat([{ car: 'courier', paint: PLAYER.paint, livery: liveryFor(PLAYER), num: PLAYER.num }]);
   f8.forEach((e, i) => { const g = T2.grid[i], spec = specOf(e.car, 0), car = { p: new Float64Array([g.x, g.y + spec.comY, g.z]), q: new Float64Array([Math.cos(g.yaw / 2), 0, Math.sin(g.yaw / 2), 0]), R: new Float64Array([Math.cos(g.yaw), 0, Math.sin(g.yaw), 0, 1, 0, -Math.sin(g.yaw), 0, Math.cos(g.yaw)]), spec, wheels: spec.wheels.map(w => ({ comp: w.load / w.k, spin: 0 })), steer: 0, v: new Float64Array(3), ghost: 0 }; field.push({ car, model: carModel(e.car, e.paint, e.livery) }); });
-  const g = T2.grid[0], cam = { x: g.x - Math.sin(g.yaw) * 2.2, y: g.y + 0.9, z: g.z - Math.cos(g.yaw) * 2.2, yaw: g.yaw, pitch: -0.25, fov: 1.0, near: 0.05, far: 130 };
+  const g = T2.grid[0], cam = { x: g.x - Math.sin(g.yaw) * 2.2, y: g.y + 0.9, z: g.z - Math.cos(g.yaw) * 2.2, yaw: g.yaw, pitch: -0.25, fov: 1.0, near: 0.05, far: FAR };
   const times = [];
   for (let k = 0; k < 30; k++) { const t0 = process.hrtime.bigint(); drawView(R, { x: 0, y: 0, w: W, h: H }, T2, field, cam); times.push(Number(process.hrtime.bigint() - t0) / 1e6); }
   times.sort((a, b) => a - b);

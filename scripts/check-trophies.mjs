@@ -9,8 +9,9 @@
 import { createTrophies, TIER_PAY, MASTERY_PAY } from '../kernel/trophies_core.js';
 import { COMPLETION, masteryPay, MASTERY_CAP, rewardsByTrophy, applyRewards, rewardText } from '../kernel/trophy_rewards.js';
 import { FRAMES, LOGOS, CURSORS, SCHEMES, ELEPHANT, DRINKS, forSale } from '../kernel/cos_data.js';
-import { registerAll, NAMES, APPS } from '../kernel/trophies_defs.js';
+import { registerAll, registerVroom, NAMES, APPS } from '../kernel/trophies_defs.js';
 import { t, rule, secret } from '../apps/trophy_kit.js';
+import { PAY as VROOM_PAY } from '../apps/vroom/trophies.js';
 import { areas, cards, totals, sorted } from '../apps/trophies/model.js';
 import { summary as cliSummary, findArea, ofArea, ofOne } from '../kernel/trophies_cli.js';
 import { SCENES_TOTAL } from '../apps/bottle/trophies.js';
@@ -74,6 +75,9 @@ const mem = () => { let saved = null; const paid = []; return { saved: () => sav
   /* backfill is silent: no SUN, no card */
   const M4 = mem(), T4 = createTrophies(M4.env); T4.register('x', [t('x_a', 'A', 'B', 'P', 'a.', rule.on('a'))]);
   ok(T4.backfill(['x_a', 'nope']) === 1 && T4.earned('x_a') && M4.paid.length === 0 && T4.pendingCards.length === 0, 'backfill awards what is proved, silently, and pays nothing');
+  /* a catch-up (a milestone passed before its trophy could be reached) pays once, quietly, and never twice */
+  const M4b = mem(), T4b = createTrophies(M4b.env); T4b.register('x', [t('x_a', 'A', 'B', 'P', 'a.', rule.on('a'))]);
+  ok(T4b.backfill(['x_a'], true) === 1 && M4b.paid.length === 1 && T4b.backfill(['x_a'], true) === 0 && M4b.paid.length === 1, 'a catch-up grants what was passed, pays it once, and a second boot grants nothing');
   /* the calendar */
   const M5 = mem(), T5 = createTrophies(M5.env); T5.register('system', [t('s_d3', 'D3', 'B', 'P', 'Three days.', rule.stat('dayStreak', 3)), t('s_d7', 'D7', 'S', 'P', 'Seven days.', rule.stat('dayStreak', 7))]);
   T5.openDay(day(1), 10, 1); T5.openDay(day(2), 10, 2); ok(T5.dayStreak() === 2 && !T5.earned('s_d3'), 'two days are two');
@@ -92,13 +96,13 @@ const mem = () => { let saved = null; const paid = []; return { saved: () => sav
 
 /* ---- the catalogue ------------------------------------------------------------------------------------------------------------------------------------ */
 const PREFIX = { system: 'sys_', meta: 'meta_', sweeper: 'sw_', solitaire: 'sol_', aftere: 'ae_', garden: 'gd_', cook: 'ck_', magen: 'mg_', standbattle: 'sb_', bekkedal: 'bk_', bottle: 'bt_',
-  elephant: 'el_', crayon: 'cr_', garage: 'gr_', hifi: 'hf_', notes: 'nt_', tools: 'tl_', holyc: 'hc_' };
+  elephant: 'el_', crayon: 'cr_', garage: 'gr_', hifi: 'hf_', notes: 'nt_', tools: 'tl_', holyc: 'hc_', vroom: 'vr_' };
 const M = mem(), T = createTrophies(M.env);
 registerAll(T);
 const all = [...T.defs.values()];
 const plain = v => v && typeof v === 'object' ? v.en : String(v);
 const per = {};
-all.forEach(d => {
+const checkDef = (d, per) => {
   const tag = d.id;
   ok(d.id === d.id.toLowerCase() && /^[a-z0-9_]+$/.test(d.id), tag + ': an id in lower case');
   ok(d.mastery ? d.id === 'mastery_' + d.mastery : d.id.indexOf(PREFIX[d.app] || '??') === 0, tag + ': an id that begins with its game (' + (PREFIX[d.app] || d.app) + ')');
@@ -116,7 +120,19 @@ all.forEach(d => {
   ok(d.legacy || d.pay === (d.mastery ? masteryPay(d.size()) : d.pay), tag + ': pays');
   (per[d.app] = per[d.app] || { B: 0, S: 0, G: 0, n: 0, sun: 0, mirrors: 0, secrets: 0 });
   if (d.legacy) per[d.app].mirrors++; else { per[d.app][d.tier]++; per[d.app].n++; per[d.app].sun += d.pay; if (d.secret) per[d.app].secrets++; }
-});
+};
+all.forEach(d => checkDef(d, per));
+/* VROOM's trophies are in the ledger only once its gate is open (kernel/vroom_gate_core.js), so they are held to the same rules in a ledger of their own where it is: every rule above, the names and descriptions
+   unique against the whole ledger, and the rumour of each secret */
+{
+  const TV = createTrophies(mem().env); registerAll(TV); registerVroom(TV);
+  const own = [...TV.defs.values()].filter(d => d.app === 'vroom'), seenD = new Map(), seenN = new Map(), extra = {};
+  own.forEach(d => checkDef(d, extra));
+  [...TV.defs.values()].filter(d => !d.legacy).forEach(d => { const k = plain(d.desc).toLowerCase(), nm = plain(d.name); if (seenD.has(k)) ok(false, d.id + ' says the same as ' + seenD.get(k)); seenD.set(k, d.id); if (seenN.has(nm)) ok(false, d.id + ' has the same name as ' + seenN.get(nm)); seenN.set(nm, d.id); });
+  ok(own.length > 40 && TV.defs.has('mastery_vroom') && extra.vroom && extra.vroom.n >= 40 && extra.vroom.secrets >= 2, 'VROOM: forty trophies and more, a seal, and a few secrets, all in the ledger once the gate is open (' + (extra.vroom && extra.vroom.n) + ')');
+  Object.keys(VROOM_PAY).forEach(id => { const d = TV.get(id); ok(!!d && d.epic && d.pay === VROOM_PAY[id] && d.pay >= TIER_PAY[d.tier] * 2, id + ': a long one pays well over its tier (' + (d && d.pay) + ')'); });
+  ok(TV.total() > T.total() + 40 && TV.apps.indexOf('vroom') >= 0 && T.apps.indexOf('vroom') < 0, 'and none of them in it while the gate is shut');
+}
 {
   const seen = new Map();
   all.filter(d => !d.legacy).forEach(d => { const k = plain(d.desc).toLowerCase(); if (seen.has(k)) ok(false, d.id + ' says the same as ' + seen.get(k)); seen.set(k, d.id); });

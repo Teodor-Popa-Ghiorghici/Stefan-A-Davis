@@ -24,16 +24,17 @@ const DEPOT = { row: ['ArrowUp', 'ArrowDown'], col: ['ArrowLeft', 'ArrowRight'] 
   G.press('Enter'); ok(G.screens.name === 'cups', 'ENTER on the first row goes to the championship');
   G.press('Escape'); ok(G.screens.name === 'title', 'and ESC comes back');
   G.go('title', { sel: 0 }); G.press('ArrowDown'); G.press('Enter'); ok(G.screens.name === 'single', 'the second row is a single race');
-  G.go('title', { sel: 7 }); G.press('Enter'); ok(G.screens.name === 'depot', 'the eighth row is the depot');
+  for (const [row, name] of [[6, 'splitmenu'], [7, 'maker']]) { G.go('title', { sel: row }); G.press('Enter'); G.frame(1 / 60, 2); ok(G.screens.name === name && clean(G), 'row ' + (row + 1) + ' is ' + name + ' and it draws'); }
+  G.go('title', { sel: 9 }); G.press('Enter'); ok(G.screens.name === 'depot', 'the tenth row is the depot');
   for (const [row, mode] of [[2, 'tt'], [3, 'practice'], [4, 'lastmile'], [5, 'clockwork']]) { G.go('title', { sel: row }); G.press('Enter'); ok(G.screens.name === 'modes' && G.screens.screen.state().S.mode === mode && clean(G), 'row ' + (row + 1) + ' is ' + mode.toUpperCase() + ' (the modes menu, drawn in the palette)'); G.press('Escape'); }
-  G.go('title', { sel: 8 }); G.press('Enter'); ok(G.screens.name === 'garage', 'the ninth is the garage');
-  G.go('title', { sel: 0 }); G.press('ArrowUp'); ok(G.screens.screen.state().sel === 9, 'UP from the top wraps to QUIT (which closes the window; here there is none to close)');
+  G.go('title', { sel: 10 }); G.press('Enter'); ok(G.screens.name === 'garage', 'the eleventh is the garage');
+  G.go('title', { sel: 0 }); G.press('ArrowUp'); ok(G.screens.screen.state().sel === 11, 'UP from the top wraps to QUIT (which closes the window; here there is none to close)');
 }
 /* ---- the stunt yard ---- */
 {
   const c = C.fresh(), G = rig(c);
-  G.go('title', { sel: 6 }); G.press('Enter');
-  ok(G.screens.name === 'race' && G.live && G.live.s.kind === 'yard' && G.live.race.field.length === 1 && G.live.race.pickups.spots.length === 0, 'row 7 is the STUNT YARD: one car in the yard, no rivals, no pickups');
+  G.go('title', { sel: 8 }); G.press('Enter');
+  ok(G.screens.name === 'race' && G.live && G.live.s.kind === 'yard' && G.live.race.field.length === 1 && G.live.race.pickups.spots.length === 0, 'row 9 is the STUNT YARD: one car in the yard, no rivals, no pickups');
   G.frame(1 / 60, 20); ok(clean(G), 'the yard draws (every pixel a palette byte)');
   const S = G.live, car = S.human.car, T = S.s.track, at = st => S.race.world.place(car, { x: st.x, y: st.y - car.spec.comY - 0.004, z: st.z, yaw: 0 });
   at(T.stars[4]); G.frame(1 / 60, 3);
@@ -41,7 +42,7 @@ const DEPOT = { row: ['ArrowUp', 'ArrowDown'], col: ['ArrowLeft', 'ArrowRight'] 
   const tips = c.tips; at(T.stars[4]); G.frame(1 / 60, 3); ok(c.tips === tips, 'the same star twice pays nothing');
   G.press('Escape'); ok(S.paused, 'ESC pauses the yard'); G.press('ArrowDown', 'ArrowDown'); G.press('Enter');
   ok(G.screens.name === 'title', 'QUIT from the pause menu goes back to the title (a yard is not a cup: nothing is lost)');
-  G.go('title', { sel: 6 }); G.press('Enter');
+  G.go('title', { sel: 8 }); G.press('Enter');
   ok(G.live.race.starsGot.has(4) && G.live.race.starsGot.size === 1, 'and a new run does not hang the star that is found again');
   const S2 = G.live, car2 = S2.human.car; let news = 0;
   for (const st of S2.s.track.stars) { S2.race.world.place(car2, { x: st.x, y: st.y - car2.spec.comY - 0.004, z: st.z, yaw: 0 }); G.frame(1 / 60, 3); }

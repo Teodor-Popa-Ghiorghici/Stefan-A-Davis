@@ -31,6 +31,7 @@ real pay tables through a model of an hour of playing it and fails if the answer
 | Stand Battle | a won arcade match 100 + 30 for each stage already cleared (+25 a flawless round), a ladder cleared +1,000, versus CPU 80, survival 60 a win, time attack 600 (+300 under four minutes), all times the tier (0.5 / 1 / 2); nothing for a fight lost or for two people fighting each other. A NORMAL ladder is ~20 minutes (`budget_bot.js`); the last half hour's payments each take 10 % off the next, so three ladders an hour are ~2,800 | ~2,800 |
 | Dungeon Sweeper, plain | SHALLOWS 80 / THE HIVE 400 / THE DEEP 1,200 + a time bonus; each win of a size in the last half hour pays 10 % less (floor 15 %) | 2,500 / 5,200 / 4,300 for an expert's SHALLOWS |
 | Dungeon Sweeper, the descent | four SUN per geo a room is worth, +100 for a first clear (+400 for a guardian), +25 % for no larva hatched, 40 % of the room on a repeat. A first walk is ~11,000 SUN | ~2,900 first walk, ~1,300 again |
+| VROOM (secret until the 200th trophy) | paid once for what is done once, from the career (`apps/vroom/sun.js`): a cup passed 500 / 900 / 1,300 / 2,000, won +40 %, swept +20 %; the first win on a road in each of its four versions 100 to 300 by rating (half for a variant); a hidden star 200 to 400; a yard star 50 (500 for all twenty); a challenge time 80 to 240; LAST MILE 120 a road; CLOCKWORK 400. A single race pays only the game's own TIPS. The championship is ~8,000 in 2.9 hours, everything ~21,500 in about nine | ~2,800 championship, ~2,400 everything |
 
 ## How a game is kept honest
 

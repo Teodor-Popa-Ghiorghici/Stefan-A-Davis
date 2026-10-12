@@ -7,7 +7,7 @@ import { registerAll, NAMES } from './trophies_defs.js';
 import { makeToast } from './trophies_toast.js';
 import { wire } from './trophies_wire.js';
 import { backfill } from './trophies_backfill.js';
-import { onTrophy, sync as syncProps, folders as propFolders, FOLDER_OF } from './trophy_props.js';
+import { onTrophy, sync as syncProps, folders as propFolders, folderOf } from './trophy_props.js';
 import { rewardsByTrophy, rewardText } from './trophy_rewards.js';
 import { spriteFor } from './icons_dom.js';
 import { registry } from './registry.js';
@@ -54,7 +54,7 @@ Trophies.rewardList = () => {
   return out;
 };
 /* the folders a mastery leaves on the desktop: [{ game, folder, name, mastery, earned, made }] */
-Trophies.propList = () => { const m = propFolders(); return Object.keys(FOLDER_OF).map(g => ({ game: g, folder: FOLDER_OF[g][0], name: FOLDER_OF[g][1], mastery: 'mastery_' + g, earned: Trophies.earned('mastery_' + g), made: m[g] || 0 })); };
+Trophies.propList = () => { const m = propFolders(), F = folderOf(); return Object.keys(F).map(g => ({ game: g, folder: F[g][0], name: F[g][1], mastery: 'mastery_' + g, earned: Trophies.earned('mastery_' + g), made: m[g] || 0 })); };
 Trophies.openLedger = id => openWindow('trophies', id ? { focus: id } : {}).catch(console.error);
 
 let started = false;

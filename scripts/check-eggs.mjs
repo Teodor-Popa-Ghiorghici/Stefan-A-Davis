@@ -12,10 +12,10 @@ const mem = () => { let v = null; return { get: () => v, set: s => { v = s; } };
 
 /* what an egg is */
 ok(MAX === 40 && PER_EGG === 0.5, 'forty eggs, half a per cent each');
-ok(mult(0) === 1 && mult(1) === 1.005 && mult(MAX) === 1.2 && mult(MAX + 10) === 1.2 && mult(-3) === 1, 'a clutch is worth up to a fifth and never less than nothing');
-ok(percent(MAX) <= 20, 'minor: a full clutch is at most +20%');
+ok(mult(0) === 1 && mult(1) === 1.005 && Math.abs(mult(MAX) - 1.2) < 1e-9 && mult(MAX + 10) > 1.2 && mult(MAX + 10) < 1.22 && mult(-3) === 1, 'a clutch of forty is a fifth, each egg after adds a little, and never less than nothing');
+ok(percent(MAX) === 20 && percent(MAX + 100) === 30 && percent(1000) < 120, 'minor: forty is +20% and every egg after is a tenth of a per cent');
 ok(price(1) === 4820 && price(MAX) === 4000 + 800 * 40 + 20 * 1600, 'the first costs 4,820, the fortieth ' + price(MAX));
-let up = true; for (let i = 2; i <= MAX; i++) if (price(i) <= price(i - 1)) up = false;
+let up = true; for (let i = 2; i <= 500; i++) if (price(i) <= price(i - 1)) up = false;
 ok(up, 'each is dearer than the last');
 const all = totalPrice(1, MAX);
 ok(all > 800000 && all < 2000000, 'a whole clutch is ' + all + ' SUN: a long road, not an afternoon');
@@ -37,10 +37,12 @@ ok(DIALS.every(d => d.name === d.name.toUpperCase() && d.text.length > 10), 'eve
   ok(E.boost('holyc', 10) === 10 && E.boost('holyc', 400) === 402, 'whole SUN, and never less than it was');
   open = false; ok(E.open(), 'a clutch that was started stays open');
   for (let i = 1; i < MAX; i++) E.buy(() => true);
-  ok(E.count() === MAX && E.full() && E.next() === 0 && E.buy(() => true) === 0, 'forty, and no more');
+  ok(E.count() === MAX && !E.full() && E.next() === price(MAX + 1), 'forty, and the forty-first is on sale');
+  for (let i = 0; i < 60; i++) E.buy(() => true);
+  ok(E.count() === MAX + 60 && E.next() > price(MAX), 'no cap: a hundred, and dearer still');
   const E2 = createEggs({ get: io.get, set: io.set }, {});
-  ok(E2.count() === MAX, 'they are remembered');
-  const E3 = createEggs({ get: () => '{"v":1,"n":9999}', set: () => {} }, {}); ok(E3.count() === MAX, 'a damaged save cannot hold more than there are');
+  ok(E2.count() === MAX + 60, 'they are remembered');
+  const E3 = createEggs({ get: () => '{"v":1,"n":9999}', set: () => {} }, {}); ok(E3.count() === 9999, 'a big clutch is kept as it is');
   const E4 = createEggs({ get: () => 'not json', set: () => {} }, {}); ok(E4.count() === 0, 'a save that will not read is none');
 }
 

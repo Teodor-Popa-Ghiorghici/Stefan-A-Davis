@@ -19,7 +19,7 @@ import { TROPHIES as HIFI } from '../apps/hifi/trophies.js';
 import { TROPHIES as NOTES } from '../apps/notes/trophies.js';
 import { TROPHIES as TOOLS } from '../apps/tools/trophies.js';
 import { TROPHIES as HOLYC, backfill as holycBackfill } from '../apps/holyc/trophies.js';
-import { TROPHIES as VROOM } from '../apps/vroom/trophies.js';
+import { TROPHIES as VROOM, PAY as VROOM_PAY } from '../apps/vroom/trophies.js';
 import { isOpen as vroomOpen } from './vroom_gate_core.js';
 
 /* each app's backfill reader: (read(key) -> object|null, T) -> [trophy ids already earned] */
@@ -53,6 +53,7 @@ export function registerVroom(T, list) {
   const own = list || VROOM;
   if (!own.length || T.apps.indexOf('vroom') >= 0) return false;
   T.register('vroom', own);
+  Object.keys(VROOM_PAY).forEach(id => { const d = T.get(id); if (d) { d.pay = VROOM_PAY[id]; d.epic = true; } });
   T.finalize([{ app: 'vroom', name: NAMES.vroom }], masteryPay);
   applyRewards(T);
   return true;

@@ -10,6 +10,7 @@ import { kitOf, carFor } from './career.js';
 import { raceOf } from './cups.js';
 import { simParts, batteryMods } from './parts.js';
 import { standings } from './cups.js';
+import { fitted } from './user_roads.js';
 
 /* the paints of the garage (parts.js COSMETICS.paint) as palette bytes. None is a rival's. */
 export const PAINT = {
@@ -60,8 +61,22 @@ export function setup(c, ev, proxy) {
   }
   const T = trackFor(track, v);
   const you = playerEntry(c, car, proxy ? { human: false, proxy: true, profile: proxy.profile } : null);
-  const entries = gridOrder(rivals, you, order);
+  const entries = gridOrder(rivals, you, order).map(e => fitted(T, e));                 /* (a road of the player's own is raced in what it needs) */
   return { track: T, entries, laps: ev.laps || T.laps, rating, seed, kind: ev.kind, trackId: track, v, cup, n: entries.length, swapped };
+}
+/* THE 2P SPLIT (docs/vroom/plan.md section 9): two people at one keyboard, each in a car of the garage (P1 in the car chosen, P2 in `ev.car2`, in another paint), racing a road with `ev.rivals` CPU cars (0 to 6) of the
+   rating. A single race in every way but that there are two humans in the field, side by side in the middle of the grid; nothing is paid, kept or earned in it (the garage is one garage, and a second person's
+   win must not be a first person's money). ev: { track, v?, rating, laps?, rivals?, seed?, car1?, car2? } */
+export function setupSplit(c, ev) {
+  const track = ev.track, v = ev.v || 'f', rating = ev.rating | 0, seed = (ev.seed >>> 0) || 1;
+  const n = Math.max(0, Math.min(6, ev.rivals == null ? 4 : ev.rivals | 0)), start = seed % RIVALS.length, ids = [];
+  for (let k = 0; k < n; k++) ids.push(RIVALS[(start + k) % RIVALS.length].id);
+  const rivals = entriesFor(ids, rating, start).map((e, k) => Object.assign(e, { parts: rivalParts(rating, k) }));
+  const p1 = playerEntry(c, ev.car1 || c.car, { id: 'p1', name: 'P1' });
+  const look2 = playerLook({ paint: c.look.paint === 'orange' ? 'violet' : 'orange', plate: '02' });
+  const p2 = Object.assign(playerEntry(c, ev.car2 || ev.car1 || c.car, { id: 'p2', name: 'P2' }), { paint: look2.paint, livery: look2.livery, num: look2.num });
+  const T = trackFor(track, v), all = rivals.slice(); all.splice(Math.min(2, all.length), 0, p1); all.splice(Math.min(3, all.length), 0, p2);
+  return { track: T, entries: all.map(e => fitted(T, e)), laps: ev.laps || T.laps, rating, seed, kind: 'split', trackId: track, v, n: all.length };
 }
 function standingIds(run) { return standings(run).map(s => s.id); }
 

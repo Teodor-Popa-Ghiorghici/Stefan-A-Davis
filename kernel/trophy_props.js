@@ -7,13 +7,15 @@ import { fs } from './vfs.js';
 import './vfs_ops.js';
 import { render } from '../apps/prop_kit.js';
 import { handedOver } from './handed.js';
+import { isOpen as vroomOpen } from './vroom_gate_core.js';
 
 const KEY = 'templeos.props.v1';
 export const GAMES = {
   sweeper: () => import('../apps/sweeper/props.js'), solitaire: () => import('../apps/solitaire/props.js'), aftere: () => import('../apps/aftere/props.js'),
   garden: () => import('../apps/garden/props.js'), cook: () => import('../apps/cook/props.js'), magen: () => import('../apps/magen/props.js'),
   standbattle: () => import('../apps/standbattle/props.js'), bekkedal: () => import('../apps/bekkedal/props.js'), bottle: () => import('../apps/bottle/props.js'),
-  holyc: () => import('../apps/holyc/props.js')
+  holyc: () => import('../apps/holyc/props.js'),
+  vroom: () => import('../apps/vroom/props.js')
 };
 /* what each game's folder is called and what it holds, without loading the game's art (the ledger lists them locked): kept equal to each props.js by `node scripts/check-props.mjs` */
 export const FOLDER_OF = {
@@ -21,6 +23,10 @@ export const FOLDER_OF = {
   cook: ['CookProps', 'THE COOK'], magen: ['MagenProps', 'MAGEN'], standbattle: ['StandBattleProps', 'STAND BATTLE ARENA'], bekkedal: ['BekkedalProps', 'BEKKEDAL'],
   bottle: ['BottleProps', 'THE BOTTLE'], holyc: ['HolyCPrograms', 'HOLYC.EXE']
 };
+/* a game behind a gate (kernel/vroom_gate_core.js) has a folder only once the gate is open: it is not in FOLDER_OF, so the ledger's list of what a mastery leaves says nothing of it while the gate is shut.
+   `folderOf()` is the table as it is now. */
+export const GATED_FOLDERS = { vroom: ['VroomProps', 'VROOM.EXE'] };
+export const folderOf = () => (vroomOpen() ? Object.assign({}, FOLDER_OF, GATED_FOLDERS) : FOLDER_OF);
 const made = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
 const remember = (game, n) => { const m = made(); m[game] = n; try { localStorage.setItem(KEY, JSON.stringify(m)); } catch (e) { /* made for this sitting */ } };
 const say = t => { try { import('./wm.js').then(w => w.toast(t)); } catch (e) { /* no toast */ } };
@@ -31,7 +37,7 @@ const typeOf = name => /\.HC$/i.test(name) ? 'code' : /\.(DD)$/i.test(name) ? 'd
 
 export async function makeProps(game, o) {
   const load = GAMES[game];
-  if (!load) return 0;
+  if (!load || (GATED_FOLDERS[game] && !vroomOpen())) return 0;
   const mod = await load(), root = '::/' + mod.FOLDER;
   const files = await render(await mod.props());
   const pairs = [[root + '/.keep', { type: 'text', content: '' }]];
@@ -63,4 +69,4 @@ export async function sync(T) {
 }
 export const folders = () => made();
 /* a folder that was made and is gone (thrown away, the bin emptied) is owed: RESTORE SYSTEM FILES makes it again */
-handedOver(() => Object.keys(made()).filter(g => FOLDER_OF[g]).map(g => ({ path: '::/' + FOLDER_OF[g][0], folder: true, make: () => makeProps(g, { quiet: true }) })));
+handedOver(() => { const F = folderOf(); return Object.keys(made()).filter(g => F[g]).map(g => ({ path: '::/' + F[g][0], folder: true, make: () => makeProps(g, { quiet: true }) })); });

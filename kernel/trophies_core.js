@@ -187,9 +187,10 @@ export function createTrophies(env) {
   function judgeDays() { const s = T.dayStreak(); bag(st.stats, 'system').dayStreak = Math.max(s, bag(st.stats, 'system').dayStreak || 0); judge(byStat['system:dayStreak']); }
 
   /* ---- backfill: what a person already did, found in their saves the first time the ledger loads (silent, no SUN, one card) -------------------------- */
-  T.backfill = ids => {
+  /* `pay`: a catch-up (a thing passed before its trophy could be reached) pays what the trophy is worth, quietly, because that SUN was never paid; the first backfill pays nothing */
+  T.backfill = (ids, pay) => {
     let n = 0;
-    ids.forEach(id => { const d = defs.get(id); if (d && !st.earned[id] && !closed(d)) { st.earned[id] = Date.now(); n++; } });
+    ids.forEach(id => { const d = defs.get(id); if (d && !st.earned[id] && !closed(d)) { st.earned[id] = Date.now(); n++; if (pay && d.pay > 0 && env.pay) safe(() => env.pay(d.pay, 'TROPHY: ' + d.name), 0); } });
     if (n) { save(); tell('trophies-changed', {}); evalDerived(); }
     return n;
   };

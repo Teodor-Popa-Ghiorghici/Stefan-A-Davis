@@ -6,13 +6,28 @@ import { variantOf, VARIANTS } from './track_variant.js';
 import { buildTrack } from './track_build.js';
 
 export const TRACK_IDS = Object.keys(TRACKS);
-export const hasTrack = id => !!TRACKS[id];
+/* THE ROADS OF THE PLAYER'S OWN (the track maker, maker_io.js) are known by an id that begins `user:` and are kept apart from the town's: they are in no list the career, the cups, the trophies or the checks walk (TRACK_IDS
+   and allTracks are the town's eight and nothing else), and they are asked for by name in a single race, a time trial and the 2P split. */
+const USER = new Map();
+export const isUserId = id => typeof id === 'string' && id.indexOf('user:') === 0;
+export const hasTrack = id => !!TRACKS[id] || USER.has(id);
+export const userIds = () => Array.from(USER.keys());
 /* the data of a track in a variant */
-export const defFor = (id, v) => variantOf(TRACKS[id], v || 'f');
+export const defFor = (id, v) => variantOf(TRACKS[id] || USER.get(id), v || 'f');
 /* every track in every variant, as [id, variant] pairs, in the order of the town */
 export const allTracks = () => { const out = []; for (const id of TRACK_IDS) for (const v of VARIANTS) out.push([id, v]); return out; };
 
 const KEEP = 6, cache = [];
+/* a road of the player's own is known from now on (a road of that name already known is replaced, and so is the track that was built from it) */
+export function registerTrack(def) {
+  if (!def || !isUserId(def.id) || !Array.isArray(def.controls)) throw new Error('registerTrack: a road of your own has an id that begins user: and a line');
+  USER.set(def.id, def);
+  for (let i = cache.length - 1; i >= 0; i--) if (cache[i].key.indexOf(def.id + ':') === 0) cache.splice(i, 1);
+}
+export function unregisterTrack(id) {
+  USER.delete(id);
+  for (let i = cache.length - 1; i >= 0; i--) if (cache[i].key.indexOf(id + ':') === 0) cache.splice(i, 1);
+}
 export function trackFor(id, v) {
   v = v || 'f';
   const key = id + ':' + v, hit = cache.findIndex(c => c.key === key);

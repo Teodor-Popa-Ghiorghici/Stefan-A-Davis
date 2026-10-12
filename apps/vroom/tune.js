@@ -41,7 +41,7 @@ export const COMPOUND = [1, 1.05, 1.1, 1.15];          /* TYRE COMPOUND, three l
 export const LAT_K = 5.5, LAT_V0 = 1.0, ROLL_RES = 0.012, ROLL_SMOOTH = 0.3;
 export const SUSP = { freq: 7, zeta: 0.35, rest: 0.06, travel: 0.05, bump: 6000 };    /* the spring's natural frequency (Hz) and damping ratio; the wheel's distance from its mount at full droop (m) and how far it may rise from there; a stiff stop at the end of the travel, and then a sphere (sim_spec.js) that stops the body like any other part of it */
 export const STEER = { rate: 7.5, gain: 2.0 };                        /* how quickly the wheels turn (rad/s); the lock at speed is the one that asks the road for `gain` times a tyre's grip (v^2 tan(lock) / wheelbase = gain * g), so a keyboard can hold the stick over without spinning */
-export const BODY = { mu: 0.45, restitution: 0.22, restSpeed: 0.6, correct: 0.85, slop: 0.0015, probe: 0.012, angDamp: 0.02, linDrag: 0.0016, downforce: 0.0012 };
+export const BODY = { mu: 0.45, wallMu: 0.12, restitution: 0.22, restSpeed: 0.6, correct: 0.85, slop: 0.0015, probe: 0.012, angDamp: 0.02, linDrag: 0.0016, downforce: 0.0012 };
 export const CARS = { restitution: 0.3, mu: 0.25, radius: 0.092 };     /* car against car: three spheres, mass-weighted impulses */
 export const AIR = { torque: 7.5, maxRate: 3.2, delay: 0.06, align: 30, damp: 5.5, seek: 0.5, level: 40, levelAfter: 0.15 };   /* a little control in the air: radians a second squared, its cap, and how long off the ground before it works; and what the air itself does: the nose follows the way the car is travelling and the spin dies away, so a jump is an arc and not a tumble */
 export const REPOS = { upside: 3.0, stuck: 3.0, fade: 0.6, ghost: 1.0, lift: 0.1, stuckSpeed: 0.25, floor: -12 };
