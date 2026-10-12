@@ -8,8 +8,8 @@
    A second view in the same buffer (the split screen) is another `view` call with a smaller rectangle: nothing is shared but the buffer. */
 import { newState, setView, drawMesh } from './raster_xform.js';
 import { camera } from './raster_math.js';
-import { PAL32, ix, SIZE } from './palette.js';
-import { BAYER } from './raster_shade.js';
+import { PAL32, ix, SIZE, CLEAR } from './palette.js';
+import { BAYER, BAYER_RANK } from './raster_shade.js';
 import { F3, F5, drawText } from '../pixtext.js';
 
 export const W = 320, H = 180;
@@ -40,18 +40,34 @@ export function createRaster(w, h) {
     },
     /* clear the view's depth and fill it with sky: a ramp, light at the horizon and darker (or lighter) overhead, dithered; below the horizon it is the horizon's colour (the ground covers it) */
     sky(o) {
-      const cam = S.cam, ramp = o.ramp, hz = o.horizon, zn = o.zenith, span = o.span || S.focal * 1.4;
+      const cam = S.cam, ramp = o.ramp, hz = o.horizon, zn = o.zenith, span = o.span || S.focal * (o.spanK || 1.4), bands = o.bands, nb = bands ? bands.length - 1 : 0;
       const yH = S.cy + S.focal * Math.tan(Math.asin(Math.max(-1, Math.min(1, cam.fy))));       /* the horizon's row, from where the camera looks (roll is not followed) */
       for (let y = S.vy0; y < S.vy1; y++) {
         let t = (yH - y) / span; t = t < 0 ? 0 : t > 1 ? 1 : t;
         const lv = hz + (zn - hz) * t, base = ramp * 16, row = (y & 3) << 2;
+        if (bands) {
+          /* a sky of several colours one above another, from the horizon up (each `[ramp, level]`, or `[ramp, level, ramp2, level2]` for a checker of two colours: blue and cyan side by side are sky blue): a pixel takes the band above its row's place between two with the Bayer dither, so the blend is stippled and never leaves the palette */
+          const q = t * nb, k = Math.min(nb - 1, q | 0), f = q - k;
+          for (let x = S.vx0; x < S.vx1; x++) { const b = bands[f > (BAYER_RANK[row | (x & 3)] + 0.5) / 16 ? k + 1 : k], p = y * w + x; S.buf[p] = b.length > 2 && ((x + y) & 1) ? b[2] * 16 + b[3] : b[0] * 16 + b[1]; S.zbuf[p] = 0; }
+          continue;
+        }
         for (let x = S.vx0; x < S.vx1; x++) {
           let s = lv + BAYER[row | (x & 3)]; if (s < 0) s = 0;
           let l = s | 0; if (l > 15) l = 15;
           const p = y * w + x; S.buf[p] = base + l; S.zbuf[p] = 0;
         }
       }
-      S.fogIdx = ix(ramp, hz);
+      S.fogIdx = bands ? bands[0][0] * 16 + bands[0][1] : ix(ramp, hz);
+    },
+    /* a PANORAMA behind the world: a strip p = { w, h, d } of palette bytes (CLEAR is the sky showing through) laid round the whole horizon, so it turns as the camera does and is as far off as the sky is. Its
+       bottom row stands `drop` rows under the horizon (the ground and the walls cover that). One pixel of it is one pixel of the picture, so a mountain or a skyline costs a few hundred stores and no triangles. */
+    panorama(p, o) {
+      const cam = S.cam, drop = (o && o.drop) || 0, yH = Math.round(S.cy + S.focal * Math.tan(Math.asin(Math.max(-1, Math.min(1, cam.fy))))) + drop, yaw = Math.atan2(cam.fx, cam.fz), ph = p.h;
+      const y0 = Math.max(S.vy0, yH - ph + 1), y1 = Math.min(S.vy1 - 1, yH); if (y1 < y0) return;
+      for (let x = S.vx0; x < S.vx1; x++) {
+        const a = (yaw + Math.atan((x + 0.5 - S.cx) / S.focal)) / (Math.PI * 2), col = Math.floor((a - Math.floor(a)) * p.w) % p.w;
+        for (let y = y0; y <= y1; y++) { const v = p.d[(y - (yH - ph + 1)) * p.w + col]; if (v !== CLEAR) { const q = y * w + x; S.buf[q] = v; S.zbuf[q] = 0; } }
+      }
     },
     draw(mesh, M, opt) { drawMesh(S, mesh, M, opt); },
     /* points in the world: snowflakes, sparks. [{ x, y, z, c, s }] c a palette index, s a size in pixels (1 or 2) */

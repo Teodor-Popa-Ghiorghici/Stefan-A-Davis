@@ -14,7 +14,7 @@ export function createBench(env, regionId) {
   const B = { sel: 0, hits: [], note: '' };
   /* sitting down is resting */
   camp.hp = env.maxHp(); camp.bench = rg.id; env.save();
-  if (env.rested) env.rested(rg.id);
+  if (env.rested) env.rested(rg.id, camp);
   B.note = 'YOU REST. YOUR MASKS ARE WHOLE.';
 
   const wear = i => {

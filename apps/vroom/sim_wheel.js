@@ -6,7 +6,7 @@
      the two together can ask for no more than mu * N (a friction circle, the sideways limit scaled by the car's own grip): push the engine past it and the side force shrinks too, which is a slide.
    The forces are added to the car's force and torque (car.F, car.T); the body integrates them (sim_body.js). Pure: no window, no clock. */
 import { ray, HIT } from './col_grid.js';
-import { SURF_BY_ID, surfaceGrip, LAT_K, LAT_V0, ROLL_RES, ROLL_SMOOTH, BELT_CARRY } from './tune.js';
+import { SURF_BY_ID, surfaceGrip, LAT_K, LAT_V0, ROLL_RES, ROLL_SMOOTH, BELT_CARRY, SPILL_GRIP, TRACTION } from './tune.js';
 
 const tanh = x => { if (x > 8) return 1; if (x < -8) return -1; const e = Math.exp(2 * x); return (e - 1) / (e + 1); };
 
@@ -24,7 +24,7 @@ export function wheelForces(world, car, h) {
   else if (throttle > 0) thrust = sp.fmax * (turbo > 1 ? 1.2 : 1) * throttle * Math.max(0, 1 - f1 * f1);
   const mEff = sp.mass / 4, spill = car.tSpill, parts = car.parts;
   let touching = 0;
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < sp.wheels.length; i++) {
     const W = sp.wheels[i], S = car.wheels[i];
     const mx = p[0] + R[0] * W.x + R[1] * W.y + R[2] * W.z, my = p[1] + R[3] * W.x + R[4] * W.y + R[5] * W.z, mz = p[2] + R[6] * W.x + R[7] * W.y + R[8] * W.z;
     const dx = -R[1], dy = -R[4], dz = -R[7], len = W.rest + W.r;
@@ -58,12 +58,15 @@ export function wheelForces(world, car, h) {
     const sx = ny * az - nz * ay, sy = nz * ax - nx * az, sz = nx * ay - ny * ax;
     const vf = vx * ax + vy * ay + vz * az, vs = vx * sx + vy * sy + vz * sz;
     S.vf = vf; S.vs = vs;
-    const mu = surfaceGrip(SF, parts, spill) * car.grip * sp.gripLong;
+    let mu = surfaceGrip(SF, parts, spill > 0 || S.spill > 0 ? 1 : 0);
+    if (sp.iceMu && SF.chains) mu = Math.max(mu, sp.iceMu * (spill > 0 || S.spill > 0 ? SPILL_GRIP : 1));        /* a sled's runners bite ice a little without chains */
+    mu *= car.grip * sp.gripLong;
     const limit = mu * N;
     /* forward */
     let Fl = thrust * W.drive;
+    const tcap = TRACTION * limit; if (Fl > tcap) Fl = tcap; else if (Fl < -tcap) Fl = -tcap;                    /* the motor controller: never more thrust than the tyre can hold */
     if (brake > 0 && !reversing) { const bw = sp.brakeF * brake * W.brake; Fl += -Math.max(-bw, Math.min(bw, vf * mEff / h)); }
-    Fl += -ROLL_RES * N * tanh(vf / ROLL_SMOOTH) - SF.drag * vf + carryX * ax + carryZ * az;
+    Fl += -ROLL_RES * N * tanh(vf / ROLL_SMOOTH) - (parts && parts.snowTyres && SF.dragTyres != null ? SF.dragTyres : SF.drag) * vf + carryX * ax + carryZ * az;
     /* sideways */
     const lat = sp.gripLat / sp.gripLong * (W.front ? 1 : sp.latBias);
     let Fs = -limit * lat * tanh(LAT_K * vs / (Math.abs(vf) + LAT_V0)) + carryX * sx + carryZ * sz;

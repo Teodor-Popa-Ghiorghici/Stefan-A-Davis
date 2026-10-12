@@ -35,6 +35,8 @@ export function backfill(read) {
   const s = read('app_garden_st'), ids = [];
   if (!s || !Array.isArray(s.rooms)) return ids;
   const open = s.rooms.filter(r => r && r.unlocked).length;
+  /* the bench: anything it ever sold is on the save (a drip line, a basket, a gatherer), so a bench with nothing left to sell still counts */
+  if (s.rooms.some(r => r && r.drip) || (s.up && (s.up.basket > 0 || s.up.gather > 0))) ids.push('gd_bench');
   if (open >= 5) ids.push('gd_rooms');
   if (s.rooms.length >= 5 && s.rooms.every(r => r && r.drip)) ids.push('gd_drip');
   if (s.up && s.up.basket >= 3 && s.up.gather >= 2 && s.rooms.length >= 5 && s.rooms.every(r => r && r.drip)) ids.push('gd_hands');

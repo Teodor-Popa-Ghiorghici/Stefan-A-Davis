@@ -1,22 +1,22 @@
-/* THE GAME'S FRAME LOOP (docs/vroom/plan.md sections 4 and 12). One canvas of 320 x 180 that the window manager scales by whole pixels (`data-fit="int"`), a race (race.js) stepped at the sim's fixed
-   60 Hz whatever the display's rate is, one view drawn from a chase camera, the HUD over it. Keys come from the canvas (input.js); a window that loses focus pauses the race, because a car with a stuck
-   key drives itself into a wall. Everything this file starts -- the animation frame, the listeners -- `mountGame` hands back as one function that stops them. */
+/* THE GAME'S FRAME LOOP (docs/vroom/plan.md sections 4 and 12). One canvas of 320 x 180 that the window manager scales by whole pixels (`data-fit="int"`), the screens of screens.js drawn into it one at a time, the
+   race stepped at the sim's fixed 60 Hz whatever the display's rate is. The career is loaded from the window's save before the first screen and saved by the screens whenever it changes (`G.save`). Keys come
+   from the canvas (input.js); a window that loses focus pauses the race. Everything this file starts -- the animation frame, the listeners -- `mountGame` hands back as one function that stops them. */
 import { createRaster, W, H } from './raster.js';
-import { buildTrack } from './track_build.js';
-import { TRACKS } from './track_def.js';
-import { createRace } from './race.js';
-import { carModel } from './car_art.js';
-import { RIVALS } from './cars.js';
 import { createCamera } from './camera.js';
 import { createInput } from './input.js';
-import { drawView } from './scene.js';
-import { drawHud, drawResults, drawPause } from './hud.js';
-import { STEP } from './tune.js';
-import { drunk } from '../drunk_scope.js';
-import { trophies } from '../trophy_scope.js';
-import { watch } from './drunk_drive.js';
+import { createScreens } from './screens.js';
+import { trackFor } from './tracks.js';
+import { fresh, sanitize } from './career.js';
+import { createAudio } from './audio.js';
+import { createCalls } from './trophy_calls.js';
+import { settle } from './sun.js';
+import { drawRadio } from './radio_hud.js';
+import { loadRoads } from './maker_io.js';
+
+const KEY = 'vroom.v1', MINE = 'vroom.mine.v1';
 
 export function mountGame(root, ctx) {
+  let alive = true;
   const wrap = document.createElement('div');
   wrap.className = 'gamepane';
   const cv = document.createElement('canvas');
@@ -28,73 +28,80 @@ export function mountGame(root, ctx) {
   root.appendChild(wrap);
   const g = cv.getContext('2d');
   g.imageSmoothingEnabled = false;
-  const img = g.createImageData(W, H), R = createRaster(), models = {};
+  const img = g.createImageData(W, H), R = createRaster();
   const calmQ = () => { try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; } };
   const cam = createCamera(); cam.calm = calmQ();
   const onCalm = () => { cam.calm = calmQ(); };
   window.addEventListener('calm-changed', onCalm);
-  const TR = trophies('vroom'), DR = drunk(), look = watch((n, p) => TR.emit(n, p));
-  const G = { track: null, race: null, human: null, paused: false, sel: 0, acc: 0, fps: 0 };
-  const input = createInput(cv, { blur: () => { if (G.race && G.race.state !== 'done' && G.race.state !== 'over') G.paused = true; } });
+  const G = { ctx, R, cam, career: fresh(), t: 0, fps: 0, onBlur: null, showFps: !!window.__vroomFps, screens: null, ready: false };
+  G.input = createInput(cv, { blur: () => { if (G.onBlur) G.onBlur(); } });
+  G.hall = () => trackFor('sorting', 'f');                       /* the room behind the menus */
+  G.go = (name, args) => G.screens.go(name, args);
+  let saving = null;
+  G.save = () => {
+    try { const p = ctx && ctx.save ? ctx.save(KEY, JSON.parse(JSON.stringify(G.career))) : null; if (p && p.catch) saving = p.catch(() => {}); } catch (e) { /* a save that fails is tried again at the next change */ }
+    G.trophy.career(G.career);                                   /* the ledger counts what the career holds every time it changes */
+  };
+  /* a time trial's best run, kept apart from the career (it is a few kilobytes of keys): one key to a road and variant */
+  G.loadGhost = key => Promise.resolve(ctx && ctx.load ? ctx.load('ghost.' + key) : null).then(g => (g && typeof g.text === 'string' && g.car ? g : null)).catch(() => null);
+  G.saveGhost = (key, g) => { try { const p = ctx && ctx.save ? ctx.save('ghost.' + key, g) : null; if (p && p.catch) p.catch(() => {}); } catch (e) { /* tried again next time */ } };
+  /* the radio's station is the player's own choice, kept apart from the career (audio.js, music.js) */
+  G.radioPref = null;
+  Promise.resolve(ctx && ctx.load ? ctx.load('vroom.radio.v1') : null).then(v => { if (v === 'race' || v === 'night') G.radioPref = v; }).catch(() => {});
+  G.audio = createAudio(ctx, null, { get: () => G.radioPref, set: v => { G.radioPref = v; try { const p = ctx && ctx.save ? ctx.save('vroom.radio.v1', v) : null; if (p && p.catch) p.catch(() => {}); } catch (e) { /* the choice is kept for this session anyway */ } } });
+  const onMix = () => G.audio.relevel();
+  window.addEventListener('mixer-changed', onMix);
+  G.paused = false;
+  /* the roads of the player's own (maker_io.js): the list the menus offer, the best lap on each (kept apart from the career, user_roads.js), and the way back to the canvas after an in-glass box */
+  G.userRoads = []; G.userList = []; G.userBest = {};
+  G.refreshRoads = () => (ctx && ctx.fs ? loadRoads(ctx.fs) : Promise.resolve([])).then(list => { if (alive) { G.userList = list; G.userRoads = list.filter(r => r.ok).map(r => ({ id: r.id, name: r.name })); } return list; }).catch(() => []);
+  G.saveUserBest = () => { try { const p = ctx && ctx.save ? ctx.save(MINE, JSON.parse(JSON.stringify(G.userBest))) : null; if (p && p.catch) p.catch(() => {}); } catch (e) { /* tried again at the next best */ } };
+  G.focus = () => cv.focus();
+  Promise.resolve(ctx && ctx.load ? ctx.load(MINE) : null).then(v => { if (v && typeof v === 'object') for (const k of Object.keys(v)) if (/^user:/.test(k) && v[k] && typeof v[k].lap === 'number') G.userBest[k] = { lap: v[k].lap, time: +v[k].time || null }; }).catch(() => {});
+  G.trophy = createCalls();
+  /* the machine's SUN for what the career says is earned and not yet paid (sun.js): once, through Economy.earn with the game's id so the golden eggs can raise it. `keep` false leaves the save to the caller. */
+  G.settleSun = keep => {
+    try {
+      const E = window.Economy, lines = settle(G.career, (n, why) => (E && E.earn ? E.earn(n, why, { game: 'vroom' }) : n));
+      if (lines.length && keep !== false) G.save();
+      return lines;
+    } catch (e) { return []; }
+  };
+  G.screens = createScreens(G);
 
-  /* a new race: the courier at the back of a grid of three rivals */
-  function start() {
-    if (!G.track) G.track = buildTrack(TRACKS.sorting);
-    const entries = RIVALS.slice(0, 3).map(r => ({ id: r.id, name: r.name, car: r.car, tier: r.tier, paint: r.paint })).concat([{ id: 'you', name: 'YOU', car: 'courier', human: true, tier: 0 }]);
-    G.race = createRace({ track: G.track, entries, laps: G.track.laps, rating: 0, seed: (Date.now() & 0xffff) | 1 });
-    G.human = G.race.field.find(f => f.human);
-    G.race.field.forEach(f => { const k = f.entry.car + ':' + f.entry.paint; f.model = models[k] || (models[k] = carModel(f.entry.car, f.entry.paint)); });
-    G.paused = false; G.sel = 0; G.acc = 0; cam.snap();
-  }
-  start();
-
-  /* what the keys do outside the driving: pause, and the finish board */
-  function menus() {
-    const r = G.race;
-    if (input.take('Escape') || input.take('KeyP')) { if (r.state !== 'done') G.paused = !G.paused; G.sel = 0; }
-    if (G.paused) {
-      if (input.take('ArrowDown') || input.take('KeyS')) G.sel = (G.sel + 1) % 3;
-      if (input.take('ArrowUp') || input.take('KeyW')) G.sel = (G.sel + 2) % 3;
-      if (input.take('Enter') || input.take('Space')) { if (G.sel === 0) G.paused = false; else if (G.sel === 1) start(); else if (ctx && ctx.close) ctx.close(); }
-    } else if (r.state === 'done' && (input.take('Enter') || input.take('Space'))) start();
-    input.clear();
-  }
-
-  let raf = 0, alive = true, last = 0, frames = 0, clock = 0;
+  let raf = 0, last = 0, frames = 0, clock = 0;
   const frame = ts => {
     if (!alive) return;
     raf = requestAnimationFrame(frame);
     const dt = last ? Math.min(0.1, (ts - last) / 1000) : 0; last = ts;
-    const r = G.race;
-    menus();
-    if (!G.paused) {
-      G.acc += dt;
-      let n = 0;
-      while (G.acc >= STEP && n < 6) {
-        r.step(input.drive());
-        look(r, G.human, { stage: DR.stage(), out: DR.out() });
-        for (const e of r.events) {
-          if (e.type === 'hit-wall' && e.car === G.human.i) cam.shake(Math.min(0.03, e.speed * 0.003));
-          if (e.type === 'land' && e.car === G.human.i) cam.shake(Math.min(0.03, e.speed * 0.004));
-        }
-        G.acc -= STEP; n++;
-      }
-      if (n === 6) G.acc = 0;
-    }
-    const spec = cam.update(G.human.car, G.paused ? 0 : dt, G.track.col);
-    drawView(R, { x: 0, y: 0, w: W, h: H }, G.track, r.field, spec);
-    drawHud(R, r, G.human, { fps: window.__vroomFps ? G.fps : null });
-    if (r.state === 'done' || (r.state === 'over' && G.human.finished && r.overT > 1.5)) drawResults(R, r, {});
-    if (G.paused) drawPause(R, { sel: G.sel });
+    if (G.ready) {
+      G.t += dt;
+      if (G.input.take('KeyV') && G.audio.radio()) G.trophy.radio();           /* V is the radio wherever you are */
+      G.screens.update(dt);
+      G.audio.frame(dt, G.paused);
+      G.screens.draw();
+      drawRadio(R, G.audio.toast);
+    } else { R.rect(0, 0, W, H, 0); }
     R.present(img); g.putImageData(img, 0, 0);
     frames++; clock += dt; if (clock >= 0.5) { G.fps = Math.round(frames / clock); frames = 0; clock = 0; }
   };
+  /* the career first (a window asked for before its save arrives shows black for a moment), then the title */
+  Promise.resolve(ctx && ctx.load ? ctx.load(KEY) : null).catch(() => null).then(raw => {
+    if (!alive) return;
+    G.career = sanitize(raw);
+    G.trophy.career(G.career);
+    G.settleSun();                                              /* whatever the career had earned and was not paid for */
+    G.ready = true;
+    G.refreshRoads();
+    G.go(G.career.run ? 'cups' : 'title');
+  });
   raf = requestAnimationFrame(frame);
   cv.addEventListener('mousedown', () => cv.focus());
   setTimeout(() => { if (alive) cv.focus(); }, 0);
   return () => {
     alive = false; if (raf) cancelAnimationFrame(raf);
-    input.dispose(); window.removeEventListener('calm-changed', onCalm);
+    G.input.dispose(); window.removeEventListener('calm-changed', onCalm); window.removeEventListener('mixer-changed', onMix); G.audio.stop(); G.trophy.stop();
+    void saving;
     wrap.remove();
   };
 }

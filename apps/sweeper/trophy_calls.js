@@ -44,7 +44,11 @@ export function lost(S) {
 }
 
 /* SIT DOWN is the six regions of the descent: a bench in the Underdeep is another bench, not a seventh region */
-export const rested = regionId => guard(() => { const r = REGIONS.find(x => x.id === regionId); if (r && (r.act || 1) === 1) TR.mark('benches', regionId); });
+/* Sitting at a bench also tells the ledger what is owned: a state trophy (WELL DRESSED) must not wait for a purchase, because a bench with nothing left to buy is exactly where it is reached. */
+export const rested = (regionId, camp) => guard(() => {
+  const r = REGIONS.find(x => x.id === regionId); if (r && (r.act || 1) === 1) TR.mark('benches', regionId);
+  if (camp) TR.emit('bench', { owned: camp.owned.length });
+});
 export const bought = camp => guard(() => TR.emit('bench', { owned: camp.owned.length }));
 
 /* the trophies earned since the room began, as the rows of the pay panel */

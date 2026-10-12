@@ -82,7 +82,7 @@ export function stackFolders() {
   if (unlocked()) out.push(['STYLE METER', 'white', [['AT ENDS', { mp3: STYLE_SONG, dur: 149.4, once: true, tint: 'white', artist: 'MARZUKU' }]]]);
 
   /* VROOM's tunes: not on the shelf at all until its gate is open (the trophy called VROOM) */
-  if (vroom().open()) out.push(vroomFolder());
+  if (vroom().open()) out.push(vroomFolder(disc, Lang));
 
   out.forEach(f => f[2].forEach(d => { d[1].reps = d[1].once ? 1 : reps(d[1]); }));
   return out;

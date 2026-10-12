@@ -45,7 +45,8 @@
     "check:wires": "node scripts/check-trophy-wires.mjs",
     "check:pictures": "node scripts/check-pictures.mjs",
     "check:eggs": "node scripts/check-eggs.mjs",
-    "check:vroom": "node scripts/check-vroom.mjs"
+    "check:vroom": "node scripts/check-vroom.mjs",
+    "check:vroomplay": "node scripts/check-vroom-play.mjs"
   },
   "devDependencies": {
     "electron": "^44.5.1",

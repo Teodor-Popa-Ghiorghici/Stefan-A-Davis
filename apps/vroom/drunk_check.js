@@ -11,7 +11,7 @@ const ok = (c, m, x) => { checks++; if (!c) { bad++; console.log('FAIL ' + m + (
 const ledger = () => { const T = createTrophies({ read: () => null, write: () => {}, pay: () => {}, announce: () => {} }); registerAll(T); return T; };
 
 const dd = TROPHIES.filter(d => d.id.startsWith('vr_dd_'));
-ok(dd.length === 10 && TROPHIES.length === 10, 'ten drink-and-drive trophies', String(dd.length));
+ok(dd.length === 10, 'ten drink-and-drive trophies', String(dd.length));
 ok(dd.every(d => d.id.startsWith('vr_')), 'every id begins vr_');
 ok(dd.filter(d => d.secret).length === 2, 'two are secret');
 

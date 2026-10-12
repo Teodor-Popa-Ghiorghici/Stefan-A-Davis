@@ -6,7 +6,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { createTrophies } from '../kernel/trophies_core.js';
-import { registerAll } from '../kernel/trophies_defs.js';
+import { registerAll, registerVroom } from '../kernel/trophies_defs.js';
 
 const root = new URL('..', import.meta.url).pathname;
 const SKIP = new Set(['node_modules', '.git', 'dist', 'build', 'vendor', 'assets', 'docs', 'electron']);
@@ -24,6 +24,7 @@ const KNOWN = JSON.parse(readFileSync(new URL('./check-trophy-wires.known.json',
 
 const T = createTrophies({ read: () => null, write: () => {}, pay: () => {}, announce: () => {} });
 registerAll(T);
+registerVroom(T);                                    /* VROOM's are in the ledger only once its gate is open: the wires are held all the same */
 const q = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /* a call of one of these verbs with the key written out among its first few characters: `T.emit('move', ...)`, `Trophies.mark('system', 'apps', id)`, `sys.emit(copy ? 'copy' : 'move', ...)`,
    `trophy('out')` (the elephant's own wrapper) */

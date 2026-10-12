@@ -7,7 +7,8 @@ import { GRAVITY, BODY, AIR } from './tune.js';
 
 const QB = new Int32Array(96);
 const CAP = 80;
-const C = { rx: new Float64Array(CAP), ry: new Float64Array(CAP), rz: new Float64Array(CAP), nx: new Float64Array(CAP), ny: new Float64Array(CAP), nz: new Float64Array(CAP), depth: new Float64Array(CAP), jn: new Float64Array(CAP), fx: new Float64Array(CAP), fy: new Float64Array(CAP), fz: new Float64Array(CAP), n: 0 };
+const WALL_NY = 0.5;                                                      /* a contact whose normal is flatter than this (more than 60 degrees off straight up) is a wall's: it has its own, lower, friction (tune.js BODY.wallMu) */
+const C = { rx: new Float64Array(CAP), ry: new Float64Array(CAP), rz: new Float64Array(CAP), nx: new Float64Array(CAP), ny: new Float64Array(CAP), nz: new Float64Array(CAP), depth: new Float64Array(CAP), mu: new Float64Array(CAP), pk: new Int32Array(CAP), thru: new Uint8Array(CAP), jn: new Float64Array(CAP), fx: new Float64Array(CAP), fy: new Float64Array(CAP), fz: new Float64Array(CAP), n: 0 };
 
 export function rotFromQuat(q, R) {
   const w = q[0], x = q[1], y = q[2], z = q[3];
@@ -47,7 +48,7 @@ export function integrate(car, h, touching, col) {
   const df = BODY.downforce * sp.downforce * speed * speed * (touching > 0 ? 1 : 0.3); F[0] -= df * R[1]; F[1] -= df * R[4]; F[2] -= df * R[7];
   /* in the air: the air itself keeps the car's nose along the way it is travelling and lets its spin die away (so a jump is an arc, not a tumble), and the player has a little control on top:
      pitch with the throttle and brake, roll with the steering, only while no wheel has touched for a moment */
-  if (touching === 0 && car.airtime > AIR.delay) {
+  if (touching === 0 && car.airtime > AIR.delay && !(car.tumble > 0)) {
     const k = 1 - AIR.damp * h; w[0] *= k; w[1] *= k; w[2] *= k;
     const hs = Math.hypot(v[0], v[2]);
     let tx = 0, tz = 0;
@@ -99,6 +100,7 @@ export function collide(world, car, h) {
       const d2 = closest(g, t, x, y, z);
       if (d2 < rad * rad) {
         if (onSeam(g, t)) continue;
+        if (g.off !== null && g.tag[t] !== 0 && world.gate(car, g.tag[t])) continue;             /* a gate that gave way */
         const d = Math.sqrt(d2), face = region() === 0;
         let nx, ny, nz, depth = rad - d;
         if (face) {
@@ -111,15 +113,15 @@ export function collide(world, car, h) {
         else { facing(g, t, px, py, pz); nx = FN[0]; ny = FN[1]; nz = FN[2]; }
         if (wheel && Math.abs(ny) > 0.7) continue;                                /* the ground is the suspension's: in either direction (a landing can press the ride-height sphere below the floor, and a sphere whose last place was under it would be pulled down into it) */
         const c = C.n++;
-        C.rx[c] = x - P[0]; C.ry[c] = y - P[1]; C.rz[c] = z - P[2]; C.nx[c] = nx; C.ny[c] = ny; C.nz[c] = nz; C.depth[c] = depth; C.jn[c] = 0; C.fx[c] = C.fy[c] = C.fz[c] = 0;
+        C.rx[c] = x - P[0]; C.ry[c] = y - P[1]; C.rz[c] = z - P[2]; C.nx[c] = nx; C.ny[c] = ny; C.nz[c] = nz; C.depth[c] = depth; C.mu[c] = !wheel && Math.abs(ny) < WALL_NY ? BODY.wallMu : BODY.mu; C.pk[c] = k; C.thru[c] = face && depth > rad ? 1 : 0; C.jn[c] = 0; C.fx[c] = C.fy[c] = C.fz[c] = 0;
       } else if (!wheel && sl > rad * 0.5) {                                          /* (a wheel at ride height is not swept: the ground is not its to catch) */
         /* a corner that went through a sheet between two substeps */
         const s = rayTri(g, t, px, py, pz, sx / sl, sy / sl, sz / sl, sl);
-        if (s >= 0) {
+        if (s >= 0 && !(g.off !== null && g.tag[t] !== 0 && world.gate(car, g.tag[t]))) {          /* (a gate that gives way is no sheet to be caught on, however fast the corner crossed it) */
           facing(g, t, px, py, pz);
           const c = C.n++;
           C.rx[c] = x - P[0]; C.ry[c] = y - P[1]; C.rz[c] = z - P[2]; C.nx[c] = FN[0]; C.ny[c] = FN[1]; C.nz[c] = FN[2];
-          C.depth[c] = Math.max(0, (sl - s) * Math.abs(sx / sl * FN[0] + sy / sl * FN[1] + sz / sl * FN[2])) + rad; C.jn[c] = 0; C.fx[c] = C.fy[c] = C.fz[c] = 0;
+          C.depth[c] = Math.max(0, (sl - s) * Math.abs(sx / sl * FN[0] + sy / sl * FN[1] + sz / sl * FN[2])) + rad; C.mu[c] = Math.abs(FN[1]) < WALL_NY ? BODY.wallMu : BODY.mu; C.pk[c] = k; C.thru[c] = 1; C.jn[c] = 0; C.fx[c] = C.fy[c] = C.fz[c] = 0;
         }
       }
     }
@@ -143,7 +145,7 @@ export function collide(world, car, h) {
       if (tl > 1e-6 && C.jn[c] > 0) {
         const ux = tx / tl, uy = ty / tl, uz = tz / tl, jt = tl / effMass(car, rx, ry, rz, ux, uy, uz);
         let ax = C.fx[c] - jt * ux, ay = C.fy[c] - jt * uy, az = C.fz[c] - jt * uz;
-        const al = Math.hypot(ax, ay, az), lim = BODY.mu * C.jn[c];
+        const al = Math.hypot(ax, ay, az), lim = C.mu[c] * C.jn[c];
         if (al > lim) { ax *= lim / al; ay *= lim / al; az *= lim / al; }
         impulseAt(car, rx, ry, rz, ax - C.fx[c], ay - C.fy[c], az - C.fz[c]);
         C.fx[c] = ax; C.fy[c] = ay; C.fz[c] = az;
@@ -156,7 +158,13 @@ export function collide(world, car, h) {
     const need = C.depth[c] - BODY.slop - (cx * C.nx[c] + cy * C.ny[c] + cz * C.nz[c]);
     if (need > 0) { cx += C.nx[c] * need; cy += C.ny[c] * need; cz += C.nz[c] * need; }
   }
-  P[0] += cx * BODY.correct; P[1] += cy * BODY.correct; P[2] += cz * BODY.correct;
+  const mx = cx * BODY.correct, my = cy * BODY.correct, mz = cz * BODY.correct;
+  P[0] += mx; P[1] += my; P[2] += mz;
+  /* A probe that was through a sheet (a wall is a sheet, and a corner that crossed it is pushed back across it) is remembered where it has been put, not where it was found. The next substep reads the side of a
+     sheet a probe CAME from out of that place: left where it was found, on the far side, a corner that had been pushed back across a wall "came" from the far side, was pushed through again, and again, each way in
+     turn, 240 times a second -- a car wedged against a wall by its own throttle, that reversing did not take off it, left only to the three-second rescue. Only those probes are moved: for any other contact the place
+     it was found is what it has always been. */
+  for (let c = 0; c < C.n; c++) if (C.thru[c]) { const k = C.pk[c]; pp[k * 3] = pw[k * 3] + mx; pp[k * 3 + 1] = pw[k * 3 + 1] + my; pp[k * 3 + 2] = pw[k * 3 + 2] + mz; }
   car.contacts = C.n;
   return hardest;
 }

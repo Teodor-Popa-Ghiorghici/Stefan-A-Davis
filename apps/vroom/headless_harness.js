@@ -3,10 +3,10 @@
 import { buildTrack } from './track_build.js';
 import { TRACKS } from './track_def.js';
 import { createRace } from './race.js';
-import { RIVALS } from './cars.js';
+import { fieldFor } from './rivals.js';
 
-export function field(n, human) {
-  const e = RIVALS.slice(0, n).map(r => ({ id: r.id, name: r.name, car: r.car, tier: r.tier, paint: r.paint }));
+export function field(n, human, rating, seed) {
+  const e = fieldFor(rating || 0, n, seed || 1);
   if (human) e.push({ id: 'you', name: 'YOU', car: 'courier', human: true, tier: 0 });
   return e;
 }
@@ -26,7 +26,7 @@ const isMain = typeof process !== 'undefined' && process.argv[1] && import.meta.
 if (isMain) {
   const [id, laps, seed] = [process.argv[2] || 'sorting', +process.argv[3] || 0, +process.argv[4] || 1];
   const track = buildTrack(TRACKS[id]), t0 = Date.now();
-  const { race, log, seconds } = runRace(track, field(3), { laps: laps || undefined, seed });
+  const { race, log, seconds } = runRace(track, field(7, false, 0, seed), { laps: laps || undefined, seed });
   for (const e of log) if (e.type === 'lap') console.log(race.field[e.i].name.padEnd(8), 'lap', e.lap, e.time.toFixed(2) + ' s');
   console.log(race.results().map(r => r.place + ' ' + r.name + (r.time ? ' ' + r.time.toFixed(2) : ' (' + r.laps + ' laps)')).join('   '));
   console.log(race.laps + ' laps of ' + track.length.toFixed(0) + ' m, ' + seconds.toFixed(1) + ' s of race in ' + (Date.now() - t0) + ' ms');

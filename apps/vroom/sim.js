@@ -4,23 +4,46 @@
      const car = w.addCar(spec, { x, y, z, yaw }); y is the GROUND under it; the car is set down on its springs
      car.input = { throttle: 0..1, brake: 0..1, steer: -1..1, repo: bool };      w.step();      w.events
    Events each step: land {car, airtime, speed}, flip, upside {car}, wheelie {car}, hit-wall {car, speed}, hit-car {a, b, speed, ma, mb}, repo-start {car}, repo {car}, surface {car, surf}. */
-import { STEP, SUBSTEPS, STEER, REPOS, WHEELIE, GRAVITY } from './tune.js';
+import { STEP, SUBSTEPS, STEER, REPOS, WHEELIE, GRAVITY, GATE } from './tune.js';
 import { wheelForces } from './sim_wheel.js';
 import { integrate, collide, rotFromQuat, quatYaw } from './sim_body.js';
 import { carCollisions } from './sim_cars.js';
+import { PRESS_TAG } from './press.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
 export function createWorld(o) {
-  const W = { col: o.col, nodes: o.nodes || [], cars: [], events: [], frame: 0, time: 0, nextId: 0 };
+  const W = { col: o.col, nodes: o.nodes || [], cars: [], events: [], frame: 0, time: 0, nextId: 0, broken: new Set(), gates: o.gates || [] };
+  /* a track with gates or presses is given a switch for each triangle, fresh for this world (and a scratch of its own, so two worlds on one road, a car and its ghost, never see each other's gates): every race
+     starts with every gate whole and every press up */
+  if (o.col && o.col.n && o.col.tagTris && Object.keys(o.col.tagTris).length) {
+    W.col = Object.assign({}, o.col, { off: new Uint8Array(o.col.n), mark: new Int32Array(o.col.n), stamp: 0 });
+    for (const tag of Object.keys(W.col.tagTris)) if (+tag >= PRESS_TAG) for (const t of W.col.tagTris[tag]) W.col.off[t] = 1;
+  }
+  /* the press at `tag` is down (a wall) or up (not there) */
+  W.press = (tag, down) => { const tt = W.col.tagTris && W.col.tagTris[tag]; if (!tt || !tt.length) return; const v = down ? 0 : 1; if (W.col.off[tt[0]] === v) return; for (const t of tt) W.col.off[t] = v; };
+  /* a car meets a gate (sim_body.js collide): a bar and some speed break it, and the contact is dropped; anything else is a fence. Returns true when the gate is not there for this car. */
+  W.gate = (car, tag) => {
+    if (tag >= PRESS_TAG) return false;                                       /* a press that is down is a wall to everything */
+    if (W.broken.has(tag)) return true;
+    const sp = Math.hypot(car.v[0], car.v[2]);
+    if (!(car.parts && car.parts.bumperBar) || sp < GATE.speed) return false;
+    W.broken.add(tag); for (const t of W.col.tagTris[tag]) W.col.off[t] = 1;
+    const info = W.gates.find(x => x.tag === tag);
+    let off = 0; if (info) off = Math.min(1, Math.abs((car.p[0] - info.x) * -info.tz + (car.p[2] - info.z) * info.tx) / (info.w / 2));
+    const keep = GATE.keep - GATE.offKeep * off * off;
+    car.v[0] *= keep; car.v[2] *= keep;
+    W.events.push({ type: 'gate', car: car.id, tag, speed: sp, off });
+    return true;
+  };
   W.addCar = (spec, at, opts) => {
     const n = spec.probes.length, car = {
       id: opts && opts.id != null ? opts.id : W.nextId++, spec, p: new Float64Array(3), q: new Float64Array(4), v: new Float64Array(3), w: new Float64Array(3), R: new Float64Array(9), F: new Float64Array(3), T: new Float64Array(3),
       pw: new Float64Array(n * 3), pprev: new Float64Array(n * 3), sw: new Float64Array(9), hitCool: {},
-      wheels: spec.wheels.map(() => ({ ground: false, N: 0, prevX: 0, comp: 0, tri: -1, surf: 0, spin: 0, vf: 0, vs: 0, slide: 0 })),
-      input: { throttle: 0, brake: 0, steer: 0, repo: false }, steer: 0, grip: 1, parts: (opts && opts.parts) || { snowTyres: false, iceChains: false, compound: 0 },
+      wheels: spec.wheels.map(() => ({ ground: false, N: 0, prevX: 0, comp: 0, tri: -1, surf: 0, spin: 0, vf: 0, vs: 0, slide: 0, spill: 0 })),
+      input: { throttle: 0, brake: 0, steer: 0, repo: false }, steer: 0, grip: 1, coffee: (opts && opts.mods && opts.mods.coffee) || 1, recover: (opts && opts.mods && opts.mods.recover) || 1, parts: (opts && opts.parts) || { snowTyres: false, iceChains: false, compound: 0 },
       airtime: 0, fallV: 0, roofTime: 0, stuckTime: 0, upside: false, wheelie: false, repoT: 0, ghost: 0, contacts: 0, hardest: 0, lastGood: null, wasRepo: false, lastSurf: -1,
-      tSpill: 0, tPower: 0, tTurbo: 0, tStun: 0, odometer: 0
+      tSpill: 0, tPower: 0, tTurbo: 0, tStun: 0, tumble: 0, odometer: 0
     };
     W.cars.push(car);
     W.place(car, at);
@@ -89,7 +112,7 @@ export function createWorld(o) {
     const roof = up < -0.2;
     if (roof && !car.upside) ev.push({ type: 'flip', car: car.id });
     car.upside = roof;
-    const nose = R[5] > Math.sin(WHEELIE.pitch) && !car.wheels[0].ground && !car.wheels[1].ground && (car.wheels[2].ground || car.wheels[3].ground);
+    const nose = R[5] > Math.sin(WHEELIE.pitch) && !car.wheels.some((w, i) => w.ground && car.spec.wheels[i].front) && car.wheels.some((w, i) => w.ground && !car.spec.wheels[i].front);
     if (nose && !car.wheelie) ev.push({ type: 'wheelie', car: car.id });
     car.wheelie = nose;
     car.roofTime = up < 0.1 && speed < 1.5 ? car.roofTime + STEP : 0;
@@ -105,8 +128,20 @@ export function createWorld(o) {
       }
     }
     if (car.ghost > 0) car.ghost = Math.max(0, car.ghost - STEP);
-    if (car.tSpill > 0) car.tSpill -= STEP; if (car.tPower > 0) car.tPower -= STEP; if (car.tTurbo > 0) car.tTurbo -= STEP; if (car.tStun > 0) car.tStun -= STEP;
+    /* a BATTERY (parts.js) makes COFFEE last longer and a power cut or a stun wear off sooner: the timers run at a different rate, and at a rate of 1 are exactly the step */
+    if (car.tSpill > 0) car.tSpill -= STEP; if (car.tPower > 0) car.tPower -= STEP * car.recover; if (car.tTurbo > 0) car.tTurbo -= STEP / car.coffee; if (car.tStun > 0) car.tStun -= STEP * car.recover; if (car.tumble > 0) car.tumble -= STEP;
+    for (const w of car.wheels) if (w.spill > 0) w.spill -= STEP;
   }
+  /* A KNOCK (a pickup's blast, a shock wave, a bomb): a push, a toss up and a spin about the car's own axes (roll about its nose, pitch about its right side, yaw about its top), and for `tumble` seconds the air
+     does not straighten it, so it turns over instead of being put level again at once. `stun` takes its power. What a pickup does to a car is this and the timers on it; the sim does not know what a pickup is. */
+  W.knock = (car, o) => {
+    const R = car.R, r = o.roll || 0, p = o.pitch || 0, y = o.yaw || 0;
+    car.v[1] += o.up || 0;
+    if (o.push) { car.v[0] += o.push[0]; car.v[2] += o.push[1]; }
+    car.w[0] += R[2] * r + R[0] * p + R[1] * y; car.w[1] += R[5] * r + R[3] * p + R[4] * y; car.w[2] += R[8] * r + R[6] * p + R[7] * y;
+    car.tumble = Math.max(car.tumble, o.tumble == null ? 0.7 : o.tumble);
+    if (o.stun) car.tStun = Math.max(car.tStun, o.stun);
+  };
   /* a hash of the whole state: two runs that agree here agree everywhere (the checks hold ten minutes of it) */
   W.hash = () => {
     let h = 0x811C9DC5;

@@ -7,7 +7,7 @@ export const CELL = 2;
 const SEAM = Math.cos(15 * Math.PI / 180);
 
 /* tris: Float64Array(9 * n) (ax ay az bx by bz cx cy cz); surf: Uint8Array(n); belt: Float32Array(2 * n) (the surface's own velocity, x and z), or null */
-export function buildGrid(tris, surf, belt, cell) {
+export function buildGrid(tris, surf, belt, cell, tag) {
   const c = cell || CELL, n = tris.length / 9;
   let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity;
   const aabb = new Float64Array(n * 6), nrm = new Float64Array(n * 3);
@@ -49,7 +49,10 @@ export function buildGrid(tris, surf, belt, cell) {
   for (let i = 0; i < nxc * nzc; i++) count[i + 1] += count[i];
   const start = count, fill = new Int32Array(nxc * nzc), items = new Int32Array(start[nxc * nzc]);
   for (let i = 0; i < n; i++) span(i, cell => { items[start[cell] + fill[cell]++] = i; });
-  return { n, tris, surf, belt: belt || null, cell: c, minX, minZ, nx: nxc, nz: nzc, start, items, aabb, nrm, flat, mark: new Int32Array(n), stamp: 0 };
+  /* the triangles of each tag (a gate), and a switch for each triangle that a world can turn off: `off[t]` set and the triangle is not there for anything that asks */
+  const tagTris = {};
+  if (tag) for (let i = 0; i < n; i++) if (tag[i]) (tagTris[tag[i]] || (tagTris[tag[i]] = [])).push(i);
+  return { n, tris, surf, belt: belt || null, cell: c, minX, minZ, nx: nxc, nz: nzc, start, items, aabb, nrm, flat, mark: new Int32Array(n), stamp: 0, tag: tag || null, tagTris, off: null };
 }
 
 /* the triangles whose cell and box meet this box, each once, into `out` (an Int32Array); returns how many */
@@ -63,6 +66,7 @@ export function gather(g, x0, y0, z0, x1, y1, z1, out) {
       const t = g.items[k];
       if (g.mark[t] === stamp) continue;
       g.mark[t] = stamp;
+      if (g.off !== null && g.off[t] === 1) continue;                  /* a gate that has been broken */
       const o = t * 6;
       if (A[o] > x1 || A[o + 3] < x0 || A[o + 1] > y1 || A[o + 4] < y0 || A[o + 2] > z1 || A[o + 5] < z0) continue;
       if (m < out.length) out[m++] = t;

@@ -22,9 +22,9 @@ export function sink(length) {
     /* where in the picture: the chunk of a distance along the line */
     at: s => Math.max(0, Math.min(n - 1, Math.floor(s / CHUNK))),
     /* a face: corners a b c d round it, the way it faces (n), uv per corner, the material, the surface (a name in tune.js SURF) and a belt's velocity. `solid` false leaves it out of the collision (a thing to look at). */
-    quad(s, a, b, c, d, nrm, uv, m, surf, belt, solid) {
+    quad(s, a, b, c, d, nrm, uv, m, surf, belt, solid, tag) {
       chunks[S.at(s)].use(m).quad(a, b, c, d, nrm, uv);
-      if (solid !== false) col.quad(a, b, c, d, surf == null ? SURF.asphalt.id : SURF[surf].id, belt);
+      if (solid !== false) col.quad(a, b, c, d, surf == null ? SURF.asphalt.id : SURF[surf].id, belt, tag);
     },
     tri(s, a, b, c, nrm, ua, ub, uc, m, surf, solid) {
       chunks[S.at(s)].use(m).tri(a, b, c, nrm, ua, ub, uc);

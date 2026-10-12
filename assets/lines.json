@@ -1,15 +1,15 @@
 {
- "total": 88932,
- "files": 697,
+ "total": 99842,
+ "files": 861,
  "areas": [
   {
    "name": "kernel",
-   "lines": 18296,
-   "files": 148
+   "lines": 19963,
+   "files": 163
   },
   {
    "name": "bekkedal",
-   "lines": 20667,
+   "lines": 20670,
    "files": 95
   },
   {
@@ -19,7 +19,7 @@
   },
   {
    "name": "magen",
-   "lines": 4249,
+   "lines": 4252,
    "files": 22
   },
   {
@@ -34,28 +34,28 @@
   },
   {
    "name": "hifi",
-   "lines": 3503,
+   "lines": 3509,
    "files": 26
   },
   {
    "name": "garden",
-   "lines": 2442,
+   "lines": 2447,
    "files": 28
   },
   {
    "name": "elephant",
-   "lines": 2336,
+   "lines": 2335,
    "files": 17
   },
   {
    "name": "holyc",
-   "lines": 2133,
-   "files": 32
+   "lines": 2226,
+   "files": 33
   },
   {
    "name": "sweeper",
-   "lines": 2018,
-   "files": 18
+   "lines": 2071,
+   "files": 19
   },
   {
    "name": "bottle",
@@ -79,13 +79,13 @@
   },
   {
    "name": "shop",
-   "lines": 809,
-   "files": 4
+   "lines": 1036,
+   "files": 8
   },
   {
    "name": "terminal",
-   "lines": 691,
-   "files": 3
+   "lines": 716,
+   "files": 4
   },
   {
    "name": "notes",
@@ -93,12 +93,12 @@
    "files": 4
   },
   {
-   "name": "credits",
-   "lines": 545,
+   "name": "trophies",
+   "lines": 576,
    "files": 6
   },
   {
-   "name": "trophies",
+   "name": "credits",
    "lines": 545,
    "files": 6
   },
@@ -108,11 +108,6 @@
    "files": 8
   },
   {
-   "name": "viewer",
-   "lines": 239,
-   "files": 3
-  },
-  {
    "name": "folder",
    "lines": 222,
    "files": 2
@@ -120,6 +115,11 @@
   {
    "name": "defrag",
    "lines": 216,
+   "files": 3
+  },
+  {
+   "name": "viewer",
+   "lines": 188,
    "files": 3
   },
   {
@@ -168,6 +168,11 @@
    "files": 1
   },
   {
+   "name": "about",
+   "lines": 29,
+   "files": 1
+  },
+  {
    "name": "tools",
    "lines": 28,
    "files": 2
@@ -175,11 +180,6 @@
   {
    "name": "cmos",
    "lines": 27,
-   "files": 1
-  },
-  {
-   "name": "about",
-   "lines": 26,
    "files": 1
   },
   {
@@ -194,8 +194,8 @@
   },
   {
    "name": "the page and shared app kits",
-   "lines": 6566,
-   "files": 28
+   "lines": 15412,
+   "files": 170
   }
  ]
 }

@@ -18,6 +18,11 @@ import { CLASSIC, NODES } from '../apps/sweeper/data.js';
 import { LESSONS } from '../apps/holyc/lessons.js';
 import { PUZZLES, CHAPTERS } from '../apps/holyc/puzzles.js';
 import { LESSON_SUN, puzzleSun, CHAPTER_SUN, SEEN_SHARE } from '../apps/holyc/pay.js';
+import { fresh as vFresh } from '../apps/vroom/career.js';
+import { owed as vOwed, settle as vSettle, CUP_SUN as V_CUP } from '../apps/vroom/sun.js';
+import { CUPS as V_CUPS } from '../apps/vroom/cups.js';
+import { TRACK_IDS as V_ROADS, allTracks as vAll } from '../apps/vroom/tracks.js';
+import { parOf as vPar } from '../apps/vroom/challenge.js';
 import * as COS from '../kernel/cos_data.js';
 import { createTrophies } from '../kernel/trophies_core.js';
 import { registerAll } from '../kernel/trophies_defs.js';
@@ -125,6 +130,32 @@ const LO = 1500, HI = 12000;
   const copied = PUZZLES.reduce((a, p) => a + puzzleSun(p.stars, true), 0) + LESSONS.length * LESSON_SUN;
   row('HOLYC.EXE', PUZZLES.length + ' puzzles, ' + LESSONS.length + ' lessons and ' + CHAPTERS.length + ' chapters, once each, in 6.5 hours (' + all + ' SUN)', all / 6.5, 1500, 3500);
   ok(copied < all * 0.5 && SEEN_SHARE === 0.25, 'HOLYC.EXE: looking up every answer pays less than half');
+}
+
+/* VROOM.EXE (a secret: nothing here is shown to anyone until its gate is open): SUN is paid once for each of the things a career can hold -- a cup passed, won, swept; the first win on a road in each of its four
+   versions; a hidden star; a star in the yard; a challenge time beaten; a LAST MILE won; CLOCKWORK won (apps/vroom/sun.js) -- and for nothing that can be repeated at the speed of the hand. The budget bot
+   (apps/vroom/budget_bot.js) puts the championship at about 2.9 hours at the town's pace, and everything at about 9. */
+{
+  const everything = () => {
+    const c = vFresh();
+    for (const cup of V_CUPS) Object.assign(c.cups[cup.id], { passed: 1, won: 1, sweeps: 1 });
+    for (const [t, v] of vAll()) { c.tracks[t + ':' + v] = { wins: 1 }; c.tt[t + ':' + v] = { lap: vPar(t, v) - 0.01, time: 1, car: 'courier' }; c.lm.best[t + ':' + v] = 100; }
+    for (const t of V_ROADS) c.stars[t] = 1;
+    for (let i = 0; i < 20; i++) c.yard[i] = 1;
+    c.cw.wins = 1;
+    return c;
+  };
+  const sum = list => list.reduce((a, o) => a + o.sun, 0);
+  const champ = vFresh();
+  for (const cup of V_CUPS) Object.assign(champ.cups[cup.id], { passed: 1, won: 1 });
+  for (const t of V_ROADS) champ.tracks[t + ':f'] = { wins: 1 };
+  const c1 = sum(vOwed(champ)), all = sum(vOwed(everything()));
+  row('VROOM THE CHAMPIONSHIP', 'four cups passed and won, the first win on every road, in 2.9 hours (' + c1 + ' SUN)', c1 / 2.9, 1500, 5000);
+  row('VROOM EVERYTHING', 'every cup swept, every road in every version, every star, the yard, every challenge, LAST MILE and CLOCKWORK, in 9 hours (' + all + ' SUN)', all / 9, 1500, 5000);
+  const c = everything(), paid = []; vSettle(c, (n, why) => { paid.push([n, why]); return n; });
+  ok(paid.length > 100 && sum(vOwed(c)) === 0 && vSettle(c, null).length === 0, 'VROOM: a thing paid is never paid twice (' + paid.length + ' payments, nothing owed after, nothing paid again)');
+  ok(Object.values(V_CUP).every((v, i, a) => !i || v > a[i - 1]), 'VROOM: each cup pays more than the one before');
+  ok(vOwed(vFresh()).length === 0, 'VROOM: a career that has done nothing is owed nothing');
 }
 
 /* THE LEDGER: every trophy pays once, by tier (15 / 40 / 100 SUN), a game's mastery seal and its completionist trophies far more (kernel/trophy_rewards.js: the whole of an app is

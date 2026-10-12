@@ -28,7 +28,7 @@ ok(CLEAR === 255 && 255 >= SIZE, 'CLEAR is a byte that is no colour');
 
 /* ---- the textures ---- */
 /* the same bytes on every machine: a hash of each, fixed here (change a texture, change its hash, on purpose: node apps/vroom/palette_check.js --print) */
-const HASHES = {"snow": "63c89340", "slush": "3585b53b", "drift": "d1c62e15", "asphalt": "38cb042a", "dash": "7f6bdf4d", "edge": "daa47fc5", "concrete": "278dfa3e", "lino": "7348da0e", "parcels": "bcfbb560", "shelf": "059afbea", "cardboard": "39f6e71f", "tin": "b7d25b37", "brick": "1da66018", "planks": "f23df8cb", "board": "a67d87fc", "window": "7cdd7e94", "glass": "a787c15d", "belt": "a6765f30", "plate": "9b7e4a9d", "checker": "29020b00", "carpet": "f9fabc74", "fence": "50ae9706", "pine": "4962bf1e", "rubber": "7d419dc5", "under": "def62089"};
+const HASHES = {"snow": "63c89340", "slush": "dd0761bb", "drift": "d1c62e15", "asphalt": "38cb042a", "dash": "7f6bdf4d", "edge": "daa47fc5", "concrete": "278dfa3e", "lino": "7348da0e", "parcels": "bcfbb560", "shelf": "059afbea", "cardboard": "39f6e71f", "tin": "b7d25b37", "brick": "1da66018", "planks": "f23df8cb", "board": "a67d87fc", "window": "7cdd7e94", "glass": "a787c15d", "belt": "a6765f30", "plate": "9b7e4a9d", "checker": "29020b00", "carpet": "f9fabc74", "fence": "50ae9706", "pine": "4962bf1e", "rubber": "7d419dc5", "ice": "537672a6", "grate": "0c9cd3cd", "formica": "98b57906", "tilefloor": "fbbde862", "rock": "6e05b59d", "container": "e60de388", "hazard": "79dcf9c5", "vending": "3b574208", "under": "def62089", "container2": "ddd51bf8", "container3": "22bc8915", "container4": "474c8a81", "container5": "dcbbbbdc", "zebra": "c053ffc5", "arrow": "7e852e61", "hatch": "2d43f515", "stopline": "aac0a8c5", "oil": "c9df34c2", "skid": "28373405", "patch": "f47569b3", "cereal": "04e67e92", "can": "3f986a43", "books": "c6824aae", "crate": "a56bc418", "drum": "fb211d8e", "pipe": "a1c4a40b", "shingle": "1687c4b9", "clapboard": "c07c7dc0", "shopwin": "fd44e96f", "facwin": "d7b4ffea", "hedge": "fef67bf8", "bank": "593bf39b", "envelope": "0f0526a7", "grass": "c1335bba", "barrier": "2eba5d0c", "bay": "397370dd", "ceiltile": "e5756e1c", "crowd": "b31573db", "cliff": "011169ed", "neon": "1642d905", "glow": "d9b9a1c5", "stripes": "80accc45"};
 ok(TEXTURE_NAMES.length === Object.keys(HASHES).length && TEXTURE_NAMES.every(n => n in HASHES), 'the texture set is what this check knows (' + TEXTURE_NAMES.length + ')', TEXTURE_NAMES.join(' '));
 const stat = {};
 TEXTURE_NAMES.forEach(n => {
@@ -41,8 +41,9 @@ TEXTURE_NAMES.forEach(n => {
   stat[n] = { lum: n2 ? sum / n2 : 0, clear: clear / t.d.length };
 });
 /* the see-through ones are see-through, the others solid */
-['dash', 'edge', 'fence'].forEach(n => ok(stat[n].clear > 0.3, n + ' has holes', JSON.stringify(stat[n])));
-TEXTURE_NAMES.filter(n => !['dash', 'edge', 'fence'].includes(n)).forEach(n => ok(stat[n].clear === 0, n + ' is solid'));
+const HOLES = ['dash', 'edge', 'fence', 'zebra', 'arrow', 'hatch', 'stopline', 'oil', 'skid', 'bay'];             /* (the road's paint and its marks lie over the road: all hole but the mark)
+HOLES.forEach(n => ok(stat[n].clear > 0.3, n + ' has holes', JSON.stringify(stat[n])));
+TEXTURE_NAMES.filter(n => !HOLES.includes(n)).forEach(n => ok(stat[n].clear === 0, n + ' is solid'));
 /* what they look like, in a number */
 ok(stat.snow.lum > 190 && stat.drift.lum > 170 && stat.snow.lum > stat.slush.lum + 40, 'snow is pale, and paler than slush', stat.snow.lum.toFixed(0) + ' vs ' + stat.slush.lum.toFixed(0));
 ok(stat.asphalt.lum < 90 && stat.asphalt.lum < stat.concrete.lum, 'asphalt is dark, darker than concrete', stat.asphalt.lum.toFixed(0));

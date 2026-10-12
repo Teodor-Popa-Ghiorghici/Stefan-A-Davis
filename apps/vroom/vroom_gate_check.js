@@ -92,10 +92,20 @@ const HT = await import('../../kernel/help_text.js');
 {
   /* library.js reaches the whole audio kernel (a ring of imports only a machine can start), so Node reads its guard and runs the folder; the shell run (check:stack) opens the real Stack */
   const lib = readFileSync(join(ROOT, 'apps/hifi/library.js'), 'utf8');
-  ok(/if \(vroom\(\)\.open\(\)\) out\.push\(vroomFolder\(\)\);/.test(lib), 'the Stack: the folder is pushed only inside the gate\'s question');
+  ok(/if \(vroom\(\)\.open\(\)\) out\.push\(vroomFolder\(disc, Lang\)\);/.test(lib), 'the Stack: the folder is pushed only inside the gate\'s question');
   ok((lib.match(/vroomFolder/g) || []).length === 2 && !/VROOM/.test(lib.replace(/vroomFolder|VROOM'S|VROOM's|VROOM. tunes|VROOM'|until its gate/g, '').replace(/\/\*[\s\S]*?\*\//g, '')), 'the Stack: nothing else in the library says it');
-  const folder = (await import('./stack.js')).vroomFolder();
-  ok(folder[0] === 'VROOM' && Array.isArray(folder[2]), 'the Stack: the folder is a name, a tint and a list of discs');
+  const Lang = await import('../../kernel/songtext.js'), disc = (song, tint, artist, layers) => ({ song, tint, artist, layers });
+  const folder = (await import('./stack.js')).vroomFolder(disc, Lang);
+  ok(folder[0] === 'VROOM' && Array.isArray(folder[2]) && folder[2].length === 9 && folder[2].every(d => d[1].song.tracks.length > 4), 'the Stack: the folder is a name, a tint and nine discs, each a whole tune');
+}
+
+/* ---- the folder a mastery leaves: the table the ledger lists from is without it until the gate is open ---- */
+{
+  const src = readFileSync(join(ROOT, 'kernel/trophy_props.js'), 'utf8'), tro = readFileSync(join(ROOT, 'kernel/trophies.js'), 'utf8');
+  const table = /export const FOLDER_OF = \{[\s\S]*?\n\};/.exec(src)[0];
+  ok(!/vroom/i.test(table), 'props: the table the ledger lists folders from (FOLDER_OF) says nothing of it');
+  ok(/export const folderOf = \(\) => \(vroomOpen\(\) \?/.test(src) && /GATED_FOLDERS\[game\] && !vroomOpen\(\)/.test(src), 'props: the folder is in the table only through the gate\'s question, and is not made while it is shut');
+  ok(/folderOf\(\)/.test(tro) && !/FOLDER_OF/.test(tro), 'props: the ledger lists folders through folderOf()');
 }
 
 /* ---- the ledger ---- */
@@ -186,7 +196,7 @@ const HT = await import('../../kernel/help_text.js');
 {
   const ALLOWED = new Set([
     'kernel/vroom_gate_core.js', 'kernel/vroom_gate.js', 'apps/vroom_scope.js', 'kernel/registry.js', 'kernel/launcher_model.js', 'kernel/commands.js', 'kernel/help_text.js', 'kernel/desk_grid.js',
-    'kernel/icons_dom.js', 'kernel/sprites_extra.js', 'kernel/mixer.js', 'kernel/trophies.js', 'kernel/trophies_defs.js', 'kernel/trophies_system2.js', 'apps/hifi/library.js', 'apps/trophies/model.js',
+    'kernel/icons_dom.js', 'kernel/sprites_extra.js', 'kernel/mixer.js', 'kernel/eggs_core.js', 'kernel/trophy_props.js', 'kernel/trophies.js', 'kernel/trophies_defs.js', 'kernel/trophies_system2.js', 'apps/hifi/library.js', 'apps/trophies/model.js',
     'apps/terminal/complete_check.js',                   /* a check, not shipped */
     'electron-builder.yml', 'package.json'               /* the build's file list and the npm script that runs the shell check: nothing the machine ever shows */
   ]);
