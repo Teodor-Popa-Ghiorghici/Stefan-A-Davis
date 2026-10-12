@@ -11,6 +11,7 @@ import { lineReport } from '../../kernel/lines.js';
 import { sys } from '../../kernel/trophy_hook.js';
 import { aliases, APP_HELLO } from '../../kernel/commands.js';
 import { complete } from './complete.js';
+import { isSecret, runSecret } from './secret.js';
 
 /* ---- the fallback answering machine --------------------------------------
    Real commands (DIR, CD, TYPE, DEL, MD, TREE, COMPILE...) are handled
@@ -515,6 +516,8 @@ export default {
       const owned = (cmd === 'BELL' || cmd === 'COMPILE');
       const arg = s.slice(head.length).trim();
       const q = s.toLowerCase();
+
+      if (isSecret(cmd)) { runSecret(print); out.scrollTop = out.scrollHeight; return; }
 
       switch (cmd) {
         case 'DIR': case 'LS':          await doDir(arg); break;
