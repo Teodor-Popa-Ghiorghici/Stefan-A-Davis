@@ -211,7 +211,7 @@ export default {
         pos: 0, dur: 0, seekBase: 0, startedAt: 0,
         vol: 0.7, pre: 0, bal: 0, width: 1, speed: 1, room: 0, roomIx: 2, exp: false,
         eqOn: true, bassBoost: false, loud: false, mono: false,
-        texture: 'off', scan: false, style: 0, repeat: 0, shuffle: false,
+        texture: 'off', scan: false, style: 0, repeat: 0, shuffle: false, fade: true, auto: true,
         tray: 0, trayDir: 0, disc: 0, spin: 0, sheen: 0, touched: false,
         vuL: 0, vuR: 0, vuLv: 0, vuRv: 0, peakL: 0, peakR: 0, corr: 0,
         glow: 0, marquee: 0, drag: null, note: '', noteT: 0, loading: 0, xfaded: false, upT: null, upKey: '', failRun: 0, gapUntil: 0,
@@ -724,7 +724,7 @@ export default {
         R(x + 2, y + 2, (w - 4) * open, h - 4, P.case_);
         if (open > 0.05) { R(x + 3, y + 4, (w - 6) * open, 2, P.brush);
           R(x + 3, y + h - 6, (w - 6) * open, 2, P.screw); }
-        TXT(open > 0.5 ? 'DROP A FILE — OR PRESS LOAD DISC' : 'DISC TRAY', x + w / 2, y + h / 2 + 3,
+        TXT(open > 0.5 ? 'DROP A FILE OR LOAD DISC' : 'DISC TRAY', x + w / 2, y + h / 2 + 3,
             open > 0.5 ? P.amber : P.brush, 7, 'center');
         hits.push({ k: 'btn', id: 'tray', x: x, y: y, w: w, h: h });
       }
@@ -969,7 +969,9 @@ export default {
         button('next', 230, 80, 30, 20, '>>|', false);
         button('shuffle', 262, 80, 32, 20, 'SHF', S.shuffle);
         button('repeat', 296, 80, 32, 20, S.repeat === 2 ? 'RP1' : 'RPT', S.repeat > 0);
-        drawTray(128, 104, 200, 20);
+        drawTray(128, 104, 140, 20);
+        button('fade', 270, 104, 28, 20, 'FADE', S.fade);
+        button('auto', 300, 104, 28, 20, 'AUTO', S.auto);
         const hv = S.hover >= 0 ? S.list[S.hover] : null;
         TXT(fitText(S.note || (hv ? hv.name + '  \u2014  ' + hv.artist + (hv.album ? '  \u2014  ' + hv.album : '') : (t ? 'DISC ' + (S.ix + 1) + ' OF ' + S.list.length : 'LOAD A DISC TO BEGIN')), 204, 7),
             128, 138, S.note ? P.amber : hv ? P.brushHi : P.brush, 7);
@@ -1107,7 +1109,7 @@ export default {
           if (pt && !pt.buf && !pt.job && !pt.decoding) ensureBuf(pt);
         }
         const nt = S.list.length > 1 && S.repeat !== 2 ? S.upT : null;
-        const act = plan({ playing: S.playing, pos: S.pos, dur: S.dur, repeat: S.repeat, count: S.list.length, crossed: S.xfaded, nextReady: !!(nt && nt.buf && nt !== cur) });
+        const act = plan({ playing: S.playing, pos: S.pos, dur: S.dur, repeat: S.repeat, count: S.list.length, crossed: S.xfaded, fade: S.fade, auto: S.auto, nextReady: !!(nt && nt.buf && nt !== cur) });
         if (act === 'xfade') {
           tro.ended(S.dur);
           const n = S.list.indexOf(nt);
@@ -1217,6 +1219,8 @@ export default {
           case 'prev': if (S.pos > 3) seek(0); else skip(-1); break;
           case 'next': skip(1); break;
           case 'shuffle': S.shuffle = !S.shuffle; say('SHUFFLE ' + (S.shuffle ? 'ON' : 'OFF')); io.saveSettings(); break;
+          case 'fade': S.fade = !S.fade; say('FADE BETWEEN DISCS ' + (S.fade ? 'ON' : 'OFF')); io.saveSettings(); break;
+          case 'auto': S.auto = !S.auto; say('AUTOPLAY ' + (S.auto ? 'ON' : 'OFF')); io.saveSettings(); break;
           case 'repeat': S.repeat = (S.repeat + 1) % 3; say(['REPEAT OFF', 'REPEAT ALL', 'REPEAT ONE'][S.repeat]); io.saveSettings(); break;
           case 'tray': pick.click(); break;
           case 'eqon': S.eqOn = !S.eqOn; routeEQ(); say(S.eqOn ? 'EQUALISER IN CIRCUIT' : 'EQUALISER BYPASSED'); break;

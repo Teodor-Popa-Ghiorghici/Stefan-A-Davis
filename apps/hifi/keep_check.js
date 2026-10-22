@@ -15,6 +15,11 @@ ok(P({ pos: 199.99, crossed: true }) === 'next', 'run out after a crossfade flag
 ok(P({ pos: 199.99, repeat: 2 }) === 'again', 'repeat one');
 ok(P({ pos: 199.99, count: 1 }) === 'stop', 'one disc on the shelf stops');
 ok(P({ pos: 199.99, count: 1, repeat: 1 }) === 'again', 'one disc, repeat');
+ok(P({ pos: 200 - XFADE + 0.1, fade: false }) === 'none', 'fade off: no crossfade');
+ok(P({ pos: 199.99, fade: false }) === 'next', 'fade off: still goes on at the end');
+ok(P({ pos: 200 - XFADE + 0.1, auto: false }) === 'none', 'autoplay off: no crossfade');
+ok(P({ pos: 199.99, auto: false }) === 'stop', 'autoplay off: stops at the end');
+ok(P({ pos: 199.99, auto: false, repeat: 2 }) === 'again', 'autoplay off: repeat one still repeats');
 ok(P({ pos: 199, repeat: 2 }) === 'none', 'repeat one does not crossfade');
 
 /* an evening: 400 discs of 2 to 6 minutes, the next one read late or failing now and then */
