@@ -6,14 +6,14 @@ export const XFADE = 1.6;          /* seconds of overlap into the next disc */
 export const PRELOAD = 90;         /* start reading the next disc this many seconds before the end of this one */
 export const BUDGET = 300e6;       /* bytes of decoded audio kept besides the disc on and the one coming */
 
-/* what to do now. 'xfade': cross into the next disc (it is ready); 'next': this one has run out, load the next; 'again': play this one over; 'stop': the shelf has run out */
-export function plan({ playing, pos, dur, repeat, count, crossed, nextReady }) {
+/* what to do now. `fade` off: no overlap, the next disc starts when this one ends; `auto` off: the disc ends and the player stops (repeat one still plays it over). 'xfade': cross into the next disc (it is ready); 'next': this one has run out, load the next; 'again': play this one over; 'stop': the shelf has run out */
+export function plan({ playing, pos, dur, repeat, count, crossed, nextReady, fade = true, auto = true }) {
   if (!playing || !(dur > 0)) return 'none';
   const end = pos >= dur - 0.03;
   if (repeat === 2) return end ? 'again' : 'none';
   if (count <= 1) return end ? (repeat === 1 ? 'again' : 'stop') : 'none';
-  if (end) return 'next';
-  if (!crossed && nextReady && pos > dur - XFADE) return 'xfade';
+  if (end) return auto ? 'next' : 'stop';
+  if (fade && auto && !crossed && nextReady && pos > dur - XFADE) return 'xfade';
   return 'none';
 }
 
